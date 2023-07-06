@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="8">
+ <properties>
+  <property name="walkableBackground" type="bool" value="true"/>
+ </properties>
+ <tileset firstgid="1" source="debug.tsx"/>
+ <layer id="4" name="Floor" width="16" height="16">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Warps">
+  <object id="1" gid="5" x="64" y="48" width="16" height="16">
+   <properties>
+    <property name="warpMap" value="Maps\neonred.tmx"/>
+    <property name="warpX" type="float" value="41"/>
+    <property name="warpY" type="float" value="22"/>
+   </properties>
+  </object>
+  <object id="2" gid="6" x="96" y="48" width="16" height="16">
+   <properties>
+    <property name="warpMap" value="Maps\forest.tmx"/>
+    <property name="warpX" type="float" value="16"/>
+    <property name="warpY" type="float" value="8"/>
+   </properties>
+  </object>
+  <object id="3" gid="7" x="16" y="112" width="16" height="16">
+   <properties>
+    <property name="warpMap" value="Maps\nexus.tmx"/>
+    <property name="warpX" type="float" value="20"/>
+    <property name="warpY" type="float" value="15"/>
+   </properties>
+  </object>
+  <object id="4" gid="8" x="128" y="48" width="16" height="16">
+   <properties>
+    <property name="warpMap" value="Maps\blue_ghost_world.tmx"/>
+    <property name="warpX" type="float" value="34"/>
+    <property name="warpY" type="float" value="24"/>
+   </properties>
+  </object>
+  <object id="7" gid="7" x="192" y="48" width="16" height="16">
+   <properties>
+    <property name="warpMap" value="Maps\mushroom_world.tmx"/>
+    <property name="warpX" type="float" value="32"/>
+    <property name="warpY" type="float" value="9"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <layer id="3" name="Top" width="16" height="16">
+  <properties>
+   <property name="abovePlayer" type="bool" value="true"/>
+   <property name="noCollide" type="bool" value="true"/>
+  </properties>
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,1,0,2,0,4,0,0,0,3,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

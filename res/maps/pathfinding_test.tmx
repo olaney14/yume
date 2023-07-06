@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="4">
+ <properties>
+  <property name="defaultPos" value="4,3"/>
+ </properties>
+ <tileset firstgid="1" source="test0.tsx"/>
+ <tileset firstgid="25" source="entity/entity_circles.tsx"/>
+ <tileset firstgid="29" source="entity/entity_test.tsx"/>
+ <tileset firstgid="34" source="entity/pathfinder.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="30" height="20">
+  <properties>
+   <property name="name" value="floor"/>
+  </properties>
+  <data encoding="csv">
+17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,0,17,17,17,17,0,
+17,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,17,17,17,17,17,17,17,
+17,0,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,0,17,17,17,24,24,24,17,17,
+17,0,17,0,0,0,17,0,0,0,17,0,0,0,0,0,17,0,0,0,17,0,17,17,17,24,24,24,17,17,
+17,0,17,0,23,0,17,0,0,0,17,0,17,17,17,0,17,17,17,17,17,0,17,17,17,24,24,24,17,17,
+17,0,17,17,17,0,17,0,0,0,17,0,17,0,17,0,0,0,0,0,17,0,17,17,17,17,17,17,17,17,
+17,0,17,0,17,0,17,0,0,0,17,0,17,0,17,17,17,17,17,0,17,0,17,17,17,17,17,17,17,17,
+17,0,17,0,17,0,17,17,17,17,17,0,17,0,0,0,0,0,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,0,17,0,0,0,0,0,0,0,17,0,0,0,0,0,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,0,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,0,17,0,0,0,0,0,17,17,0,0,0,0,0,17,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,0,17,0,17,17,17,0,17,17,0,17,17,17,0,17,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,0,17,0,0,0,17,0,17,17,0,17,0,17,0,17,17,0,17,0,17,0,0,0,0,0,0,0,
+17,0,17,17,17,17,17,0,17,0,17,17,0,17,0,17,0,0,0,0,17,0,17,0,0,0,0,0,0,0,
+17,0,0,0,0,0,0,0,17,0,17,17,0,17,17,17,17,17,17,17,17,0,17,0,17,17,17,17,17,17,
+17,17,17,17,17,17,17,17,17,0,17,17,0,17,0,0,0,0,0,0,0,0,17,0,17,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,17,17,0,17,0,17,0,17,17,17,17,0,17,0,17,17,17,17,17,0,
+0,17,17,17,17,17,17,17,17,17,17,17,0,17,0,17,0,17,0,0,17,0,17,0,0,0,0,0,17,0,
+0,17,17,17,17,17,17,17,17,17,17,17,0,17,0,17,0,17,17,0,17,0,17,17,17,17,17,17,17,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,17,0,17,0,0,0,0,17,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Entities">
+  <properties>
+   <property name="height" type="int" value="0"/>
+  </properties>
+  <object id="1" gid="25" x="416" y="48" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;dev.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 5,
+				&quot;y&quot;: 5
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/circles.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="2" gid="29" x="464" y="16" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;dev.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 5,
+				&quot;y&quot;: 10
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/circles.json"/>
+    <property name="name" value="nvm"/>
+   </properties>
+  </object>
+  <object id="3" gid="34" x="400" y="256" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;bump&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 26,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="chaser_speed" type="int" value="16"/>
+    <property name="file" value="res/data/entity/dir_chaser.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

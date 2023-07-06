@@ -1,0 +1,9 @@
+{
+	"ai": {
+		"type": "push",
+		"speed": 2
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

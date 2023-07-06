@@ -1,0 +1,27 @@
+{
+	"ai": {
+		"type": "chaser",
+		"speed": 2,
+		"detection_radius": 100
+	},
+	"animation": {
+		"type": "directional",
+		"up": 0,
+		"down": 1,
+		"left": 3,
+		"right": 2,
+		"frames": 3,
+		"speed": 4,
+		"repeat": "cycle",
+		"on_move": true
+	},
+	"collider": {
+		"x": 0,
+		"y": 16,
+		"w": 16,
+		"h": 16
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": true
+}

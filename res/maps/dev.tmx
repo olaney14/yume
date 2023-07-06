@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="20">
+ <properties>
+  <property name="defaultPos" value="16,16"/>
+  <property name="music" value="res/audio/music/boylestem.mp3"/>
+  <property name="music_speed" type="float" value="0.5"/>
+ </properties>
+ <tileset firstgid="1" source="entity/entity_circles.tsx"/>
+ <tileset firstgid="5" source="checkered_tiles_slanted.tsx"/>
+ <tileset firstgid="69" source="entity/entity_test.tsx"/>
+ <tileset firstgid="74" source="entity/misc_entities.tsx"/>
+ <tileset firstgid="90" source="entity/lamppost.tsx"/>
+ <tileset firstgid="94" source="entity/doors.tsx"/>
+ <layer id="1" name="s" width="32" height="32">
+  <properties>
+   <property name="height" type="int" value="0"/>
+  </properties>
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Objects">
+  <object id="1" gid="1" x="176" y="192" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+	&quot;trigger&quot;: {
+		&quot;type&quot;: &quot;use&quot;
+	},
+	&quot;action&quot;: {
+		&quot;type&quot;: &quot;warp&quot;,
+		&quot;map&quot;: &quot;blue_ghost_world.tmx&quot;,
+		&quot;pos&quot;: { &quot;x&quot;: 5, &quot;y&quot;: 5 },
+		&quot;transition&quot;: &quot;fade&quot;
+	}
+}]</property>
+    <property name="ai">{
+	&quot;type&quot;: &quot;wander&quot;,
+	&quot;frequency&quot;: 5,
+	&quot;delay&quot;: 50
+}</property>
+    <property name="animation">{
+	&quot;type&quot;: &quot;sequence&quot;,
+	&quot;start&quot;: 0,
+	&quot;length&quot;: 4,
+	&quot;speed&quot;: 10,
+	&quot;repeat&quot;: &quot;loop&quot;
+}</property>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="5" gid="69" x="176" y="320" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="6" gid="69" x="192" y="320" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="7" gid="69" x="208" y="320" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="8" gid="69" x="208" y="336" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="9" gid="69" x="192" y="336" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="10" gid="69" x="176" y="336" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="11" gid="69" x="176" y="352" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="12" gid="69" x="192" y="352" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="13" gid="69" x="208" y="352" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+		&quot;trigger&quot;: {
+			&quot;type&quot;: &quot;use&quot;
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;pathfinding_test.tmx&quot;,
+			&quot;pos&quot;: {
+				&quot;x&quot;: 4,
+				&quot;y&quot;: 3
+			},
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}]</property>
+    <property name="file" value="res/data/entity/numbers.json"/>
+    <property name="name" value="pathfinder"/>
+   </properties>
+  </object>
+  <object id="14" gid="74" x="224" y="224" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/pushable.json"/>
+   </properties>
+  </object>
+  <object id="15" gid="75" x="320" y="224" width="16" height="16">
+   <properties>
+    <property name="door_warp_map" value="matted_room.tmx"/>
+    <property name="door_warp_x" type="int" value="24"/>
+    <property name="door_warp_y" type="int" value="2"/>
+    <property name="file" value="res/data/entity/door.json"/>
+   </properties>
+  </object>
+  <object id="17" gid="90" x="352" y="224" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="door_warp_map" value="checkered_tiles_world.tmx"/>
+    <property name="door_warp_x" type="int" value="5"/>
+    <property name="door_warp_y" type="int" value="7"/>
+    <property name="file" value="res/data/entity/lamppost.json"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="19" gid="94" x="384" y="224" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="door_warp_map" value="hospital.tmx"/>
+    <property name="door_warp_x" type="int" value="6"/>
+    <property name="door_warp_y" type="int" value="18"/>
+    <property name="file" value="res/data/entity/entrances/hospital_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="true"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <layer id="3" name="Above" width="32" height="32">
+  <properties>
+   <property name="height" type="int" value="1"/>
+  </properties>
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

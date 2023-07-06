@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="9">
+ <properties>
+  <property name="backgroundColor" type="color" value="#ffffffff"/>
+  <property name="looping" type="bool" value="true"/>
+  <property name="music" value="eyes"/>
+ </properties>
+ <tileset firstgid="1" source="white_world.tsx"/>
+ <tileset firstgid="17" source="doors.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="32" height="32">
+  <data encoding="csv">
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,6,7,0,1,1,1,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,10,11,0,0,0,0,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,1,0,6,7,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,1,0,10,11,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,6,7,0,1,0,0,
+0,0,6,7,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,10,11,0,1,0,0,
+0,0,10,11,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,1,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,6,7,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,10,11,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,
+0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Objects">
+  <object id="1" gid="23" x="240" y="48" width="16" height="32">
+   <properties>
+    <property name="warpMap" value="Maps\nexus.tmx"/>
+    <property name="warpX" type="float" value="9"/>
+    <property name="warpY" type="float" value="11"/>
+   </properties>
+  </object>
+  <object id="4" x="229.333" y="249.333">
+   <properties>
+    <property name="npc" type="bool" value="true"/>
+    <property name="npcType" value="RollingEye"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="5" x="54.6667" y="346">
+   <properties>
+    <property name="npc" type="bool" value="true"/>
+    <property name="npcType" value="RollingEye"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" x="428" y="137.333">
+   <properties>
+    <property name="npc" type="bool" value="true"/>
+    <property name="npcType" value="RollingEye"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="7" x="423.333" y="330">
+   <properties>
+    <property name="npc" type="bool" value="true"/>
+    <property name="npcType" value="RollingEye"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="8" x="440.667" y="456.667">
+   <properties>
+    <property name="npc" type="bool" value="true"/>
+    <property name="npcType" value="RollingEye"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Holes">
+  <object id="3" gid="5" x="80" y="352" width="16" height="16">
+   <properties>
+    <property name="interactOnWalk" type="bool" value="true"/>
+    <property name="noCollide" type="bool" value="true"/>
+    <property name="warpMap" value="Maps\stairwell1.tmx"/>
+    <property name="warpX" type="float" value="10"/>
+    <property name="warpY" type="float" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

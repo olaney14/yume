@@ -1,0 +1,32 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "warp",
+			"map": "blue_ghost_world.tmx",
+			"pos": {
+				"x": 5,
+				"y": 5
+			},
+			"transition": "fade"
+		}
+	}],
+	"ai": {
+		"type": "wander",
+		"frequency": 5,
+		"delay": 50
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 0,
+		"length": 4,
+		"speed": 10,
+		"repeat": "loop",
+		"on_move": true
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}
