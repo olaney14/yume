@@ -165,6 +165,33 @@ these define the rows of the animation
 #### frames (u32)
 how many frames per row
 #### speed (u32)
+## actions
+all begin with a `type`
+### `warp`
+warps the player
+#### map (string) (optional)
+path starts from res/maps
+#### transition (string)
+transition type
+#### transition_speed (number) (optional)
+#### transition_music (bool) (optional)
+#### pos (string)
+warp coord things, goes like `"pos": { "x": 5, "y": 5 }`
+x and y can be numbers, or several keywords. `match` keeps the player's position for one component, 
+`default` puts the player at the map's default position, `sub` + number (ex: `sub32`) takes a position
+component and subtracts number, `add` works the same
+### `print`
+for debugging 
+#### message (string)
+### `delayed`
+delays another action for some amount of frames
+#### delay (u32)
+#### after (string)
+action json
+### `freeze`
+freezes player
+#### time (u32) (optional)
+if not present, just toggle freeze on
 ## tilesets
 ### blocking (bool)
 practical examples:
