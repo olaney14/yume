@@ -1,0 +1,47 @@
+{
+	"ai": {
+		"type": "animate_on_interact",
+		"frames": 4,
+		"use": true,
+		"side": "bottom"
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 0,
+		"length": 5,
+		"speed": 4,
+		"manual": true
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "warp",
+				"map": "$door_warp_map",
+				"pos": {
+					"x": "$door_warp_x",
+					"y": "$door_warp_y"
+				},
+				"transition": "fade",
+				"transition_music": false
+			},
+			"delay": 32
+		}
+	},
+	{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "freeze"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

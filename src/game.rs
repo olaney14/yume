@@ -6,6 +6,18 @@ use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}, pixels::Color};
 
 use crate::{player::Player, world::{World, QueuedEntityAction}};
 
+pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
+    (n as f32 / to as f32).floor() as i32 * to - (offset.abs() % to)
+}
+
+pub fn offset_ceil(n: i32, to: i32, offset: i32) -> i32 {
+    (n as f32 / to as f32).ceil() as i32 * to - (offset.abs() % to)
+}
+
+pub fn ceil(n: i32, to: i32) -> i32 {
+    (n as f32 / to as f32).ceil() as i32 * to
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Direction {
     Up,
@@ -218,6 +230,8 @@ impl Transition {
             TransitionType::MusicOnly => ()
         }
     }
+
+    //pub fn parse()
 }
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
@@ -271,7 +285,9 @@ pub struct DelayedAction {
     pub delay: u32
 }
 
-pub struct FreezeAction {}
+pub struct FreezeAction {
+    pub time: Option<u32>
+}
 
 impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
@@ -299,12 +315,16 @@ impl WarpAction {
             if parsed["transition_speed"].is_number() {
                 transition_speed = parsed["transition_speed"].as_i32().unwrap();
             }
+            let mut fade_music = true;
+            if parsed["transition_music"].is_boolean() {
+                fade_music = parsed["transition_music"].as_bool().unwrap();
+            }
             transition = Some(Transition {
                 kind,
                 direction: 1,
                 progress: 0,
                 speed: transition_speed,
-                fade_music: true
+                fade_music
             });
         }
 
@@ -314,6 +334,7 @@ impl WarpAction {
         if parsed["pos"]["x"].is_string() {
             pos.0 = match parsed["pos"]["x"].as_str().unwrap() {
                 "match" => WarpCoord::Match,
+                "default" => WarpCoord::Default,
                 other => {
                     if other.starts_with("sub") {
                         WarpCoord::Sub(other[3..].parse::<i32>().unwrap())
@@ -331,6 +352,7 @@ impl WarpAction {
         if parsed["pos"]["y"].is_string() {
             pos.1 = match parsed["pos"]["y"].as_str().unwrap() {
                 "match" => WarpCoord::Match,
+                "default" => WarpCoord::Default,
                 other => {
                     if other.starts_with("sub") {
                         WarpCoord::Sub(other[3..].parse::<i32>().unwrap())
@@ -376,13 +398,23 @@ impl DelayedAction {
 
 impl FreezeAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
-        return Ok(Box::new(FreezeAction {}));
+        let mut time = None;
+        if parsed["time"].is_number() {
+            time = parsed["time"].as_u32()
+        }
+        return Ok(Box::new(FreezeAction {
+            time
+        }));
     }
 }
 
 impl Action for FreezeAction {
     fn act(&self, player: &mut Player, world: &mut World) {
-        player.frozen = true;
+        if let Some(time) = self.time {
+            player.frozen_time = time;
+        } else {
+            player.frozen = true;
+        }
     }
 }
 

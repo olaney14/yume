@@ -5,7 +5,7 @@ use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormat, PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation, ObjectShape};
 
-use crate::{world::{World, Layer}, tiles::{Tilemap, Tileset, Tile, self}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai};
+use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, self}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World>) -> World<'a> {
@@ -67,6 +67,9 @@ impl<'a> World<'a> {
             if let PropertyValue::StringValue(song) = prop {
                 if old_world.is_some() && old_world.as_ref().unwrap().song.is_some() && old_world.as_ref().unwrap().song.as_ref().unwrap().path == PathBuf::from(song) {
                     world.song = old_world.as_mut().unwrap().song.take();
+                    world.song.as_mut().unwrap().default_speed = 1.0;
+                    world.song.as_mut().unwrap().default_volume = 1.0;
+                    world.song.as_mut().unwrap().dirty = true;
                 } else {
                     world.song = Some(
                         Song::new(PathBuf::from(song))
@@ -274,6 +277,22 @@ impl<'a> World<'a> {
                                 world.add_entity(entity);
                             }
                         }
+                    }
+                },
+                LayerType::Image(image_layer) => {
+                    if let Some(image) = &image_layer.image {
+                        let mut world_image_layer = ImageLayer::load_from_file(&image.source, creator);
+                        if let Some(prop) = layer.properties.get("looping") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = true; world_image_layer.looping_y = true; } };
+                        if let Some(prop) = layer.properties.get("looping_x") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = true; } };
+                        if let Some(prop) = layer.properties.get("looping_y") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_y = true; } };
+                        if let Some(prop) = layer.properties.get("scroll_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_x = *i; } };
+                        if let Some(prop) = layer.properties.get("scroll_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_y = *i; } };
+                        if let Some(prop) = layer.properties.get("x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.x = *i; } };
+                        if let Some(prop) = layer.properties.get("y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.y = *i; } };
+                        if let Some(prop) = layer.properties.get("delay_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.delay_x = *i as u32; world_image_layer.timer_x = *i; } };
+                        if let Some(prop) = layer.properties.get("delay_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.delay_y = *i as u32; world_image_layer.timer_y = *i; } };
+                        if let Some(prop) = layer.properties.get("mismatch") { if let PropertyValue::BoolValue(b) = prop { if *b { world_image_layer.timer_x /= 2; } } }
+                        world.image_layers.push(world_image_layer);
                     }
                 }
                 _ => println!("Unsupported layer type")

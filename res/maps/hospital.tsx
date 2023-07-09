@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.1" name="hospital" tilewidth="16" tileheight="16" tilecount="72" columns="8">
- <image source="../textures/tiles/hospital.png" width="128" height="144"/>
+<tileset version="1.10" tiledversion="1.10.1" name="hospital" tilewidth="16" tileheight="16" tilecount="110" columns="11">
+ <image source="../textures/tiles/hospital.png" width="176" height="160"/>
  <tile id="0">
   <properties>
    <property name="blocking" type="bool" value="true"/>
@@ -26,47 +26,37 @@
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="8">
-  <properties>
-   <property name="blocking" type="bool" value="true"/>
-  </properties>
- </tile>
- <tile id="10">
-  <properties>
-   <property name="blocking" type="bool" value="true"/>
-  </properties>
- </tile>
  <tile id="11">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="12">
+ <tile id="13">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="16">
+ <tile id="14">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="17">
+ <tile id="15">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="18">
+ <tile id="22">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="19">
+ <tile id="23">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="20">
+ <tile id="24">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
@@ -76,12 +66,42 @@
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="27">
+ <tile id="26">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
- <tile id="28">
+ <tile id="34">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="36">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="37">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="71">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="72">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="73">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="94">
   <properties>
    <property name="blocking" type="bool" value="true"/>
   </properties>

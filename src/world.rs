@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, path::PathBuf};
 
 use rodio::{Sink, OutputStreamHandle};
-use sdl2::{render::{Canvas, RenderTarget, Texture}, rect::{Rect, Point}, pixels::Color, EventSubsystem};
+use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator}, rect::{Rect, Point}, pixels::Color, EventSubsystem};
 
-use crate::{tiles::{Tilemap, Tileset, Tile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition}, audio::Song, entity::Entity};
+use crate::{tiles::{Tilemap, Tileset, Tile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self}, audio::Song, entity::Entity, texture};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -28,6 +28,7 @@ pub struct QueuedEntityAction {
 
 pub struct World<'a> {
     pub layers: Vec<Layer>,
+    pub image_layers: Vec<ImageLayer<'a>>,
     pub tilesets: Vec<Tileset<'a>>,
     /// The lowest layer depth found in this world
     pub layer_min: i32,
@@ -59,6 +60,7 @@ impl<'a> World<'a> {
     pub fn new() -> Self {
         Self {
             layers: Vec::new(),
+            image_layers: Vec::new(),
             tilesets: Vec::new(),
             layer_max: 0, 
             layer_min: 0,
@@ -145,6 +147,10 @@ impl<'a> World<'a> {
         }
 
         if !self.paused {
+            for image_layer in self.image_layers.iter_mut() {
+                image_layer.update();
+            }
+
             let mut act_entities = Vec::new();
 
             let mut entity_list = self.entities.take().unwrap();
@@ -234,6 +240,12 @@ impl<'a> World<'a> {
 
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
         for height in self.layer_min..=self.layer_max {
+
+            for image_layer in self.image_layers.iter() {
+                if image_layer.draw && image_layer.height == height {
+                    image_layer.draw(canvas, state);
+                }
+            }
 
             for layer in self.layers.iter() {
                 if layer.draw && layer.height == height {
@@ -554,6 +566,97 @@ impl<'a> World<'a> {
         }
 
         return false;
+    }
+}
+
+pub struct ImageLayer<'a> {
+    pub image: texture::Texture<'a>,
+    pub x: i32,
+    pub y: i32,
+    pub looping_x: bool,
+    pub looping_y: bool,
+    pub scroll_x: i32,
+    pub scroll_y: i32,
+    pub height: i32,
+    pub draw: bool,
+    pub delay_x: u32,
+    pub delay_y: u32,
+    pub timer_x: i32,
+    pub timer_y: i32
+}
+
+impl<'a> ImageLayer<'a> {
+    pub fn new(image: texture::Texture<'a>) -> Self {
+        Self {
+            image,
+            looping_x: false,
+            looping_y: false,
+            scroll_x: 0,
+            scroll_y: 0,
+            x: 0,
+            y: 0,
+            height: 0,
+            draw: true,
+            delay_x: 0,
+            delay_y: 0,
+            timer_x: 0,
+            timer_y: 0
+        }
+    }
+
+    pub fn load_from_file<T>(file: &PathBuf, creator: &'a TextureCreator<T>) -> Self {
+        Self::new(texture::Texture::from_file(file, creator).expect("failed to load image layer"))
+    }
+
+    pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
+        let w_i32 = self.image.width as i32;
+        let h_i32 = self.image.height as i32;
+        let left = game::offset_floor(-state.offset.0, w_i32, self.x);
+        let top = game::offset_floor(-state.offset.1, h_i32, self.y);
+        let repeat_x = game::ceil((-left) + state.screen_dims.0 as i32, w_i32) / w_i32;
+        let repeat_y = game::ceil((-top) + state.screen_dims.1 as i32, h_i32) / h_i32;
+
+        for y in 0..repeat_y {
+            for x in 0..repeat_x {
+                canvas.copy(
+                    &self.image.texture, 
+                    Rect::new(0, 0, self.image.width, self.image.height), 
+                    Rect::new(left + state.offset.0 + (x * w_i32), top + state.offset.1 + (y * h_i32), self.image.width, self.image.height)
+                ).unwrap();
+            }
+        }
+        
+    }
+
+    pub fn update(&mut self) {
+        if self.delay_x > 0 {
+            self.timer_x -= 1;
+            if self.timer_x <= 0 {
+                self.timer_x = self.delay_x as i32;
+                self.x += self.scroll_x;
+            }
+        } else {
+            self.x += self.scroll_x;
+        }
+
+        if self.delay_y > 0 {
+            self.timer_y -= 1;
+            if self.timer_y <= 0 {
+                self.timer_y = self.delay_y as i32;
+                self.y += self.scroll_y;
+            }
+        } else {
+            self.y += self.scroll_y;
+        }
+
+        
+        
+        if self.x >= self.image.width as i32 || self.x <= -(self.image.width as i32) {
+            self.x = 0;
+        }
+        if self.y >= self.image.height as i32 || self.y <= -(self.image.height as i32) {
+            self.y = 0;
+        }
     }
 }
 

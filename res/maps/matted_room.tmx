@@ -57,7 +57,7 @@
   <object id="1" gid="18" x="384" y="48" width="16" height="16">
    <properties>
     <property name="door_warp_map" value="dev.tmx"/>
-    <property name="door_warp_x" type="int" value="16"/>
+    <property name="door_warp_x" type="int" value="20"/>
     <property name="door_warp_y" type="int" value="14"/>
     <property name="file" value="res/data/entity/door.json"/>
    </properties>

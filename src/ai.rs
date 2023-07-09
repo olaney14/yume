@@ -290,7 +290,7 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                         }));
         },
         "chaser" => {
-            let speed = parsed["speed"].as_u32().unwrap_or(2);
+            let speed = parsed["speed"].as_u32().unwrap_or(1);
             let path_max = parsed["path_max"].as_u32().unwrap_or(ASTAR_MAX_STEPS);
             let detection_radius = parsed["detection_radius"].as_u32().unwrap_or(16);
             return Ok(Box::new(

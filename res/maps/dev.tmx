@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="20">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="20">
  <properties>
-  <property name="defaultPos" value="16,16"/>
+  <property name="defaultPos" value="22,14"/>
   <property name="music" value="res/audio/music/boylestem.mp3"/>
   <property name="music_speed" type="float" value="0.5"/>
+  <property name="music_volume" type="float" value="0.5"/>
  </properties>
  <tileset firstgid="1" source="entity/entity_circles.tsx"/>
  <tileset firstgid="5" source="checkered_tiles_slanted.tsx"/>
@@ -11,6 +12,18 @@
  <tileset firstgid="74" source="entity/misc_entities.tsx"/>
  <tileset firstgid="90" source="entity/lamppost.tsx"/>
  <tileset firstgid="94" source="entity/doors.tsx"/>
+ <imagelayer id="4" name="bg" repeatx="1" repeaty="1">
+  <image source="../textures/image/neon_space_mountain.png" width="512" height="512"/>
+  <properties>
+   <property name="delay_x" type="int" value="8"/>
+   <property name="delay_y" type="int" value="8"/>
+   <property name="height" type="int" value="0"/>
+   <property name="looping" type="bool" value="true"/>
+   <property name="mismatch" type="bool" value="false"/>
+   <property name="scroll_x" type="int" value="1"/>
+   <property name="scroll_y" type="int" value="1"/>
+  </properties>
+ </imagelayer>
  <layer id="1" name="s" width="32" height="32">
   <properties>
    <property name="height" type="int" value="0"/>
@@ -284,7 +297,7 @@
 }</property>
     <property name="door_warp_map" value="checkered_tiles_world.tmx"/>
     <property name="door_warp_x" type="int" value="5"/>
-    <property name="door_warp_y" type="int" value="7"/>
+    <property name="door_warp_y" type="int" value="8"/>
     <property name="file" value="res/data/entity/lamppost.json"/>
     <property name="solid" type="bool" value="true"/>
     <property name="walk_behind" type="bool" value="true"/>
@@ -298,9 +311,9 @@
 	&quot;w&quot;: 16,
 	&quot;h&quot;: 16
 }</property>
-    <property name="door_warp_map" value="hospital.tmx"/>
+    <property name="door_warp_map" value="hospital/hospital_entrance.tmx"/>
     <property name="door_warp_x" type="int" value="6"/>
-    <property name="door_warp_y" type="int" value="18"/>
+    <property name="door_warp_y" type="int" value="14"/>
     <property name="file" value="res/data/entity/entrances/hospital_door.json"/>
     <property name="height" type="int" value="0"/>
     <property name="solid" type="bool" value="true"/>

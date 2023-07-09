@@ -43,6 +43,7 @@ fn main() {
         .into_canvas()
         .software()
         .target_texture()
+        //.present_vsync()
         .build()
         .map_err(|e| e.to_string()).unwrap();
     let texture_creator = canvas.texture_creator();
