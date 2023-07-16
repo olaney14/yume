@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="20">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="21">
  <properties>
   <property name="defaultPos" value="22,14"/>
   <property name="music" value="res/audio/music/boylestem.mp3"/>
@@ -12,6 +12,7 @@
  <tileset firstgid="74" source="entity/misc_entities.tsx"/>
  <tileset firstgid="90" source="entity/lamppost.tsx"/>
  <tileset firstgid="94" source="entity/doors.tsx"/>
+ <tileset firstgid="99" source="puddles.tsx"/>
  <imagelayer id="4" name="bg" repeatx="1" repeaty="1">
   <image source="../textures/image/neon_space_mountain.png" width="512" height="512"/>
   <properties>
@@ -318,6 +319,14 @@
     <property name="height" type="int" value="0"/>
     <property name="solid" type="bool" value="true"/>
     <property name="walk_behind" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="20" gid="99" x="416" y="224" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/entrances/warp.json"/>
+    <property name="warp_map" value="puddles.tmx"/>
+    <property name="warp_x" type="int" value="13"/>
+    <property name="warp_y" type="int" value="15"/>
    </properties>
   </object>
  </objectgroup>

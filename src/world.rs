@@ -282,7 +282,16 @@ impl<'a> World<'a> {
     pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
         assert!(self.render_texture.is_some(), "world needs to have a render texture to do looping draws");
         let mut render_texture = self.render_texture.take();
+
+        // TODO: Image layer height support for looping draws
+
+        for image_layer in self.image_layers.iter() {
+            image_layer.draw(canvas, state);
+        }
+
         canvas.with_texture_canvas(render_texture.as_mut().unwrap(), |tex_canvas| {
+            tex_canvas.set_draw_color(Color::RGBA(255, 255, 255, 0));
+            tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
             tex_canvas.clear();
             // HAHAHAHHAHAAAAAAAAA
             let world_state = RenderState::new((self.width * 16, self.height * 16));
@@ -342,6 +351,8 @@ impl<'a> World<'a> {
             dest.h = source.h;
             down_loop = true;
         }
+
+        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         if left_loop {
             let sub_rect = Rect::new(width_px - state.offset.0 as i32, source.y.max(0), state.offset.0 as u32, source.height());
@@ -511,6 +522,15 @@ impl<'a> World<'a> {
         return false;
     }
 
+    pub fn get_unbounded_collision_at_tile(&self, x: i32, y: i32, height: i32) -> bool {
+        if x >= 0 && y >= 0 {
+            if self.get_tilemap_collision_at_tile(x as u32, y as u32, height) { return true; }
+            if self.get_entity_collision_at_tile(x as u32, y as u32, height) { return true; }
+        }
+
+        return false;
+    }
+
     pub fn collide_entity_at_tile(&self, x: u32, y: u32, player: &Player, height: i32) -> bool {
         if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
         if self.get_entity_collision_at_tile(x, y, height) { return true; }
@@ -534,7 +554,7 @@ impl<'a> World<'a> {
         return false;
     }
 
-    pub fn  collide_entity_at_tile_with_list(&self, x: u32, y: u32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
+    pub fn collide_entity_at_tile_with_list(&self, x: u32, y: u32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
         if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
         for entity in entity_list.iter().filter(|e| e.height == height) {
             if entity.get_collision(Rect::new(x as i32 * 16, y as i32 * 16, 16, 16)) {
@@ -582,7 +602,11 @@ pub struct ImageLayer<'a> {
     pub delay_x: u32,
     pub delay_y: u32,
     pub timer_x: i32,
-    pub timer_y: i32
+    pub timer_y: i32,
+    pub parallax_x: i32,
+    pub parallax_y: i32,
+    /// True - divide, False - multiply
+    pub parallax_mode: bool
 }
 
 impl<'a> ImageLayer<'a> {
@@ -600,7 +624,10 @@ impl<'a> ImageLayer<'a> {
             delay_x: 0,
             delay_y: 0,
             timer_x: 0,
-            timer_y: 0
+            timer_y: 0,
+            parallax_mode: true,
+            parallax_x: 1,
+            parallax_y: 1
         }
     }
 
@@ -609,19 +636,26 @@ impl<'a> ImageLayer<'a> {
     }
 
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
+        let modified_offset = (
+            if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
+            if self.parallax_mode { state.offset.1 / self.parallax_y } else { state.offset.1 * self.parallax_y }
+        );
+
         let w_i32 = self.image.width as i32;
         let h_i32 = self.image.height as i32;
-        let left = game::offset_floor(-state.offset.0, w_i32, self.x);
-        let top = game::offset_floor(-state.offset.1, h_i32, self.y);
-        let repeat_x = game::ceil((-left) + state.screen_dims.0 as i32, w_i32) / w_i32;
-        let repeat_y = game::ceil((-top) + state.screen_dims.1 as i32, h_i32) / h_i32;
+        let left = game::offset_floor(-modified_offset.0, w_i32, self.x);
+        let top = game::offset_floor(-modified_offset.1, h_i32, self.y);
+        //let repeat_x = game::ceil((-left) + state.screen_extents.0 as i32, w_i32) / w_i32;
+        //let repeat_y = game::ceil((-top) + state.screen_extents.1 as i32, h_i32) / h_i32;
+        let repeat_x = (state.screen_extents.0 as i32 / w_i32) + 2;
+        let repeat_y = (state.screen_extents.1 as i32 / h_i32) + 2;
 
-        for y in 0..repeat_y {
-            for x in 0..repeat_x {
-                canvas.copy(
+        for y in -1..repeat_y {
+            for x in -1..repeat_x {
+                canvas.copy( 
                     &self.image.texture, 
                     Rect::new(0, 0, self.image.width, self.image.height), 
-                    Rect::new(left + state.offset.0 + (x * w_i32), top + state.offset.1 + (y * h_i32), self.image.width, self.image.height)
+                    Rect::new(left + modified_offset.0 + (x * w_i32), top + modified_offset.1 + (y * h_i32), self.image.width, self.image.height)
                 ).unwrap();
             }
         }
@@ -649,13 +683,19 @@ impl<'a> ImageLayer<'a> {
             self.y += self.scroll_y;
         }
 
-        
-        
-        if self.x >= self.image.width as i32 || self.x <= -(self.image.width as i32) {
-            self.x = 0;
+        if self.x >= self.image.width as i32 {
+            self.x %= self.image.width as i32;
         }
-        if self.y >= self.image.height as i32 || self.y <= -(self.image.height as i32) {
-            self.y = 0;
+        if self.x < 0 {
+            self.x %= self.image.width as i32;
+            self.x += self.image.width as i32;
+        }
+        if self.y >= self.image.height as i32   {
+            self.y %= self.image.height as i32;
+        }
+        if self.y < 0 {
+            self.y %= self.image.height as i32;
+            self.y += self.image.height as i32;
         }
     }
 }

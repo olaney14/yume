@@ -7,6 +7,14 @@ pub enum Effect {
 }
 
 impl Effect {
+    pub fn parse(source: &str) -> Option<Self> {
+        match source {
+            "glasses" => Some(Self::Glasses),
+            "shoes" => Some(Self::Speed),
+            _ => None
+        }
+    }
+
     pub fn description(&self) -> &str {
         use Effect::*;
         match self {

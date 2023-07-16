@@ -4,10 +4,10 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}, pixels::Color};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}};
+use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
-    (n as f32 / to as f32).floor() as i32 * to - (offset.abs() % to)
+    (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
 }
 
 pub fn offset_ceil(n: i32, to: i32, offset: i32) -> i32 {
@@ -289,6 +289,10 @@ pub struct FreezeAction {
     pub time: Option<u32>
 }
 
+pub struct GiveEffectAction {
+    pub effect: String,
+}
+
 impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut map = None;
@@ -408,6 +412,18 @@ impl FreezeAction {
     }
 }
 
+impl GiveEffectAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        if parsed["effect"].is_string() {
+            return Ok(Box::new(GiveEffectAction {
+                effect: parsed["effect"].as_str().unwrap().to_string()
+            }));
+        }
+
+        Err("No effect specified for action".to_string())
+    }
+}
+
 impl Action for FreezeAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(time) = self.time {
@@ -440,6 +456,14 @@ impl Action for DelayedAction {
                 action_id: world.special_context.action_id,
                 entity_id: world.special_context.entity_id
             })
+        }
+    }
+}
+
+impl Action for GiveEffectAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if let Some(effect) = Effect::parse(self.effect.as_str()) {
+            player.give_effect(effect);
         }
     }
 }

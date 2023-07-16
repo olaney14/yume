@@ -23,6 +23,15 @@ impl Debug {
             }));
         }
 
+        // F3 + P print out the middle pixel (lol) {
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
+            if let Some(render_texture) = &world.render_texture {
+                //let pixels = render_texture.
+            } else {
+                eprintln!("no render texture");
+            }
+        }
+
         if self.load_handle.is_some() {
             if self.load_handle.as_ref().unwrap().is_finished() {
                 let handle = self.load_handle.take().unwrap();

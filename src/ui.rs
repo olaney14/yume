@@ -125,6 +125,9 @@ impl MenuState {
                         if player.current_effect.is_some() && player.current_effect.as_ref().unwrap() == &player.unlocked_effects[self.button_id as usize] {
                             player.remove_effect();
                         } else {
+                            if player.current_effect.is_some() {
+                                player.remove_effect();
+                            }
                             player.apply_effect(player.unlocked_effects[self.button_id as usize].clone());
                         }
                         self.current_menu = MenuType::Home;

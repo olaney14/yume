@@ -144,28 +144,68 @@ impl<'a> Player<'a> {
             } else {
                 let pos = self.get_standing_tile();
                 let target_pos = (pos.0 as i32 + direction.x(), pos.1 as i32 + direction.y());
+
                 if world.looping &&
                 (target_pos.0 < 0 || target_pos.1 < 0 || target_pos.0 >= world.width as i32 || target_pos.1 >= world.height as i32) {
-                    if target_pos.0 < 0 { // left
+                    let mut moved = false;
+
+                    if target_pos.0 < 0 && !world.get_unbounded_collision_at_tile(world.width as i32 - 1, (self.y / 16) + 1, self.layer) { // left
                         self.x = world.width as i32 * 16;
                         self.occupied_tile.0 = world.width - 1;
                         self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
-                    } else if target_pos.0 >= world.width as i32 { // right
+
+                        // correction for looping images
+                        // i have no idea how or why this works
+                        for image_layer in world.image_layers.iter_mut() {
+                            image_layer.x -= if image_layer.parallax_mode { 
+                                (4 * image_layer.image.width as i32 - (world.width as i32 * 16)) / image_layer.parallax_x
+                            } else {
+                                (4 * image_layer.image.width as i32 - (world.width as i32 * 16)) * image_layer.parallax_x
+                            }
+                        }
+                        moved = true;
+                    } else if target_pos.0 >= world.width as i32 && !world.get_unbounded_collision_at_tile(0, (self.y / 16) + 1, self.layer) { // right
                         self.x = -16;
                         self.occupied_tile.0 = 0;
                         self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
-                    } else if target_pos.1 < 0 { // up
+                        for image_layer in world.image_layers.iter_mut() {
+                            image_layer.x += if image_layer.parallax_mode { 
+                                (4 * image_layer.image.width as i32 - (world.width as i32 * 16)) / image_layer.parallax_x
+                            } else {
+                                (4 * image_layer.image.width as i32 - (world.width as i32 * 16)) * image_layer.parallax_x
+                            }
+                        }
+                        moved = true;
+                    } else if target_pos.1 < 0 && !world.get_unbounded_collision_at_tile(self.x / 16, world.height as i32 - 1, self.layer) { // up
                         self.y = world.height as i32 * 16 - 16;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = world.height - 1;
-                    } else if target_pos.1 >= world.height as i32 { // down
+                        for image_layer in world.image_layers.iter_mut() {
+                            image_layer.y -= if image_layer.parallax_mode {
+                                (4 * image_layer.image.height as i32 - (world.height as i32 * 16)) / image_layer.parallax_y
+                            } else {
+                                (4 * image_layer.image.height as i32 - (world.height as i32 * 16)) * image_layer.parallax_y
+                            }
+                        }
+                        moved = true;
+                    } else if target_pos.1 >= world.height as i32 && !world.get_unbounded_collision_at_tile(self.x / 16, 0, self.layer) { // down
                         self.y = -32;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = 0;
+                        for image_layer in world.image_layers.iter_mut() {
+                            image_layer.y += if image_layer.parallax_mode {
+                                (4 * image_layer.image.height as i32 - (world.height as i32 * 16)) / image_layer.parallax_y
+                            } else {
+                                (4 * image_layer.image.height as i32 - (world.height as i32 * 16)) * image_layer.parallax_y
+                            }
+                        }
+                        moved = true;
                     }
-                    self.moving = true;
-                    self.move_timer = MOVE_TIMER_MAX;
-                    self.draw_over = true;
+                    if moved {
+                        self.moving = true;
+                        self.move_timer = MOVE_TIMER_MAX;
+                        self.draw_over = true;
+                    }
                 } else {
                     self.animation_info.frame = 1;
                     let player_pos = self.get_standing_tile();
@@ -240,6 +280,16 @@ impl<'a> Player<'a> {
             self.animation_info.effect_switch_animation = 8;
             self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
         }
+    }
+
+    pub fn give_effect(&mut self, effect: Effect) {
+        if !self.has_effect(&effect) {
+            self.unlocked_effects.push(effect);
+        }
+    }
+
+    pub fn has_effect(&self, effect: &Effect) -> bool {
+        return self.unlocked_effects.contains(effect);
     }
 
     pub fn update(&mut self, input: &Input, world: &mut World) {

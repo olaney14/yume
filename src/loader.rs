@@ -122,7 +122,6 @@ impl<'a> World<'a> {
             world.tilesets.push(ts);
         }
 
-        // TODO for tomorrow, add a from_file property to entities 
         for layer in map.layers().into_iter() {
             match layer.layer_type() {
                 LayerType::Tiles(tile_layer) => {
@@ -292,6 +291,8 @@ impl<'a> World<'a> {
                         if let Some(prop) = layer.properties.get("delay_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.delay_x = *i as u32; world_image_layer.timer_x = *i; } };
                         if let Some(prop) = layer.properties.get("delay_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.delay_y = *i as u32; world_image_layer.timer_y = *i; } };
                         if let Some(prop) = layer.properties.get("mismatch") { if let PropertyValue::BoolValue(b) = prop { if *b { world_image_layer.timer_x /= 2; } } }
+                        if let Some(prop) = layer.properties.get("parallax_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_x = *i; } };
+                        if let Some(prop) = layer.properties.get("parallax_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_y = *i; } };
                         world.image_layers.push(world_image_layer);
                     }
                 }
@@ -300,7 +301,9 @@ impl<'a> World<'a> {
         }
 
         if world.looping {
-            world.render_texture = Some(creator.create_texture(PixelFormatEnum::RGBA8888, TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
+            world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
+            world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
+            //dbg!(world.render_texture.as_mut().unwrap().blend_mode());
         }
 
         return world;
