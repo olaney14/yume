@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="1">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="2">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/sfx/scary4.mp3"/>
@@ -8,6 +8,7 @@
   <property name="tint" value="0,0,0,200"/>
  </properties>
  <tileset firstgid="1" source="puddles.tsx"/>
+ <tileset firstgid="29" source="entity/entity_test.tsx"/>
  <imagelayer id="2" name="bvack">
   <image source="../textures/image/sky.png" width="128" height="128"/>
   <properties>
@@ -55,4 +56,64 @@
 6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6
 </data>
  </layer>
+ <objectgroup id="3" name="entities">
+  <object id="1" gid="29" x="224" y="272" width="16" height="16">
+   <properties>
+    <property name="actions">[{
+	&quot;trigger&quot;: {
+		&quot;type&quot;: &quot;onload&quot;
+	},
+	&quot;action&quot;: {
+		&quot;type&quot;: &quot;print&quot;,
+		&quot;message&quot;: {
+			&quot;type&quot;: &quot;from_int&quot;,
+			&quot;val&quot;: {
+				&quot;type&quot;: &quot;flag&quot;,
+				&quot;flag&quot;: &quot;dev&quot;,
+				&quot;global&quot;: true
+			}
+		}
+	}
+},
+{
+	&quot;trigger&quot;: {
+		&quot;type&quot;: &quot;use&quot;
+	},
+	&quot;action&quot;: {
+		&quot;type&quot;: &quot;conditional&quot;,
+		&quot;condition&quot;: {
+			&quot;type&quot;: &quot;int_equals&quot;,
+			&quot;lhs&quot;: {
+				&quot;type&quot;: &quot;flag&quot;,
+				&quot;global&quot;: true,
+				&quot;flag&quot;: &quot;dev&quot;
+			},
+			&quot;rhs&quot;: 1
+		},
+		&quot;action&quot;: {
+			&quot;type&quot;: &quot;warp&quot;,
+			&quot;map&quot;: &quot;sky.tmx&quot;,
+			&quot;pos&quot;: { &quot;x&quot;: 5, &quot;y&quot;: 5 },
+			&quot;transition&quot;: &quot;fade&quot;
+		}
+	}
+}]</property>
+    <property name="ai">{
+	&quot;type&quot;: &quot;wander&quot;,
+	&quot;frequency&quot;: 5,
+	&quot;delay&quot;: 50
+}</property>
+    <property name="animation">{
+	&quot;type&quot;: &quot;sequence&quot;,
+	&quot;start&quot;: 0,
+	&quot;length&quot;: 4,
+	&quot;speed&quot;: 10,
+	&quot;repeat&quot;: &quot;loop&quot;
+}</property>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="false"/>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

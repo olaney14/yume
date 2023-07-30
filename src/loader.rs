@@ -8,11 +8,16 @@ use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLoc
 use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, self}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai};
 
 impl<'a> World<'a> {
-    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World>) -> World<'a> {
+    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>) -> World<'a> {
         let mut loader = Loader::new();
         let map = loader.load_tmx_map(file).unwrap();
 
-        let mut world = World::new();
+        let mut world = if let Some(old) = old_world {
+            World::with_old(old, creator)
+        } else {
+            World::new(creator)
+        };
+        //let mut world = World::new(creator);
         world.name = PathBuf::from(file).file_stem().unwrap_or(&OsString::from("none")).to_str().unwrap_or("none").to_string();
 
         if let Some(color) = map.background_color {
@@ -22,6 +27,11 @@ impl<'a> World<'a> {
         // Loading - Map Properties
 
         if let Some(prop) = map.properties.get("clampCamera") {
+            if let PropertyValue::BoolValue(clamp_camera) = prop {
+                world.clamp_camera = *clamp_camera;
+            }
+        }
+        if let Some(prop) = map.properties.get("clamp_camera") {
             if let PropertyValue::BoolValue(clamp_camera) = prop {
                 world.clamp_camera = *clamp_camera;
             }
@@ -258,7 +268,8 @@ impl<'a> World<'a> {
                                                     actions_vec.push(
                                                         TriggeredAction {
                                                             action: action.unwrap(),
-                                                            trigger: trigger.unwrap()
+                                                            trigger: trigger.unwrap(),
+                                                            run_on_next_loop: false
                                                         }
                                                     );
                                                 }

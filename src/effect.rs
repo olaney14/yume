@@ -45,6 +45,7 @@ impl Effect {
         match self {
             Speed => {
                 player.speed *= 2;
+                player.animation_info.animation_speed = 4;
             },
             _ => ()
         }
@@ -57,6 +58,7 @@ impl Effect {
         match self {
             Speed => {
                 player.speed /= 2;
+                player.animation_info.animation_speed = 7;
             },
             _ => ()
         }

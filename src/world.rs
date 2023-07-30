@@ -1,9 +1,9 @@
-use std::{sync::Arc, path::PathBuf};
+use std::{sync::Arc, path::PathBuf, collections::HashMap};
 
 use rodio::{Sink, OutputStreamHandle};
-use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator}, rect::{Rect, Point}, pixels::Color, EventSubsystem};
+use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}, EventSubsystem};
 
-use crate::{tiles::{Tilemap, Tileset, Tile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self}, audio::Song, entity::Entity, texture};
+use crate::{tiles::{Tilemap, Tileset, Tile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::Song, entity::{Entity, Trigger}, texture, world};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -25,6 +25,11 @@ pub struct QueuedEntityAction {
     pub entity_id: usize,
     pub action_id: usize
 }
+
+// pub enum Flag {
+//     Int(i32),
+//     String(String)
+// }
 
 pub struct World<'a> {
     pub layers: Vec<Layer>,
@@ -53,11 +58,15 @@ pub struct World<'a> {
     pub entities: Option<Vec<Entity>>,
     pub default_pos: Option<(i32, i32)>,
     pub name: String,
-    pub special_context: SpecialContext
+    pub special_context: SpecialContext,
+    pub flags: HashMap<String, i32>,
+    pub global_flags: HashMap<String, i32>,
+    pub transitions: TransitionTextures<'a>,
+    pub transition_context: TransitionContext<'a>,
 }
 
 impl<'a> World<'a> {
-    pub fn new() -> Self {
+    pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
         Self {
             layers: Vec::new(),
             image_layers: Vec::new(),
@@ -81,7 +90,50 @@ impl<'a> World<'a> {
             default_pos: None,
             name: String::from("none"),
             queued_entity_actions: Vec::new(),
-            special_context: SpecialContext::new()
+            special_context: SpecialContext::new(),
+            flags: HashMap::new(),
+            global_flags: HashMap::new(),
+            transitions: TransitionTextures::new(creator).unwrap(),
+            transition_context: TransitionContext::new(creator)
+        }
+    }
+
+    /// this function creates a new world, without copying any settings
+    /// but reusing loaded textures
+    pub fn with_old<T>(old: &mut World<'a>, creator: &'a TextureCreator<T>) -> Self {
+        let transitions = std::mem::replace(&mut old.transitions, TransitionTextures::empty(creator));
+
+        Self {
+            layers: Vec::new(),
+            image_layers: Vec::new(),
+            tilesets: Vec::new(),
+            layer_max: 0, 
+            layer_min: 0,
+            width: 0,
+            height: 0,
+            background_color: sdl2::pixels::Color::RGBA(0, 0, 0, 255),
+            clamp_camera: false,
+            queued_load: None,
+            side_actions: [(false, None), (false, None), (false, None), (false, None)],
+            paused: false,
+            interaction: None,
+            transition: None,
+            looping: false,
+            render_texture: None,
+            song: None,
+            tint: None,
+            entities: Some(Vec::new()),
+            default_pos: None,
+            name: String::from("none"),
+            queued_entity_actions: Vec::new(),
+            special_context: SpecialContext::new(),
+            flags: HashMap::new(),
+            global_flags: HashMap::new(),
+            transitions,
+            transition_context: TransitionContext {
+                screenshot: old.transition_context.screenshot.take(),
+                take_screenshot: true
+            }
         }
     }
 
@@ -100,6 +152,15 @@ impl<'a> World<'a> {
     pub fn onload(&mut self, sink: &Sink) {
         if let Some(song) = &mut self.song {
             song.play(sink);
+        } else {
+            sink.set_volume(0.0);
+        }
+        for entity in self.entities.as_mut().unwrap().iter_mut() {
+            for action in &mut entity.actions {
+                if matches!(action.trigger, Trigger::OnLoad) {
+                    action.run_on_next_loop = true;
+                }
+            }
         }
     }
 
@@ -117,24 +178,38 @@ impl<'a> World<'a> {
 
     pub fn update(&mut self, player: &mut Player, sink: &Sink) {
         if let Some(transition) = &mut self.transition {
-            transition.progress += transition.direction * transition.speed;
-            self.paused = true;
-            if transition.fade_music {
-                if let Some(song) = &mut self.song {
-                    song.volume = song.default_volume - (((transition.progress as f32) / 100.0) * song.default_volume);
-                    song.dirty = true;
+            if transition.holding {
+                transition.hold_timer -= 1;
+                if transition.hold_timer == transition.hold / 2 {
+                    transition.progress = 100;
                 }
-            }
-            if transition.progress >= 100 {
-                transition.progress = 100;
-                transition.direction = -1;
-            } else if transition.progress <= -1 {
-                self.paused = false;
-                self.transition = None;
-                if let Some(song) = &mut self.song {
-                    song.volume = song.default_volume;
-                    song.speed = song.default_speed;
-                    song.dirty = true;
+                if transition.hold_timer <= 0 {
+                    transition.holding = false;
+                }
+            } else {
+                transition.progress += transition.direction * transition.speed;
+                self.paused = true;
+                if transition.fade_music {
+                    if let Some(song) = &mut self.song {
+                        song.volume = song.default_volume - (((transition.progress as f32) / 100.0) * song.default_volume);
+                        song.dirty = true;
+                    }
+                }
+                if transition.progress >= 100 {
+                    transition.progress = 100;
+                    transition.direction = -1;
+                    if transition.hold > 0 {
+                        transition.holding = true;
+                        transition.progress = 99;
+                    }
+                } else if transition.progress <= -1 {
+                    self.paused = false;
+                    self.transition = None;
+                    if let Some(song) = &mut self.song {
+                        song.volume = song.default_volume;
+                        song.speed = song.default_speed;
+                        song.dirty = true;
+                    }
                 }
             }
         }
@@ -235,10 +310,21 @@ impl<'a> World<'a> {
                 self.special_context.delayed_run = false;
                 self.entities.as_mut().unwrap().insert(action.entity_id, entity);
             }
+
+            for i in 0..self.entities.as_ref().unwrap().len() {
+                let mut entity = std::mem::replace(self.entities.as_mut().unwrap().get_mut(i).unwrap(), placeholder.take().unwrap());
+                for action in entity.actions.iter_mut() {
+                    if action.run_on_next_loop {
+                        action.action.act(player, self);
+                    }
+                    action.run_on_next_loop = false;
+                }
+                placeholder = Some(std::mem::replace(self.entities.as_mut().unwrap().get_mut(i).unwrap(), entity));
+            }
         }
     }
 
-    pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
         for height in self.layer_min..=self.layer_max {
 
             for image_layer in self.image_layers.iter() {
@@ -274,8 +360,10 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
-        if let Some(transition) = &self.transition {
-            transition.draw(canvas);
+        if self.transition.is_some() {
+            let mut transition = self.transition.take().unwrap();
+            transition.draw(canvas, self);
+            self.transition = Some(transition);
         }
     }
 
@@ -426,8 +514,10 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
-        if let Some(transition) = &self.transition {
-            transition.draw(canvas);
+        if self.transition.is_some() {
+            let mut transition = self.transition.take().unwrap();
+            transition.draw(canvas, self);
+            self.transition = Some(transition);
         }
     }
 
@@ -737,6 +827,23 @@ impl SpecialContext {
             delayed_run: false,
             action_id: 0,
             entity_id: 0
+        }
+    }
+}
+
+pub struct TransitionContext<'a> {
+    pub screenshot: Option<sdl2::render::Texture<'a>>,
+    pub take_screenshot: bool
+}
+
+impl<'a> TransitionContext<'a> {
+    pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
+        // world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
+        // world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
+
+        Self {
+            screenshot: Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target,400, 300).expect("failed to create render texture for transitions")),
+            take_screenshot: false
         }
     }
 }

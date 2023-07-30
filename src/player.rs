@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc, collections::HashMap};
 use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
 
-use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect};
+use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
 
@@ -36,13 +36,15 @@ pub struct AnimationInfo {
     pub animation_timer: i32,
     pub effect_switch_animation: u32,
     pub effect_switch_animation_timer: u32,
+    pub do_step: bool,
 }
 
 impl AnimationInfo {
     pub fn new() -> Self {
         Self {
             frame_row: 1, frame: 1, frame_direction: 1, animation_speed: 7, animation_timer: 3,
-            effect_switch_animation: 0, effect_switch_animation_timer: 0
+            effect_switch_animation: 0, effect_switch_animation_timer: 0,
+            do_step: false
         }
     }
 
@@ -66,6 +68,11 @@ impl AnimationInfo {
             }
 
             self.frame = (self.frame as i32 + self.frame_direction).try_into().expect("bad animation frame");
+
+            if self.frame == 1 {
+                self.do_step = true;
+            }
+
             self.animation_timer = self.animation_speed as i32;
         } else {
             self.animation_timer -= 1;
@@ -113,6 +120,7 @@ impl<'a> Player<'a> {
 
     fn load_effect_textures<T>(&mut self, creator: &'a TextureCreator<T>) {
         self.effect_textures.insert(Effect::Glasses, Texture::from_file(&PathBuf::from("res/textures/player/glasses.png"), creator).unwrap());
+        self.effect_textures.insert(Effect::Speed, Texture::from_file(&PathBuf::from("res/textures/player/running_shoes.png"), creator).unwrap());
     }
 
     pub fn set_x(&mut self, x: i32) {
@@ -292,7 +300,7 @@ impl<'a> Player<'a> {
         return self.unlocked_effects.contains(effect);
     }
 
-    pub fn update(&mut self, input: &Input, world: &mut World) {
+    pub fn update(&mut self, input: &Input, world: &mut World, sfx: &mut SoundEffectBank) {
         {
             use Keycode::*;
             for key in [Up, Down, Left, Right, W, A, S, D].into_iter() {
@@ -318,6 +326,12 @@ impl<'a> Player<'a> {
             self.y += self.facing.y() * self.speed as i32;
             self.move_timer -= self.speed as i32;
             self.animation_info.animate_walk();
+
+            if self.animation_info.do_step {
+                sfx.play_ex("step", 1.0, 0.5);
+                self.animation_info.do_step = false;
+            }
+
             if self.move_timer <= 0 {
                 self.x = (self.x as f32 / 16.0).round() as i32 * 16;
                 self.y =  (self.y as f32 / 16.0).round() as i32 * 16;
@@ -382,6 +396,22 @@ impl<'a> Player<'a> {
 
     pub fn draw_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, _state: &RenderState) {
         let source = self.animation_info.get_frame_pos();
-        canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+        if self.current_effect.is_some() {
+            if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
+                canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+            } else {
+                canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+            }
+        } else {
+            canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+        }
+
+        if self.animation_info.effect_switch_animation > 0 {
+            let frame = 8 - self.animation_info.effect_switch_animation;
+            canvas.copy(&self.effects_texture.texture, 
+                Rect::new(48 * frame as i32, 0, 48, 48),
+                Rect::new(self.x - 24 + 8, self.y - 24 + 16, 48, 48) 
+            ).unwrap();
+        }
     }
 }

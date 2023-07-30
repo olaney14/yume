@@ -8,13 +8,29 @@
 	&quot;down&quot;: {
 		&quot;type&quot;: &quot;warp&quot;,
 		&quot;map&quot;: &quot;blue_ghost_world2.tmx&quot;,
-		&quot;pos&quot;: { &quot;x&quot;: &quot;match&quot;, &quot;y&quot;:  0 },
+		&quot;pos&quot;: { 
+			&quot;x&quot;: {
+				&quot;type&quot;: &quot;player&quot;,
+				&quot;property&quot;: &quot;x&quot;
+			}, 
+			&quot;y&quot;:  0 
+		},
 		&quot;transition&quot;: &quot;fade&quot;
 	},
 	&quot;right&quot;: {
 		&quot;type&quot;: &quot;warp&quot;,
 		&quot;map&quot;: &quot;blue_ghost_world_looping.tmx&quot;,
-		&quot;pos&quot;: { &quot;x&quot;: 0, &quot;y&quot;: &quot;sub32&quot; },
+		&quot;pos&quot;: { 
+			&quot;x&quot;: 0, 
+			&quot;y&quot;: { 
+				&quot;type&quot;: &quot;sub&quot;,
+				&quot;rhs&quot;: 32,
+				&quot;lhs&quot;: {
+					&quot;type&quot;: &quot;player&quot;,
+					&quot;property&quot;: &quot;y&quot;
+				}
+			} 
+		},
 		&quot;transition&quot;: &quot;fade&quot;
 	}
 }</property>

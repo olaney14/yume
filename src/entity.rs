@@ -5,6 +5,7 @@ use crate::{game::{Action, Direction}, world::{Interaction, World}, ai::{Ai, Ani
 pub struct TriggeredAction {
     pub trigger: Trigger,
     pub action: Box<dyn Action>,
+    pub run_on_next_loop: bool
 }
 
 pub enum Trigger {

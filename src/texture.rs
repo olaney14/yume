@@ -34,4 +34,12 @@ impl<'a> Texture<'a> {
             Err(surface.err().unwrap_or("failed to load texture".to_string()))
         }
     }
+
+    pub fn empty<T>(creator: &'a TextureCreator<T>) -> Self {
+        Self {
+            texture: creator.create_texture(None, sdl2::render::TextureAccess::Static, 1, 1).unwrap(),
+            width: 0,
+            height: 0
+        }
+    }
 }

@@ -1,10 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, path::PathBuf, f32::consts::PI};
 
 use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
-use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}, pixels::Color};
+use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect};
+use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, main};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
@@ -16,6 +16,298 @@ pub fn offset_ceil(n: i32, to: i32, offset: i32) -> i32 {
 
 pub fn ceil(n: i32, to: i32) -> i32 {
     (n as f32 / to as f32).ceil() as i32 * to
+}
+
+pub enum Condition {
+    IntEquals(IntProperty, IntProperty),
+    StringEquals(StringProperty, StringProperty)
+}
+
+impl Condition {
+    pub fn evaluate(&self, player: Option<&Player>, world: Option<&World>) -> bool {
+        match self {
+            Self::IntEquals(lhs, rhs) => {
+                let lh_arg = lhs.get(player, world);
+                let rh_arg = rhs.get(player, world);
+                return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() == rh_arg.unwrap();
+            },
+            Self::StringEquals(lhs, rhs) => {
+                let lh_arg = lhs.get(player, world);
+                let rh_arg = rhs.get(player, world);
+                return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() == rh_arg.unwrap();
+            }
+        }
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "int_equals" => {
+                if !(json["lhs"].is_object() || json["lhs"].is_number()) || !(json["rhs"].is_object() || json["rhs"].is_number()) { return None; }
+                let lhs_parsed = IntProperty::parse(&json["lhs"]);
+                let rhs_parsed = IntProperty::parse(&json["rhs"]);
+                if lhs_parsed.is_some() && rhs_parsed.is_some() {
+                    return Some(Condition::IntEquals(lhs_parsed.unwrap(), rhs_parsed.unwrap()))
+                }
+                return None;
+            },
+            "string_equals" => {
+                if !json["lhs"].is_object() || !json["rhs"].is_object() { return None; }
+                let lhs_parsed = StringProperty::parse(&json["lhs"]);
+                let rhs_parsed = StringProperty::parse(&json["rhs"]);
+                if lhs_parsed.is_some() && rhs_parsed.is_some() {
+                    return Some(Condition::StringEquals(lhs_parsed.unwrap(), rhs_parsed.unwrap()))
+                }
+                return None;
+            },
+            _ => return None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum PlayerPropertyType {
+    X,
+    Y,
+    Height
+}
+
+impl PlayerPropertyType {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        let mut kind = "";
+        if json.is_string() {
+            kind = json.as_str().unwrap();
+        } else {
+            if !json["type"].is_string() { return None; }
+            kind = json["type"].as_str().unwrap();
+        }
+       
+        match kind {
+            "x" => Some(PlayerPropertyType::X),
+            "y" => Some(PlayerPropertyType::Y),
+            "height" => Some(PlayerPropertyType::Height),
+            _ => None
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum LevelPropertyType {
+    DefaultX,
+    DefaultY
+}
+
+impl LevelPropertyType {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "default_x" => Some(LevelPropertyType::DefaultX),
+            "default_y" => Some(LevelPropertyType::DefaultY),
+            _ => None
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum FlagPropertyType {
+    Global(String),
+    Local(String)
+}
+
+#[derive(Clone)]
+pub enum IntProperty {
+    Int(i32),
+    Player(PlayerPropertyType),
+    Flag(FlagPropertyType),
+    Level(LevelPropertyType),
+    Add(Box<IntProperty>, Box<IntProperty>),
+    Sub(Box<IntProperty>, Box<IntProperty>),
+    Mul(Box<IntProperty>, Box<IntProperty>),
+    Div(Box<IntProperty>, Box<IntProperty>)
+}
+
+impl IntProperty {
+    pub fn get(&self, player: Option<&Player>, world: Option<&World>) -> Option<i32> {
+        match self {
+            IntProperty::Int(i) => return Some(*i),
+            IntProperty::Player(prop) => {
+                if let Some(p) = player {  
+                    match prop {
+                        PlayerPropertyType::X => return Some(p.x / 16),
+                        PlayerPropertyType::Y => return Some(p.y / 16),
+                        PlayerPropertyType::Height => return Some(p.layer)
+                    }   
+                } else {
+                    return None;
+                }
+            },
+            IntProperty::Flag(flag) => {
+                if let Some(w) = world {
+                    match flag {
+                        FlagPropertyType::Global(f) => return Some(*w.global_flags.get(f).unwrap_or(&0)),
+                        FlagPropertyType::Local(f) => return Some(*w.flags.get(f).unwrap_or(&0))
+                    }
+                } else {
+                    return None;
+                }
+            },
+            IntProperty::Level(prop) => {
+                if let Some(w) = world {
+                    match prop {
+                        LevelPropertyType::DefaultX => return w.default_pos.map(|f| f.0),
+                        LevelPropertyType::DefaultY => return w.default_pos.map(|f| f.1)
+                    }
+                }
+                return None;
+            },
+            IntProperty::Add(a, b) => {
+                let lhs = a.get(player, world);
+                let rhs = b.get(player, world);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() + rhs.unwrap());
+                }
+
+                return None;
+            },
+            IntProperty::Sub(a, b) => {
+                let lhs = a.get(player, world);
+                let rhs = b.get(player, world);
+                if lhs.is_some() && rhs.is_some() {
+                    //dbg(lhs.as_ref().unwrap() - rha);
+                    return Some(lhs.unwrap() - rhs.unwrap());
+                }
+
+                return None;
+            },
+            IntProperty::Mul(a, b) => {
+                let lhs = a.get(player, world);
+                let rhs = b.get(player, world);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() * rhs.unwrap());
+                }
+
+                return None;
+            },
+            IntProperty::Div(a, b) => {
+                let lhs = a.get(player, world);
+                let rhs = b.get(player, world);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() / rhs.unwrap());
+                }
+
+                return None;
+            },
+        }
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if json.is_number() {
+            return Some(IntProperty::Int(json.as_i32().unwrap()));
+        }
+
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "int" => return Some(IntProperty::Int(json["val"].as_i32().unwrap())),
+            "player" => return Some(IntProperty::Player(PlayerPropertyType::parse(&json["property"]).unwrap())),
+            "flag" => {
+                let mut global = false;
+                if json["global"].is_boolean() {
+                    global = json["global"].as_bool().unwrap();
+                }
+                let parsed_flag = json["flag"].as_str();
+                if let Some(flag) = parsed_flag {
+                    if global {
+                        return Some(IntProperty::Flag(FlagPropertyType::Global(flag.to_string())))
+                    } else {
+                        return Some(IntProperty::Flag(FlagPropertyType::Local(flag.to_string())))
+                    }
+                }
+                return None
+            },
+            "add" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) {
+                    return None;
+                }
+
+                let left = IntProperty::parse(&json["lhs"]);
+                let right = IntProperty::parse(&json["rhs"]);
+                if left.is_some() && right.is_some() {
+                    return Some(IntProperty::Add(Box::new(left.unwrap()), Box::new(right.unwrap())));
+                }
+
+                return None;
+            },
+            "sub" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) {
+                    return None;
+                }
+
+                let left = IntProperty::parse(&json["lhs"]);
+                let right = IntProperty::parse(&json["rhs"]);
+                if left.is_some() && right.is_some() {
+                    return Some(IntProperty::Sub(Box::new(left.unwrap()), Box::new(right.unwrap())));
+                }
+
+                return None;
+            },
+            "mul" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) {
+                    return None;
+                }
+
+                let left = IntProperty::parse(&json["lhs"]);
+                let right = IntProperty::parse(&json["rhs"]);
+                if left.is_some() && right.is_some() {
+                    return Some(IntProperty::Mul(Box::new(left.unwrap()), Box::new(right.unwrap())));
+                }
+
+                return None;
+            },
+            "div" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) {
+                    return None;
+                }
+
+                let left = IntProperty::parse(&json["lhs"]);
+                let right = IntProperty::parse(&json["rhs"]);
+                if left.is_some() && right.is_some() {
+                    return Some(IntProperty::Div(Box::new(left.unwrap()), Box::new(right.unwrap())));
+                }
+
+                return None;
+            }
+            _ => return None
+        }
+    }
+}
+
+pub enum StringProperty {
+    String(String),
+    FromInt(IntProperty)
+}
+
+impl StringProperty {
+    pub fn get(&self, player: Option<&Player>, world: Option<&World>) -> Option<String> {
+        match self {
+            StringProperty::String(s) => return Some(s.clone()),
+            StringProperty::FromInt(int) => {
+                if let Some(i) = int.get(player, world) {
+                    return Some(i.to_string());
+                } else {
+                    return None;
+                }
+            }
+        }
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "string" => return Some(StringProperty::String(json["val"].as_str().unwrap().to_string())),
+            "from_int" => return Some(StringProperty::FromInt(IntProperty::parse(&json["val"]).unwrap())),
+            _ => return None
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -198,7 +490,58 @@ impl RenderState {
 #[derive(Clone)]
 pub enum TransitionType {
     Fade,
-    MusicOnly
+    MusicOnly,
+    Spotlight,
+    Spin,
+    Zoom(f32),
+    Pixelate,
+    Lines(u32),
+    Wave(bool, u32)
+}
+
+impl TransitionType {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        let mut kind = "";
+
+        if json.is_string() {
+            kind = json.as_str().unwrap();
+        } else if json.is_object() {
+            kind = json["type"].as_str().unwrap();
+        } else {
+            return None;
+        }
+
+        match kind {
+            "fade" => Some(Self::Fade),
+            "music_only" => Some(Self::MusicOnly),
+            "spotlight" => Some(Self::Spotlight),
+            "spin" => Some(Self::Spin),
+            "zoom" => Some(Self::Zoom(1.0)),
+            "pixelate" => Some(Self::Pixelate),
+            "lines" => Some(Self::Lines(1)),
+            "wave" => Some(Self::Wave(false, 10)),
+            _ => None
+        }
+    }
+}
+
+pub struct TransitionTextures<'a> {
+    pub spotlight: Texture<'a>
+}
+
+impl <'a> TransitionTextures<'a> {
+    pub fn new<T>(creator: &'a TextureCreator<T>) -> Result<Self, String> {
+        let spotlight = Texture::from_file(&PathBuf::from("res/textures/image/spotlight.png"), creator)?;
+        Ok(Self {
+                    spotlight
+                })
+    }
+
+    pub fn empty<T>(creator: &'a TextureCreator<T>) -> Self {
+        Self {
+            spotlight: Texture::empty(creator)
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -207,19 +550,88 @@ pub struct Transition {
     pub progress: i32,
     pub direction: i32,
     pub speed: i32,
-    pub fade_music: bool
+    pub fade_music: bool,
+    pub hold: u32,
+    pub hold_timer: u32,
+    pub holding: bool,
+    pub needs_screenshot: bool
 }
 
 impl Transition {
-    pub fn new(kind: TransitionType, speed: i32, fade_music: bool) -> Self {
+    pub fn new(kind: TransitionType, speed: i32, fade_music: bool, hold: u32) -> Self {
+        let needs_screenshot = match &kind {
+            TransitionType::Spin | TransitionType::Lines(..) | TransitionType::Pixelate | TransitionType::Zoom(..) | TransitionType::Wave(..) => true,
+            _ => false
+        };
+
         Self {
             direction: 1,
             progress: 0,
-            fade_music, kind, speed
+            fade_music, kind, speed,
+            hold, holding: false, hold_timer: hold,
+            needs_screenshot
         }
     }
 
-    pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>) {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if json.is_string() {
+            if let Some(transition_type) = TransitionType::parse(json) {
+                return Some(Self::new(transition_type, 8, true, 0));
+            } else {
+                eprintln!("Error parsing transition: invalid transition type");
+                return None;
+            }
+        } else if json.is_object() {
+            if !json["type"].is_string() { return None; }
+            let speed = json["speed"].as_i32().unwrap_or(8);
+            let music = json["music"].as_bool().unwrap_or(true);
+            let hold = json["hold"].as_u32().unwrap_or(0);
+            if let Some(parsed_type) = TransitionType::parse(&json["type"]) {
+                match parsed_type {
+                    TransitionType::Zoom(..) => {
+                        return Some(
+                            Self::new(TransitionType::Zoom(json["scale"].as_f32().unwrap_or(1.0)), speed, music, hold)
+                        )
+                    },
+                    TransitionType::Lines(..) => {
+                        return Some(
+                            Self::new(TransitionType::Lines(json["height"].as_u32().unwrap_or(1)), speed, music, hold)
+                        )
+                    },
+                    TransitionType::Wave(..) => {
+                        let direction = if json["dir"].is_string() {
+                            match json["dir"].as_str().unwrap() {
+                                "up" | "down" | "vert" | "vertical" | "y" => true,
+                                _ => false
+                            }
+                        } else if json["dir"].is_boolean() {
+                            json["dir"].as_bool().unwrap()
+                        } else {
+                            false
+                        };
+
+                        return Some(
+                            Self::new(TransitionType::Wave(direction, json["waves"].as_u32().unwrap_or(10)), speed, music, hold)
+                        )
+                    }
+                    _ => return Some(Self::new(parsed_type, speed, music, hold))
+                }
+            } else {
+                eprintln!("Error parsing transition: invalid transition type");
+                return None;
+            }
+        } else {
+            return None;
+        }
+    }
+
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, world: &mut World) {
+        if self.needs_screenshot {
+            world.transition_context.take_screenshot = true;
+            self.needs_screenshot = false;
+            return;
+        }
+
         match self.kind {
             TransitionType::Fade => {
                 let alpha = (255.0 * (self.progress as f32 / 100.0)).clamp(0.0, 255.0) as u8;
@@ -227,7 +639,111 @@ impl Transition {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, alpha));
                 canvas.fill_rect(None).unwrap();
             },
-            TransitionType::MusicOnly => ()
+            TransitionType::MusicOnly => (),
+            TransitionType::Spotlight => {
+                let alpha = (255.0 * (self.progress as f32 / 50.0)).clamp(0.0, 255.0) as u8;
+                canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                let alpha_mod = world.transitions.spotlight.texture.alpha_mod();
+                world.transitions.spotlight.texture.set_alpha_mod(alpha);
+                canvas.copy(&world.transitions.spotlight.texture, None, None).unwrap();
+                world.transitions.spotlight.texture.set_alpha_mod(alpha_mod);
+
+                if self.progress > 50 {
+                    let fill_alpha = (255.0 * ((self.progress as f32 - 50.0) / 50.0)).clamp(0.0, 255.0) as u8;
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, fill_alpha));
+                    canvas.fill_rect(None).unwrap();
+                }
+            },
+            TransitionType::Spin => {
+                let progress = if self.direction == -1 {
+                    100 - self.progress
+                } else {
+                    self.progress
+                };
+                let angle = 360.0 * (progress as f64 / 100.0);
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    canvas.copy_ex(&screenshot, None, None, angle, None, false, false).unwrap();
+                }
+            },
+            TransitionType::Zoom(scale) => {
+                let progress_x = ((self.progress * 4) as f32 * scale) as i32;
+                let progress_y = ((self.progress * 3) as f32 * scale) as i32;
+                let dest = Rect::new(
+                    0 - progress_x, 
+                    0 - progress_y,
+                    (400 + progress_x * 2) as u32, 
+                    (300 + progress_y * 2) as u32
+                );
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    canvas.copy_ex(&screenshot, None, dest, 0.0, None, false, false).unwrap();
+                }
+            },
+            TransitionType::Lines(height) => {
+                let offset = (400.0 * (self.progress as f32 / 100.0)) as i32;
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    for i in 0..(300 / height as i32) {
+                        // laggy?
+                        let src = Rect::new(0, i * height as i32, 400, height);
+                        let dst = Rect::new(if i % 2 == 0 { offset } else { -offset }, i * height as i32, 400, height);
+                        canvas.copy(&screenshot, src, dst).unwrap();
+                    }
+                }
+            },
+            TransitionType::Pixelate => {
+                let pixelation_factor = self.progress.max(1);
+
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    for y in 0..(300 / pixelation_factor) {
+                        for x in 0..(400 / pixelation_factor) {
+                            let src = Rect::new(x * pixelation_factor, y * pixelation_factor, 1, 1);
+                            let dst = Rect::new(x * pixelation_factor, y * pixelation_factor, pixelation_factor as u32, pixelation_factor as u32);
+                            canvas.copy(&screenshot, src, dst).unwrap();
+                        }
+                    }
+                }
+            },
+            TransitionType::Wave(dir, waves) => {
+                let progress = (200.0 * (self.progress as f32 / 100.0)) as i32;
+
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    if !dir {
+                        for y in 0..300 {
+                            let sin = ((y as f32 / 300.0 * PI * (waves as f32)).sin() * progress as f32) as i32;
+                            let src = Rect::new(0, y, 400, 1);
+                            let dst = Rect::new(sin, y, 400, 1);
+                            canvas.copy(&screenshot, src, dst).unwrap();
+                        }
+                    } else {
+                        for x in 0..400 {
+                            let sin = ((x as f32 / 400.0 * PI * (waves as f32)).sin() * progress as f32) as i32;
+                            let src = Rect::new(x, 0, 1, 300);
+                            let dst = Rect::new(x, sin, 1, 300);
+                            canvas.copy(&screenshot, src, dst).unwrap();
+                        }
+                    }
+                }
+            }
+            _ => ()
         }
     }
 
@@ -250,6 +766,15 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "freeze" => {
             return FreezeAction::parse(parsed);
         },
+        "give_effect" => {
+            return GiveEffectAction::parse(parsed);
+        },
+        "set_flag" => {
+            return SetFlagAction::parse(parsed);
+        },
+        "conditional" => {
+            return ConditionalAction::parse(parsed);
+        },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -260,6 +785,7 @@ pub trait Action {
     fn act(&self, player: &mut Player, world: &mut World);
 }
 
+#[deprecated = "use WarpPos"]
 #[derive(Clone)]
 pub enum WarpCoord {
     Match,
@@ -269,14 +795,36 @@ pub enum WarpCoord {
     Default
 }
 
+#[derive(Clone)]
+pub struct WarpPos {
+    pub x: IntProperty,
+    pub y: IntProperty
+}
+
+impl WarpPos {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if !(json["x"].is_object() || json["x"].is_number()) || !(json["y"].is_object() || json["y"].is_number()) { return None; } 
+        let x_parsed = IntProperty::parse(&json["x"]);
+        let y_parsed = IntProperty::parse(&json["y"]);
+        if x_parsed.is_some() && y_parsed.is_some() {
+            return Some(Self {
+                x: x_parsed.unwrap(),
+                y: y_parsed.unwrap()
+            });
+        }
+
+        return None;
+    }
+}
+
 pub struct QueuedLoad {
     pub map: String,
-    pub pos: (WarpCoord, WarpCoord),
+    pub pos: WarpPos,
 }
 
 pub struct WarpAction {
     pub map: Option<String>,
-    pub exit: (WarpCoord, WarpCoord),
+    pub exit: WarpPos,
     pub transition: Option<Transition>
 }
 
@@ -293,11 +841,22 @@ pub struct GiveEffectAction {
     pub effect: String,
 }
 
+pub struct SetFlagAction {
+    pub global: bool,
+    pub flag: String,
+    pub value: IntProperty
+}
+
+pub struct ConditionalAction {
+    pub inner: Box<dyn Action>,
+    pub condition: Condition
+}
+
 impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut map = None;
         let mut transition = None;
-        let mut transition_type = None;
+        //let mut transition_type = None;
 
         // Map
         if parsed["map"].is_string() {
@@ -305,72 +864,49 @@ impl WarpAction {
         }
 
         // Transition
-        if parsed["transition"].is_string() {
-            transition_type = Some(
-                match parsed["transition"].as_str().unwrap() {
-                    "fade" => TransitionType::Fade,
-                    _ => return Err("Unknown transition type".to_string())
-                }
-            );
-        }
+        transition = Transition::parse(&parsed["transition"]);
+        // if parsed["transition"].is_string() {
+        //     transition_type = Some(
+        //         match parsed["transition"].as_str().unwrap() {
+        //             "fade" => TransitionType::Fade,
+        //             "music_only" => TransitionType::MusicOnly,
+        //             "spotlight" => TransitionType::Spotlight,
+        //             _ => return Err("Unknown transition type".to_string())
+        //         }
+        //     );
+        // }
 
-        if let Some(kind) = transition_type {
-            let mut transition_speed = 4;
-            if parsed["transition_speed"].is_number() {
-                transition_speed = parsed["transition_speed"].as_i32().unwrap();
-            }
-            let mut fade_music = true;
-            if parsed["transition_music"].is_boolean() {
-                fade_music = parsed["transition_music"].as_bool().unwrap();
-            }
-            transition = Some(Transition {
-                kind,
-                direction: 1,
-                progress: 0,
-                speed: transition_speed,
-                fade_music
-            });
-        }
+        // if let Some(kind) = transition_type {
+        //     let mut transition_speed = 4;
+        //     if parsed["transition_speed"].is_number() {
+        //         transition_speed = parsed["transition_speed"].as_i32().unwrap();
+        //     }
+        //     let mut fade_music = true;
+        //     if parsed["transition_music"].is_boolean() {
+        //         fade_music = parsed["transition_music"].as_bool().unwrap();
+        //     }
+        //     transition = Some(Transition {
+        //         kind,
+        //         direction: 1,
+        //         progress: 0,
+        //         speed: transition_speed,
+        //         fade_music
+        //     });
+        // }
 
         // Pos
         if !parsed["pos"].is_object() { return Err("Invalid or missing position".to_string()); }
-        let mut pos = (WarpCoord::Pos(0), WarpCoord::Pos(0));
-        if parsed["pos"]["x"].is_string() {
-            pos.0 = match parsed["pos"]["x"].as_str().unwrap() {
-                "match" => WarpCoord::Match,
-                "default" => WarpCoord::Default,
-                other => {
-                    if other.starts_with("sub") {
-                        WarpCoord::Sub(other[3..].parse::<i32>().unwrap())
-                    } else if other.starts_with("add") {
-                        WarpCoord::Add(other[3..].parse::<i32>().unwrap())
-                    } else {
-                        return Err("Unknown X position".to_string());
-                    }
-                }
-            }
-        } else {
-            if !parsed["pos"]["x"].is_number() { return Err("Invalid X position".to_string()); }
-            pos.0 = WarpCoord::Pos(parsed["pos"]["x"].as_i32().unwrap());
-        }
-        if parsed["pos"]["y"].is_string() {
-            pos.1 = match parsed["pos"]["y"].as_str().unwrap() {
-                "match" => WarpCoord::Match,
-                "default" => WarpCoord::Default,
-                other => {
-                    if other.starts_with("sub") {
-                        WarpCoord::Sub(other[3..].parse::<i32>().unwrap())
-                    } else if other.starts_with("add") {
-                        WarpCoord::Add(other[3..].parse::<i32>().unwrap())
-                    } else {
-                        return Err("Unknown Y position".to_string());
-                    }
-                }
-            }
-        } else {
-            if !parsed["pos"]["y"].is_number() { return Err("Invalid Y position".to_string()); }
-            pos.1 = WarpCoord::Pos(parsed["pos"]["y"].as_i32().unwrap());
-        }
+        if !(parsed["pos"]["x"].is_object() || parsed["pos"]["x"].is_number()) { return Err("Missing x position".to_string()); }
+        if !(parsed["pos"]["y"].is_object() || parsed["pos"]["y"].is_number()) { return Err("Missing y position".to_string()); }
+        let parsed_x = IntProperty::parse(&parsed["pos"]["x"]);
+        let parsed_y = IntProperty::parse(&parsed["pos"]["y"]);
+        if parsed_x.is_none() { return Err("failed to parse x coord".to_string()); }
+        if parsed_y.is_none() { return Err("failed to parse y coord".to_string()); }
+        let pos = WarpPos {
+            x: parsed_x.unwrap(),
+            y: parsed_y.unwrap()
+        };
+
         return Ok(Box::new(WarpAction {
                     exit: pos,
                     map: match map {
@@ -400,6 +936,32 @@ impl DelayedAction {
     }
 }
 
+impl ConditionalAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        if !parsed["condition"].is_object() { return Err("No condition specified for conditional action".to_string()); }
+        if !parsed["action"].is_object() { return Err("No action specified for conditional action".to_string()); }
+        let parsed_action = parse_action(&parsed["action"]);
+        let parsed_condition = Condition::parse(&parsed["condition"]);
+        if parsed_action.is_ok() && parsed_condition.is_some() {
+            return Ok(
+                Box::new(ConditionalAction {
+                    condition: parsed_condition.unwrap(),
+                    inner: parsed_action.unwrap()
+                })
+            );
+        }
+
+        if parsed_action.is_err() {
+            return parsed_action;
+        }
+        if parsed_condition.is_none() {
+            return Err("Condition failed to parse".to_string());
+        }
+        
+        return Err("Unknown error in parsing conditional action".to_string());
+    }
+}
+
 impl FreezeAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut time = None;
@@ -421,6 +983,39 @@ impl GiveEffectAction {
         }
 
         Err("No effect specified for action".to_string())
+    }
+}
+
+impl SetFlagAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let mut global = false;
+        if parsed["global"].is_boolean() { global = parsed["global"].as_bool().unwrap(); }
+
+        if parsed["flag"].is_string() {
+            if parsed["value"].is_number() {
+                return Ok(Box::new(SetFlagAction {
+                    flag: parsed["flag"].as_str().unwrap().to_string(),
+                    global,
+                    value: IntProperty::Int(parsed["value"].as_i32().unwrap())
+                }));
+            } else if parsed["value"].is_object() {
+                let parsed_property = IntProperty::parse(&parsed["value"]);
+                if let Some(property) = parsed_property {
+                    return Ok(Box::new(SetFlagAction {
+                        flag: parsed["flag"].as_str().unwrap().to_string(),
+                        global,
+                        value: property
+                    }));
+                } else {
+                    return Err("Could not parse property for flag".to_string());
+                }
+
+            } else {
+                return Err(String::from("Bad value for flag"));
+            }
+        } else {
+            return Err(String::from("No flag specified"));
+        }
     }
 }
 
@@ -460,6 +1055,14 @@ impl Action for DelayedAction {
     }
 }
 
+impl Action for ConditionalAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if self.condition.evaluate(Some(player), Some(world)) {
+            self.inner.act(player, world);
+        }
+    }
+}
+
 impl Action for GiveEffectAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(effect) = Effect::parse(self.effect.as_str()) {
@@ -468,29 +1071,45 @@ impl Action for GiveEffectAction {
     }
 }
 
+impl Action for SetFlagAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        let value_opt = self.value.get(Some(player), Some(world));
+        
+        if let Some(value) = value_opt {
+            if self.global {
+                world.global_flags.insert(self.flag.clone(), value);
+            } else {
+                world.flags.insert(self.flag.clone(), value);
+            }
+        }
+    }
+}
+
 pub struct PrintAction {
-    pub message: String,
+    pub message: StringProperty,
 }
 
 impl PrintAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
-        if !parsed["message"].is_string() { return Err("Invalid message for print".to_string()); }
-        Ok(Box::new(Self {
-                            message: parsed["message"].as_str().unwrap().to_string()
-                        }))
+        if parsed["message"].is_string() {
+            return Ok(Box::new(Self {
+                message: StringProperty::String(parsed["message"].as_str().unwrap().to_string())
+            }));
+        } else if parsed["message"].is_object() {
+            let parsed = StringProperty::parse(&parsed["message"]);
+            if let Some(message) = parsed {
+                return Ok(Box::new(Self {
+                    message
+                }))
+            }
+        }
+
+        return Err("Invalid message for print".to_string());
     }
 }
 
 impl Action for PrintAction {
-    fn act(&self, _player: &mut Player, _world: &mut World) {
-        println!("{}", self.message);
+    fn act(&self, player: &mut Player, world: &mut World) {
+        println!("{}", self.message.get(Some(player), Some(world)).unwrap());
     }
 }
-
-// pub enum Condition {
-
-// }
-
-// pub struct ConditionalAction {
-//     pub 
-// }

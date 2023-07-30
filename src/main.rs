@@ -1,13 +1,13 @@
 extern crate json;
 
-use std::{path::PathBuf, io::BufReader, sync::Arc};
+use std::{path::PathBuf, io::BufReader, sync::Arc, collections::HashMap};
 
 use audio::{SoundEffect, SoundEffectBank};
 use debug::Debug;
 use game::{Input, RenderState};
 use player::Player;
 use rodio::{OutputStream, Sink};
-use sdl2::{image::{InitFlag}, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}};
+use sdl2::{image::{InitFlag}, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
 use ui::Ui;
 use world::World;
 
@@ -115,7 +115,7 @@ fn main() {
 
         if !ui.open {
             if !world.paused {
-                player.update(&input, &mut world);
+                player.update(&input, &mut world, &mut sfx);
             }
             world.update(&mut player, &sink);
         }
@@ -168,6 +168,24 @@ fn main() {
 
         ui.draw(&player, &mut canvas);
 
+        if world.transition_context.take_screenshot {
+            let mut screenshot = world.transition_context.screenshot.take().unwrap();
+            canvas.with_texture_canvas(&mut screenshot, |tex_canvas| {
+                tex_canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                tex_canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                tex_canvas.clear();
+                tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+
+                if world.looping {
+                    world.draw_looping(tex_canvas, &player, &render_state);
+                } else {
+                    world.draw(tex_canvas, &player, &render_state);
+                }
+            }).unwrap();
+            world.transition_context.screenshot = Some(screenshot);
+            world.transition_context.take_screenshot = false;
+        }
+
         canvas.present();
 
         if world.queued_load.is_some() && world.transition.is_some() && world.transition.as_ref().unwrap().progress == 100 {
@@ -177,23 +195,36 @@ fn main() {
             let default = world.default_pos.clone();
             player.moving = false;
             player.move_timer = 0;
-            match world.queued_load.as_ref().unwrap().pos.0 {
-                game::WarpCoord::Pos(x) => player.set_x(x * 16),
-                game::WarpCoord::Add(x) => player.set_x(player.x + x * 16),
-                game::WarpCoord::Sub(x) => player.set_x(player.x - x * 16),
-                game::WarpCoord::Default => player.set_x(default.unwrap_or((0, 0)).0 * 16),
-                _ => ()
+            let warp_x = world.queued_load.as_ref().unwrap().pos.x.get(Some(&player), Some(&world));
+            let warp_y = world.queued_load.as_ref().unwrap().pos.y.get(Some(&player), Some(&world));
+            if let Some(x) = warp_x {
+                player.set_x(x * 16);
             }
-            match world.queued_load.as_ref().unwrap().pos.1 {
-                game::WarpCoord::Pos(y) => player.set_y(y * 16),
-                game::WarpCoord::Add(y) => player.set_y(player.y + y * 16),
-                game::WarpCoord::Sub(y) => player.set_y(player.y - y * 16),
-                game::WarpCoord::Default => player.set_y(default.unwrap_or((0, 0)).1 * 16),
-                _ => ()
+            if let Some(y) = warp_y {
+                player.set_y(y * 16);
             }
+
+            // TODO: fix all warp coordinates in json
+
+            // match world.queued_load.as_ref().unwrap().pos.0 {
+            //     game::WarpCoord::Pos(x) => player.set_x(x * 16),
+            //     game::WarpCoord::Add(x) => player.set_x(player.x + x * 16),
+            //     game::WarpCoord::Sub(x) => player.set_x(player.x - x * 16),
+            //     game::WarpCoord::Default => player.set_x(default.unwrap_or((0, 0)).0 * 16),
+            //     _ => ()
+            // }
+            // match world.queued_load.as_ref().unwrap().pos.1 {
+            //     game::WarpCoord::Pos(y) => player.set_y(y * 16),
+            //     game::WarpCoord::Add(y) => player.set_y(player.y + y * 16),
+            //     game::WarpCoord::Sub(y) => player.set_y(player.y - y * 16),
+            //     game::WarpCoord::Default => player.set_y(default.unwrap_or((0, 0)).1 * 16),
+            //     _ => ()
+            // }
             if let Some(new_name) = name {
                 if new_name != world.name {
+                    let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
                     world = World::load_from_file(&map, &texture_creator, &mut Some(world));
+                    world.global_flags = old_flags;
                     world.transition = transition;
                     world.onload(&sink);
                 } else {

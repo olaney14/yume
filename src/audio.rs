@@ -30,6 +30,21 @@ impl SoundEffectBank {
         }
     }
 
+    pub fn play_ex(&mut self, name: &str, speed: f32, volume: f32) {
+        if self.sound_effects.contains_key(name) {
+            self.sound_effects.get(name).unwrap().play_ex(&self.output_handle, speed, volume);
+        } else {
+            if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
+                let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
+
+                self.sound_effects.insert(name.to_string().clone(), SoundEffect { speed: 1.0, volume: 1.0, source });
+                self.sound_effects.get(name).unwrap().play_ex(&self.output_handle, speed, volume);
+            } else {
+                eprintln!("Could not play sound effect {}", name);
+            }
+        }
+    }
+
     pub fn load(&mut self, name: &String, volume: f32, speed: f32) {
         if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
             let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
@@ -60,10 +75,22 @@ impl SoundEffect {
     }
 
     pub fn play(&self, output_handle: &Arc<OutputStreamHandle>) {
+        self.play_ex(output_handle, self.speed, self.volume);
+        // let sound_sink = Sink::try_new(&output_handle).unwrap();
+        // let cloned_source = self.source.clone();
+        // let speed = self.speed;
+        // let volume = self.volume;
+        // thread::spawn(move || {
+        //     sound_sink.set_speed(speed);
+        //     sound_sink.set_volume(volume);
+        //     sound_sink.append(cloned_source);
+        //     sound_sink.sleep_until_end();
+        // });
+    }
+
+    pub fn play_ex(&self, output_handle: &Arc<OutputStreamHandle>, speed: f32, volume: f32) {
         let sound_sink = Sink::try_new(&output_handle).unwrap();
         let cloned_source = self.source.clone();
-        let speed = self.speed;
-        let volume = self.volume;
         thread::spawn(move || {
             sound_sink.set_speed(speed);
             sound_sink.set_volume(volume);
