@@ -496,7 +496,8 @@ pub enum TransitionType {
     Zoom(f32),
     Pixelate,
     Lines(u32),
-    Wave(bool, u32)
+    Wave(bool, u32),
+    //ZoomFade(f32)
 }
 
 impl TransitionType {
@@ -517,6 +518,7 @@ impl TransitionType {
             "spotlight" => Some(Self::Spotlight),
             "spin" => Some(Self::Spin),
             "zoom" => Some(Self::Zoom(1.0)),
+            //"zoom_fade" => Some(Self::ZoomFade(1.0)),
             "pixelate" => Some(Self::Pixelate),
             "lines" => Some(Self::Lines(1)),
             "wave" => Some(Self::Wave(false, 10)),
@@ -743,7 +745,6 @@ impl Transition {
                     }
                 }
             }
-            _ => ()
         }
     }
 
@@ -774,6 +775,9 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         },
         "conditional" => {
             return ConditionalAction::parse(parsed);
+        },
+        "play" => {
+            return PlaySoundAction::parse(parsed);
         },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
@@ -852,6 +856,12 @@ pub struct ConditionalAction {
     pub condition: Condition
 }
 
+pub struct PlaySoundAction {
+    pub sound: String,
+    pub volume: f32,
+    pub speed: f32
+}
+
 impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut map = None;
@@ -865,34 +875,6 @@ impl WarpAction {
 
         // Transition
         transition = Transition::parse(&parsed["transition"]);
-        // if parsed["transition"].is_string() {
-        //     transition_type = Some(
-        //         match parsed["transition"].as_str().unwrap() {
-        //             "fade" => TransitionType::Fade,
-        //             "music_only" => TransitionType::MusicOnly,
-        //             "spotlight" => TransitionType::Spotlight,
-        //             _ => return Err("Unknown transition type".to_string())
-        //         }
-        //     );
-        // }
-
-        // if let Some(kind) = transition_type {
-        //     let mut transition_speed = 4;
-        //     if parsed["transition_speed"].is_number() {
-        //         transition_speed = parsed["transition_speed"].as_i32().unwrap();
-        //     }
-        //     let mut fade_music = true;
-        //     if parsed["transition_music"].is_boolean() {
-        //         fade_music = parsed["transition_music"].as_bool().unwrap();
-        //     }
-        //     transition = Some(Transition {
-        //         kind,
-        //         direction: 1,
-        //         progress: 0,
-        //         speed: transition_speed,
-        //         fade_music
-        //     });
-        // }
 
         // Pos
         if !parsed["pos"].is_object() { return Err("Invalid or missing position".to_string()); }
@@ -1019,6 +1001,22 @@ impl SetFlagAction {
     }
 }
 
+impl PlaySoundAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        if !parsed["sound"].is_string() {
+            return Err("No sound specified for play action".to_string());
+        }
+
+        return Ok(
+            Box::new(Self {
+                            sound: parsed["sound"].as_str().unwrap().to_string(),
+                            speed: parsed["speed"].as_f32().unwrap_or(1.0),
+                            volume: parsed["volume"].as_f32().unwrap_or(1.0)
+                        })
+        )
+    }
+}
+
 impl Action for FreezeAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(time) = self.time {
@@ -1082,6 +1080,12 @@ impl Action for SetFlagAction {
                 world.flags.insert(self.flag.clone(), value);
             }
         }
+    }
+}
+
+impl Action for PlaySoundAction {
+    fn act(&self, _: &mut Player, world: &mut World) {
+        world.special_context.play_sounds.push((self.sound.clone(), self.speed, self.volume));
     }
 }
 

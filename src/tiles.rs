@@ -73,11 +73,17 @@ impl<'a> Tileset<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum SpecialTile {
+    Stairs
+}
+
 pub struct Tilemap {
     pub width: u32,
     pub height: u32,
     pub tiles: Vec<Tile>,
     pub collision: Vec<bool>,
+    pub special: Vec<Option<SpecialTile>>
 }
 
 #[derive(Clone, Copy)]
@@ -100,21 +106,25 @@ impl Tilemap {
     pub fn new(width: u32, height: u32) -> Self {
         let mut tiles = Vec::with_capacity((width * height).try_into().expect("tilemap too large"));
         let mut collision = Vec::with_capacity((width * height).try_into().unwrap());
+        let mut special = Vec::with_capacity((width * height).try_into().unwrap());
         for _ in 0..(width * height) {
             tiles.push(Tile::new(-1, -1));
             collision.push(false);
+            special.push(None);
         }
+        
 
         Self {
             width,
             height,
             tiles,
-            collision
+            collision,
+            special
         }
     }
     
     pub fn set_tile(&mut self, x: u32, y: u32, tile: Tile) -> Result<(), TileError> {
-        if x > self.width || y > self.height {
+        if x >= self.width || y >= self.height {
             return Err(TileError::OutOfBounds(x, y));
         }
 
@@ -124,7 +134,7 @@ impl Tilemap {
     }
 
     pub fn get_tile(&mut self, x: u32, y: u32) -> Result<Tile, TileError> {
-        if x > self.width || y > self.height {
+        if x >= self.width || y >= self.height {
             return Err(TileError::OutOfBounds(x, y));
         }
 
@@ -132,11 +142,19 @@ impl Tilemap {
     }
 
     pub fn get_collision(&self, x: u32, y: u32) -> bool {
-        if x > self.width || y > self.height {
+        if x >= self.width || y >= self.height {
             return true;
         }
 
         return self.collision[(y * self.width + x) as usize];
+    }
+
+    pub fn get_special(&self, x: u32, y: u32) -> Option<SpecialTile> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+
+        return self.special[(y * self.width + x) as usize];
     }
 
     pub fn get_collision_with_rect(&self, rect: Rect) -> bool {
@@ -154,8 +172,14 @@ impl Tilemap {
     }
 
     pub fn set_collision(&mut self, x: u32, y: u32, state: bool) {
-        if !(x > self.width || y > self.height) {
+        if !(x >= self.width || y >= self.height) {
             self.collision[(y * self.width + x) as usize] = state;
+        }
+    }
+
+    pub fn set_special(&mut self, x: u32, y: u32, special: SpecialTile) {
+        if !(x >= self.width || y >= self.height) {
+            self.special[(y * self.width + x) as usize] = Some(special);
         }
     }
 }

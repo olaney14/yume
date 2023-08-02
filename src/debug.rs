@@ -23,13 +23,17 @@ impl Debug {
             }));
         }
 
-        // F3 + P print out the middle pixel (lol) {
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
-            if let Some(render_texture) = &world.render_texture {
-                //let pixels = render_texture.
-            } else {
-                eprintln!("no render texture");
-            }
+        // F3 + D - warp to dev map
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::D) {
+            world.queued_load = Some(
+                crate::game::QueuedLoad { map: "res/maps/dev.tmx".to_string(), pos: WarpPos {
+                    x: IntProperty::Level(LevelPropertyType::DefaultX),
+                    y: IntProperty::Level(LevelPropertyType::DefaultY)
+                } }
+            );
+            world.transition = Some(
+                Transition::new(TransitionType::Lines(1), 2, true, 5)
+            );
         }
 
         if self.load_handle.is_some() {

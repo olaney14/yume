@@ -26,7 +26,7 @@ mod ui;
 mod debug;
 mod effect;
 
-pub const START_MAP: &str = "res/maps/dev.tmx";
+pub const START_MAP: &str = "res/maps/nexus.tmx";
 pub const DEBUG: bool = true;
 
 fn main() {
@@ -117,7 +117,7 @@ fn main() {
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
-            world.update(&mut player, &sink);
+            world.update(&mut player, &mut sfx, &sink);
         }
 
         input.update();
@@ -171,7 +171,7 @@ fn main() {
         if world.transition_context.take_screenshot {
             let mut screenshot = world.transition_context.screenshot.take().unwrap();
             canvas.with_texture_canvas(&mut screenshot, |tex_canvas| {
-                tex_canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                tex_canvas.set_draw_color(world.background_color);
                 tex_canvas.set_blend_mode(sdl2::render::BlendMode::None);
                 tex_canvas.clear();
                 tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);

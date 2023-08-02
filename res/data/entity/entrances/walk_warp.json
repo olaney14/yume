@@ -1,7 +1,7 @@
 {
 	"actions": [{
 		"trigger": {
-			"type": "use"
+			"type": "walk"
 		},
 		"action": {
 			"type": "delayed",
@@ -12,31 +12,17 @@
 					"x": "$warp_x",
 					"y": "$warp_y"
 				},
-				"transition": {
-					"type": "spotlight",
-					"hold": 10,
-					"speed": 1
-				}
+				"transition": "fade"
 			},
-			"delay": 32
+			"delay": 16
 		}
 	},
 	{
 		"trigger": {
-			"type": "use"
+			"type": "walk"
 		},
 		"action": {
 			"type": "freeze"
-		}
-	},
-	{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "play",
-			"sound": "metal",
-			"volume": 2.0
 		}
 	}],
 	"height": "0",

@@ -122,7 +122,7 @@ impl Entity {
     }
 
     pub fn get_collision(&self, other: Rect) -> bool {
-        Rect::new(self.x + self.collider.x, self.y + self.collider.y, self.collider.width(), self.collider.height()).has_intersection(other)
+        Rect::new(self.x + self.collider.x, self.y + self.collider.y, self.collider.width(), self.collider.height()).has_intersection(other) && self.solid
     }
 
     pub fn get_height(&self, player_y: i32) -> i32 {

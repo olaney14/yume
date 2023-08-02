@@ -26,7 +26,11 @@
 					"x": "$warp_x",
 					"y": "$warp_y"
 				},
-				"transition": "fade"
+				"transition": {
+					"type": "zoom",
+					"scale": 5,
+					"speed": 2
+				}
 			},
 			"delay": 32
 		}
@@ -38,6 +42,21 @@
 		},
 		"action": {
 			"type": "freeze"
+		}
+	},
+	{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "play",
+				"sound": "space",
+				"volume": 2.0
+			},
+			"delay": 16
 		}
 	}],
 	"height": "0",

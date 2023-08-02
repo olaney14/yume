@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc, collections::HashMap};
 use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
 
-use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank};
+use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank, tiles::{Tilemap, SpecialTile}};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
 
@@ -13,6 +13,7 @@ pub struct Player<'a> {
     pub texture: Texture<'a>,
     pub effects_texture: Texture<'a>,
     pub facing: Direction,
+    pub diag_move: i32,
     pub moving: bool,
     pub speed: u32,
     pub move_timer: i32,
@@ -110,7 +111,8 @@ impl<'a> Player<'a> {
             unlocked_effects: Vec::new(),
             current_effect: None,
             frozen_time: 0,
-            effect_textures: HashMap::new()
+            effect_textures: HashMap::new(),
+            diag_move: 0
         };
 
         player.load_effect_textures(creator);
@@ -140,6 +142,33 @@ impl<'a> Player<'a> {
 
     pub fn move_player(&mut self, direction: Direction, world: &mut World, force: bool, just_pressed: bool) {
         if !self.moving || force {
+            if self.on_stairs(world) {
+                let diag = self.check_stair_diag(direction, world);
+                if diag != 0 {
+                    let pos = self.get_standing_tile();
+                    let target = (pos.0 as i32 + direction.x(), pos.1 as i32 + diag);
+                    if !(target.0 < 0 || target.1 < 0 || target.0 >= world.width as i32 || target.1 >= world.height as i32) && !world.get_collision_at_tile(target.0 as u32, target.1 as u32, self.layer) {
+                        self.moving = true;
+                        self.move_timer = MOVE_TIMER_MAX;
+                        self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
+                        self.occupied_tile.1 = (self.occupied_tile.0 as i32 + diag) as u32;
+                        if !force {
+                            self.animation_info.frame = 1;
+                        }
+                        self.diag_move = diag;
+    
+                        self.facing = direction;
+                        self.animation_info.frame_row = match direction {
+                            Direction::Down => 1,
+                            Direction::Left => 2,
+                            Direction::Right => 0,
+                            Direction::Up => 3
+                        };
+                        return;
+                    }
+                }
+            }
+
             if self.can_move_in_direction(direction, world) && !self.frozen {
                 self.moving = true;
                 self.move_timer = MOVE_TIMER_MAX;
@@ -272,6 +301,39 @@ impl<'a> Player<'a> {
         return !world.get_collision_at_tile(target_pos.0 as u32, target_pos.1 as u32, self.layer);
     }
 
+    pub fn check_stair_diag(&mut self, direction: Direction, world: &World) -> i32 {
+        match direction {
+            Direction::Down | Direction::Up => return 0,
+            _ => ()
+        }
+
+        let (mut tile_x, tile_y) = self.get_standing_tile();
+        tile_x = match direction {
+            Direction::Left => tile_x - 1,
+            Direction::Right => tile_x + 1,
+            _ => unreachable!()
+        };
+
+        let up = world.get_special_in_layer(self.layer, tile_x, tile_y - 1);
+        let down = world.get_special_in_layer(self.layer, tile_x, tile_y + 1);
+
+        // prioritize up over down
+
+        for special in up {
+            if matches!(special, SpecialTile::Stairs) {
+                return -1;
+            }
+        }
+
+        for special in down {
+            if matches!(special, SpecialTile::Stairs) {
+                return 1;
+            }
+        }
+
+        0
+    }
+
     pub fn apply_effect(&mut self, effect: Effect) {
         effect.apply(self);
         self.current_effect = Some(effect);
@@ -324,6 +386,7 @@ impl<'a> Player<'a> {
         if self.moving {
             self.x += self.facing.x() * self.speed as i32;
             self.y += self.facing.y() * self.speed as i32;
+            self.y += self.diag_move * self.speed as i32;
             self.move_timer -= self.speed as i32;
             self.animation_info.animate_walk();
 
@@ -334,18 +397,20 @@ impl<'a> Player<'a> {
 
             if self.move_timer <= 0 {
                 self.x = (self.x as f32 / 16.0).round() as i32 * 16;
-                self.y =  (self.y as f32 / 16.0).round() as i32 * 16;
+                self.y = (self.y as f32 / 16.0).round() as i32 * 16;
                 self.moving = false;
                 self.draw_over = false;
+                self.diag_move = 0;
+                world.player_walk(self.x / 16, (self.y / 16) + 1);
                 if !self.movement_check(input, world, true) {
                     self.animation_info.stop();
                 }
             }
         } else {
             self.movement_check(input, world, false);
-            if input.get_just_pressed(Keycode::Z) && world.interaction.is_none() {
+            if input.get_just_pressed(Keycode::Z) {
                 let pos = self.get_standing_tile();
-                world.interaction = Some(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));
+                world.interactions.push(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));
             }
         }
     }
@@ -355,6 +420,17 @@ impl<'a> Player<'a> {
             (self.x / 16).max(0) as u32,
             ((self.y / 16) + 1).max(0) as u32
         )
+    }
+
+    pub fn on_stairs(&self, world: &World) -> bool {
+        let tile = self.get_standing_tile();
+        for special in world.get_special_in_layer(self.layer, tile.0, tile.1) {
+            if matches!(special, SpecialTile::Stairs) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {

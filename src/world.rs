@@ -3,7 +3,7 @@ use std::{sync::Arc, path::PathBuf, collections::HashMap};
 use rodio::{Sink, OutputStreamHandle};
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}, EventSubsystem};
 
-use crate::{tiles::{Tilemap, Tileset, Tile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::Song, entity::{Entity, Trigger}, texture, world};
+use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, world};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -49,7 +49,7 @@ pub struct World<'a> {
     /// Up, Down, Left, Right
     pub side_actions: [(bool, Option<Box<dyn Action>>); 4],
     pub paused: bool,
-    pub interaction: Option<Interaction>,
+    pub interactions: Vec<Interaction>,
     pub transition: Option<Transition>,
     pub looping: bool,
     pub render_texture: Option<Texture<'a>>,
@@ -80,7 +80,7 @@ impl<'a> World<'a> {
             queued_load: None,
             side_actions: [(false, None), (false, None), (false, None), (false, None)],
             paused: false,
-            interaction: None,
+            interactions: Vec::new(),
             transition: None,
             looping: false,
             render_texture: None,
@@ -116,7 +116,7 @@ impl<'a> World<'a> {
             queued_load: None,
             side_actions: [(false, None), (false, None), (false, None), (false, None)],
             paused: false,
-            interaction: None,
+            interactions: Vec::new(),
             transition: None,
             looping: false,
             render_texture: None,
@@ -137,16 +137,30 @@ impl<'a> World<'a> {
         }
     }
 
+    pub fn get_special_in_layer(&self, height: i32, x: u32, y: u32) -> Vec<SpecialTile> {
+        let mut specials = Vec::new();
+        
+        for layer in &self.layers {
+            if layer.height == height && x < layer.map.width && y < layer.map.height {
+                if let Some(special) = layer.map.get_special(x, y) {
+                    specials.push(special);
+                }
+            }
+        }
+
+        specials
+    }
+
     pub fn player_bump(&mut self, x: i32, y: i32) {
-        self.interaction = Some(Interaction::Bump(x, y));
+        self.interactions.push(Interaction::Bump(x, y));
     }
 
     pub fn player_use(&mut self, x: i32, y: i32) {
-        self.interaction = Some(Interaction::Use(x, y));
+        self.interactions.push(Interaction::Use(x, y));
     }
 
     pub fn player_walk(&mut self, x: i32, y: i32) {
-        self.interaction = Some(Interaction::Walk(x, y));
+        self.interactions.push(Interaction::Walk(x, y));
     }
 
     pub fn onload(&mut self, sink: &Sink) {
@@ -176,7 +190,7 @@ impl<'a> World<'a> {
         self.entities.as_mut().unwrap().push(entity);
     }
 
-    pub fn update(&mut self, player: &mut Player, sink: &Sink) {
+    pub fn update(&mut self, player: &mut Player, sfx: &mut SoundEffectBank, sink: &Sink) {
         if let Some(transition) = &mut self.transition {
             if transition.holding {
                 transition.hold_timer -= 1;
@@ -221,6 +235,12 @@ impl<'a> World<'a> {
             }
         }
 
+        while !self.special_context.play_sounds.is_empty() {
+            if let Some((song, speed, volume)) = self.special_context.play_sounds.pop() {
+                sfx.play_ex(song.as_str(), speed, volume);
+            }
+        }
+
         if !self.paused {
             for image_layer in self.image_layers.iter_mut() {
                 image_layer.update();
@@ -237,7 +257,7 @@ impl<'a> World<'a> {
             }
             self.entities = Some(entity_list);
 
-            if let Some(inter) = &self.interaction {
+            for inter in self.interactions.iter() {
                 match inter {
                     Interaction::Bump(x, y) | Interaction::Use(x, y) => {
                         if *y >= self.height as i32 {
@@ -270,7 +290,7 @@ impl<'a> World<'a> {
                     }
                 }
             }
-            self.interaction = None;
+            self.interactions.clear();
 
             // TODO: delayed actions for screen transitions (if needed)
             for i in 0..4 {
@@ -818,7 +838,11 @@ pub struct SpecialContext {
     pub action_id: usize,
 
     /// index of the entity that contains an action
-    pub entity_id: usize
+    pub entity_id: usize,
+
+    /// all sounds in this vector will be played on the next update
+    /// sound, speed, volume
+    pub play_sounds: Vec<(String, f32, f32)>,
 }
 
 impl SpecialContext {
@@ -826,7 +850,8 @@ impl SpecialContext {
         Self {
             delayed_run: false,
             action_id: 0,
-            entity_id: 0
+            entity_id: 0,
+            play_sounds: Vec::new()
         }
     }
 }

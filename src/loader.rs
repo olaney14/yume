@@ -5,7 +5,7 @@ use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormat, PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation, ObjectShape};
 
-use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, self}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai};
+use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, self, SpecialTile}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, Animator, parse_animator}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>) -> World<'a> {
@@ -141,10 +141,45 @@ impl<'a> World<'a> {
                             for i in 0..map.width {
                                 let tile_opt = finite_tile_layer.get_tile(i as i32, j as i32);
                                 if let Some(tile) = tile_opt {
+                                    if tile.get_tile().is_none() { continue; }
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("animation") {
+                                        if let PropertyValue::StringValue(animation) = prop {
+                                            match parse_animator(&json::parse(&animation).expect("failed to parse tile animator json"), tile.tileset_index() as u32) {
+                                                Ok(animator) => {
+                                                    let mut entity = Entity::new();
+                                                    entity.animator = Some(animator);
+                                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("blocking") {
+                                                        if let PropertyValue::BoolValue(blocking) = prop {
+                                                            entity.solid = *blocking;
+                                                        }
+                                                    }
+                                                    entity.x = i as i32 * 16;
+                                                    entity.y = j as i32 * 16 - 16;
+                                                    entity.tileset = tile.tileset_index() as u32;
+                                                    entity.id = tile.id();
+                                                    entity.draw = true;
+                                                    world.add_entity(entity);
+                                                },
+                                                Err(e) => {
+                                                    eprintln!("{}", e);
+                                                }
+                                            }
+                                            continue;
+                                        }
+                                    }
+
                                     tilemap.set_tile(i, j, Tile::from_tiled(tile)).unwrap();
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("blocking") {
                                         if let PropertyValue::BoolValue(blocking) = prop {
                                             tilemap.set_collision(i, j, *blocking);
+                                        }
+                                    }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("stairs") {
+                                        if let PropertyValue::BoolValue(stairs) = prop {
+                                            if *stairs {
+                                                tilemap.set_special(i, j, SpecialTile::Stairs);
+                                            }
                                         }
                                     }
                                 }
@@ -314,7 +349,6 @@ impl<'a> World<'a> {
         if world.looping {
             world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
             world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
-            //dbg!(world.render_texture.as_mut().unwrap().blend_mode());
         }
 
         return world;
