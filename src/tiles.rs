@@ -73,9 +73,10 @@ impl<'a> Tileset<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum SpecialTile {
-    Stairs
+    Stairs,
+    Step(String)
 }
 
 pub struct Tilemap {
@@ -149,12 +150,12 @@ impl Tilemap {
         return self.collision[(y * self.width + x) as usize];
     }
 
-    pub fn get_special(&self, x: u32, y: u32) -> Option<SpecialTile> {
+    pub fn get_special(&self, x: u32, y: u32) -> Option<&SpecialTile> {
         if x >= self.width || y >= self.height {
             return None;
         }
 
-        return self.special[(y * self.width + x) as usize];
+        return self.special[(y * self.width + x) as usize].as_ref();
     }
 
     pub fn get_collision_with_rect(&self, rect: Rect) -> bool {

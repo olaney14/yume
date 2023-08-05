@@ -137,7 +137,7 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn get_special_in_layer(&self, height: i32, x: u32, y: u32) -> Vec<SpecialTile> {
+    pub fn get_special_in_layer(&self, height: i32, x: u32, y: u32) -> Vec<&SpecialTile> {
         let mut specials = Vec::new();
         
         for layer in &self.layers {

@@ -79,7 +79,7 @@
     <property name="solid" type="bool" value="false"/>
     <property name="warp_map" value="fan/flow/underground.tmx"/>
     <property name="warp_x" type="int" value="19"/>
-    <property name="warp_y" type="int" value="5"/>
+    <property name="warp_y" type="int" value="6"/>
    </properties>
   </object>
  </objectgroup>

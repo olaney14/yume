@@ -37,7 +37,12 @@ impl<'a> World<'a> {
             }
         }
 
-        if let Some(prop) = map.properties.get("defaultPos") {
+        let mut default_pos = map.properties.get("defaultPos");
+        if default_pos.is_none() {
+            default_pos = map.properties.get("default_pos");
+        }
+
+        if let Some(prop) = default_pos {
             if let PropertyValue::StringValue(default_pos) = prop {
                 let mut split = default_pos.split(',');
                 world.default_pos = Some(
@@ -172,6 +177,12 @@ impl<'a> World<'a> {
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("blocking") {
                                         if let PropertyValue::BoolValue(blocking) = prop {
                                             tilemap.set_collision(i, j, *blocking);
+                                        }
+                                    }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("step") {
+                                        if let PropertyValue::StringValue(step) = prop {
+                                            tilemap.set_special(i, j, SpecialTile::Step(step.clone()));
                                         }
                                     }
 
