@@ -29,21 +29,31 @@ mod effect;
 pub const START_MAP: &str = "res/maps/nexus.tmx";
 pub const DEBUG: bool = true;
 
+fn find_sdl_gl_driver() -> Option<u32> {
+    for (index, item) in sdl2::render::drivers().enumerate() {
+        if item.name == "opengl" {
+            return Some(index as u32);
+        }
+    }
+
+    None
+}
+
 fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG);
     let window = video_subsystem
         .window("yume", 800, 600)
+        .opengl()
         .position_centered()
         .build()
         .map_err(|e| e.to_string()).unwrap();
 
     let mut canvas = window
         .into_canvas()
-        .software()
+        .index(find_sdl_gl_driver().expect("No OpenGL driver found"))
         .target_texture()
-        //.present_vsync()
         .build()
         .map_err(|e| e.to_string()).unwrap();
     let texture_creator = canvas.texture_creator();
@@ -239,7 +249,9 @@ fn main() {
         }
 
         unsafe {
-            SDL_Delay(time_left(next_time));
+            let time = time_left(next_time);
+            //println!("{}", time);
+            SDL_Delay(time);
             next_time += TICK_INTERVAL;
         }
     }

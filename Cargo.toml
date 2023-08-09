@@ -12,3 +12,6 @@ tiled = "0.11"
 json = "0.12"
 rodio = "0.17"
 rfd = "0.11"
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs"

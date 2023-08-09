@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="7">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="8">
  <properties>
   <property name="default_pos" value="12,11"/>
  </properties>
  <tileset firstgid="1" source="entity/doors.tsx"/>
  <tileset firstgid="6" source="entity/nexus_doors.tsx"/>
- <tileset firstgid="15" source="entity/misc_entities.tsx"/>
+ <tileset firstgid="21" source="entity/misc_entities.tsx"/>
  <imagelayer id="2" name="nexus_image" offsetx="64" offsety="64">
   <image source="../textures/image/nexus.png" width="256" height="256"/>
   <properties>
@@ -78,7 +78,7 @@
     <property name="warp_y" type="int" value="20"/>
    </properties>
   </object>
-  <object id="6" gid="27" x="304" y="96" width="16" height="16">
+  <object id="6" gid="33" x="304" y="96" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/entrances/floating.json"/>
     <property name="length" type="int" value="2"/>
@@ -87,6 +87,24 @@
     <property name="warp_map" value="fan/flow/flowhub.tmx"/>
     <property name="warp_x" type="int" value="9"/>
     <property name="warp_y" type="int" value="8"/>
+   </properties>
+  </object>
+  <object id="7" gid="15" x="128" y="96" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="start_frame" type="int" value="9"/>
+    <property name="walk_behind" type="bool" value="true"/>
+    <property name="warp_map" value="metal.tmx"/>
+    <property name="warp_x" type="int" value="6"/>
+    <property name="warp_y" type="int" value="12"/>
    </properties>
   </object>
  </objectgroup>
