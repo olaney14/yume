@@ -3,7 +3,8 @@ use crate::player::Player;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Effect {
     Glasses,
-    Speed
+    Speed,
+    Fire
 }
 
 impl Effect {
@@ -11,6 +12,7 @@ impl Effect {
         match source {
             "glasses" => Some(Self::Glasses),
             "shoes" => Some(Self::Speed),
+            "fire" => Some(Self::Fire),
             _ => None
         }
     }
@@ -19,7 +21,8 @@ impl Effect {
         use Effect::*;
         match self {
             Glasses => "Put on glasses",
-            Speed => "Put on running shoes"
+            Speed => "Put on running shoes",
+            Fire => "Catch on fire"
         }
     }
 
@@ -27,7 +30,8 @@ impl Effect {
         use Effect::*;
         match self {
             Glasses => "Glasses",
-            Speed => "Running shoes"
+            Speed => "Running shoes",
+            Fire => "Fire"
         }
     }
 
@@ -36,7 +40,8 @@ impl Effect {
         use Effect::*;
         match self {
             Glasses => 0,
-            Speed => 1
+            Speed => 1,
+            Fire => 2
         }
     }
 

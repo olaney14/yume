@@ -1,9 +1,9 @@
 use std::{path::PathBuf, collections::HashMap};
 
 use rodio::Sink;
-use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode};
+use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{tiles::Tileset, texture::Texture, game::Input, effect::Effect, player::{Player, self}, audio::SoundEffectBank};
+use crate::{tiles::Tileset, texture::Texture, game::Input, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -208,7 +208,9 @@ pub struct Ui<'a> {
     pub theme: MenuSet<'a>,
     pub clear: bool,
     pub open: bool,
-    pub menu_state: MenuState
+    pub menu_state: MenuState,
+    pub effect_get: Option<String>,
+    pub effect_get_timer: u32
 }
 
 impl<'a> Ui<'a> {
@@ -218,8 +220,15 @@ impl<'a> Ui<'a> {
             theme: MenuSet::from_tileset(tileset, font, creator),
             clear: false,
             open: false,
-            menu_state: MenuState::new()
+            menu_state: MenuState::new(),
+            effect_get: None,
+            effect_get_timer: 0
         }
+    }
+
+    pub fn effect_get(&mut self, effect: &Effect) {
+        self.effect_get = Some(effect.name().to_string());
+        self.effect_get_timer = 128;
     }
 
     pub fn init(&self, sfx: &mut SoundEffectBank) {
@@ -228,8 +237,8 @@ impl<'a> Ui<'a> {
         sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
     }
 
-    pub fn update(&mut self, input: &Input, player: &mut Player, sink: &Sink, sfx: &mut SoundEffectBank) {
-        if input.get_just_pressed(Keycode::X) {
+    pub fn update(&mut self, input: &Input, player: &mut Player, world: &World, sink: &Sink, sfx: &mut SoundEffectBank) {
+        if input.get_just_pressed(Keycode::X) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
                 sink.set_volume(sink.volume() * 5.0);
@@ -245,6 +254,10 @@ impl<'a> Ui<'a> {
                 self.menu_state.close_on_x = true;
                 sfx.play("menu_blip_affirmative");
             }
+        }
+
+        if let Some(effect) = &world.special_context.effect_get {
+            self.effect_get(effect);
         }
 
         if self.menu_state.menu_should_close && self.open {
@@ -316,6 +329,13 @@ impl<'a> Ui<'a> {
                 }
             }
         }
+
+        if let Some(str) = &self.effect_get {
+            self.theme.clear_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
+            self.theme.draw_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
+            let text_width = self.theme.font.string_width(str);
+            self.theme.font.draw_string(canvas, str, (200 - text_width as i32, 156));
+        }
     }
 }
 
@@ -335,6 +355,14 @@ impl<'a> MenuSet<'a> {
                 DEFAULT_FONT_HEIGHT, 
                 None)
         }
+    }
+
+    pub fn clear_frame<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: u32, y: u32, w: u32, h: u32) {
+        let draw_x = (x as i32 * 16) + 2;
+        let draw_y = (y as i32 * 16) + 2;
+        canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        canvas.set_blend_mode(sdl2::render::BlendMode::None);
+        canvas.fill_rect(Rect::new(draw_x, draw_y, (w * 16) - 4, (h * 16) - 4)).unwrap();
     }
 
     pub fn draw_frame<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: u32, y: u32, w: u32, h: u32) {

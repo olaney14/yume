@@ -12,6 +12,9 @@ tiled = "0.11"
 json = "0.12"
 rodio = "0.17"
 rfd = "0.11"
+serde = "1.0"
+serde_derive = "1.0"
+postcard = "1.0"
 
 [dependencies.gl]
 git = "https://github.com/bjz/gl-rs"

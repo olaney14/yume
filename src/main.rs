@@ -25,6 +25,7 @@ mod ai;
 mod ui;
 mod debug;
 mod effect;
+mod save;
 
 pub const START_MAP: &str = "res/maps/nexus.tmx";
 pub const DEBUG: bool = true;
@@ -70,7 +71,7 @@ fn main() {
     ui.init(&mut sfx);
 
     let mut player = Player::new(&texture_creator);
-    player.unlocked_effects.push(effect::Effect::Glasses);
+    //player.unlocked_effects.push(effect::Effect::Fire);
     player.unlocked_effects.push(effect::Effect::Speed);
     let mut input = Input::new();
 
@@ -121,13 +122,26 @@ fn main() {
 
         debug.update(&input, &mut world);
 
-        ui.update(&input, &mut player, &sink, &mut sfx);
+        ui.update(&input, &mut player, &world, &sink, &mut sfx);
+
+        if ui.effect_get_timer > 0 {
+            ui.effect_get_timer -= 1;
+            if ui.effect_get_timer == 0 {
+                ui.effect_get = None;
+                world.paused = false;
+                player.frozen = false;
+                player.frozen_time = 0;
+            }
+        }
 
         if !ui.open {
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
             world.update(&mut player, &mut sfx, &sink);
+            if player.effect_just_changed {
+                player.effect_just_changed = false;
+            }
         }
 
         input.update();

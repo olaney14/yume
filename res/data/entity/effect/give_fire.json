@@ -1,0 +1,20 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 16,
+		"length": 3,
+		"speed": 5
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "give_effect",
+			"effect": "fire"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

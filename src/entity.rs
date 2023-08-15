@@ -8,6 +8,7 @@ pub struct TriggeredAction {
     pub run_on_next_loop: bool
 }
 
+#[derive(PartialEq)]
 pub enum Trigger {
     Use,
     Walk,
@@ -15,6 +16,7 @@ pub enum Trigger {
     AnyInteraction,
     OnLoad,
     Tick(u32),
+    EffectSwitch,
     Sided(Direction, Box<Trigger>),
     Or(Vec<Trigger>)
 }
@@ -31,9 +33,45 @@ impl Trigger {
             },
             Self::Or(triggers) => {
                 return triggers.iter().map(|t| t.fulfilled_interaction(interaction, side)).any(|b| b);
+            }
+            _ => false
+        }
+    }
+
+    pub fn contains_trigger(&self, trigger: &Trigger) -> bool {
+        if self == trigger { return true; }
+        match self {
+            Self::AnyInteraction => matches!(trigger, Self::Walk | Self::Use | Self::Bump),
+            Self::Or(triggers) => {
+                for inner_trigger in triggers.iter() {
+                    if inner_trigger.contains_trigger(trigger) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+            Self::Sided(_, inner_trigger) => {
+                return inner_trigger.contains_trigger(trigger);
             },
             _ => false
         }
+    }
+
+    pub fn get_tick(&self) -> Option<u32> {
+        if let Trigger::Tick(time) = self {
+            return Some(*time);
+        }
+
+        if let Trigger::Or(triggers) = self {
+            for inner_trigger in triggers.iter() {
+                if let Some(time) = inner_trigger.get_tick() {
+                    return Some(time);
+                }
+            }
+        }
+
+        return None;
     }
 }
 
@@ -44,6 +82,7 @@ fn parse_trigger_type(source: &str) -> Option<Trigger> {
         "bump" => Some(Trigger::Bump),
         "interact" => Some(Trigger::AnyInteraction),
         "onload" => Some(Trigger::OnLoad),
+        "switch" => Some(Trigger::EffectSwitch),
         _ => None,
     }
 }
@@ -51,14 +90,25 @@ fn parse_trigger_type(source: &str) -> Option<Trigger> {
 pub fn parse_trigger(source: &mut json::JsonValue) -> Option<Trigger> {
     let mut base = None;
 
+    if source.is_string() {
+        return parse_trigger_type(source.as_str().unwrap());
+    }
+
     if source["type"].is_string() {
         base = parse_trigger_type(source["type"].as_str().unwrap());
+
+        if base.is_none() {
+            if source["type"].as_str().unwrap() == "tick" {
+                let freq = source["freq"].as_u32().unwrap_or(1).max(1);
+                return Some(Trigger::Tick(freq));
+            }
+        }
     } else if source["type"].is_array() {
         let mut triggers = Vec::new();
         let mut trigger = source["type"].pop();
 
         while !trigger.is_null() {
-            triggers.push(parse_trigger_type(trigger.as_str().unwrap()));
+            triggers.push(parse_trigger(&mut trigger));
             trigger = source["type"].pop();
         }
 

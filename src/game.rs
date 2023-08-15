@@ -20,7 +20,11 @@ pub fn ceil(n: i32, to: i32) -> i32 {
 
 pub enum Condition {
     IntEquals(IntProperty, IntProperty),
-    StringEquals(StringProperty, StringProperty)
+    IntGreater(IntProperty, IntProperty),
+    IntLess(IntProperty, IntProperty),
+    StringEquals(StringProperty, StringProperty),
+    EffectEquipped(Effect),
+    Negate(Box<Condition>)
 }
 
 impl Condition {
@@ -31,10 +35,29 @@ impl Condition {
                 let rh_arg = rhs.get(player, world);
                 return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() == rh_arg.unwrap();
             },
+            Self::IntGreater(lhs, rhs) => {
+                let lh_arg = lhs.get(player, world);
+                let rh_arg = rhs.get(player, world);
+                return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() > rh_arg.unwrap();
+            },
+            Self::IntLess(lhs, rhs) => {
+                let lh_arg = lhs.get(player, world);
+                let rh_arg = rhs.get(player, world);
+                return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() < rh_arg.unwrap();
+            },
             Self::StringEquals(lhs, rhs) => {
                 let lh_arg = lhs.get(player, world);
                 let rh_arg = rhs.get(player, world);
                 return lh_arg.is_some() && rh_arg.is_some() && lh_arg.unwrap() == rh_arg.unwrap();
+            },
+            Self::EffectEquipped(effect) => {
+                if let Some(p) = player {
+                    return p.current_effect.is_some() && p.current_effect.as_ref().unwrap() == effect
+                }
+                return false;
+            },
+            Self::Negate(cond) => {
+                return !cond.evaluate(player, world);
             }
         }
     }
@@ -51,6 +74,24 @@ impl Condition {
                 }
                 return None;
             },
+            "int_greater" => {
+                if !(json["lhs"].is_object() || json["lhs"].is_number()) || !(json["rhs"].is_object() || json["rhs"].is_number()) { return None; }
+                let lhs_parsed = IntProperty::parse(&json["lhs"]);
+                let rhs_parsed = IntProperty::parse(&json["rhs"]);
+                if lhs_parsed.is_some() && rhs_parsed.is_some() {
+                    return Some(Condition::IntGreater(lhs_parsed.unwrap(), rhs_parsed.unwrap()))
+                }
+                return None;
+            },
+            "int_less" => {
+                if !(json["lhs"].is_object() || json["lhs"].is_number()) || !(json["rhs"].is_object() || json["rhs"].is_number()) { return None; }
+                let lhs_parsed = IntProperty::parse(&json["lhs"]);
+                let rhs_parsed = IntProperty::parse(&json["rhs"]);
+                if lhs_parsed.is_some() && rhs_parsed.is_some() {
+                    return Some(Condition::IntLess(lhs_parsed.unwrap(), rhs_parsed.unwrap()))
+                }
+                return None;
+            },
             "string_equals" => {
                 if !json["lhs"].is_object() || !json["rhs"].is_object() { return None; }
                 let lhs_parsed = StringProperty::parse(&json["lhs"]);
@@ -60,6 +101,24 @@ impl Condition {
                 }
                 return None;
             },
+            "effect_equipped" => {
+                if !json["effect"].is_string() { return None; }
+                let effect_parsed = Effect::parse(&json["effect"].as_str().unwrap());
+                if effect_parsed.is_some() {
+                    return Some(Condition::EffectEquipped(effect_parsed.unwrap()));
+                }
+                return None;
+            },
+            "negate" => {
+                if !json["condition"].is_object() { return None; }
+                let parsed_condition = Condition::parse(&json["condition"]);
+
+                if let Some(condition) = parsed_condition {
+                    return Some(Condition::Negate(Box::new(condition)));
+                }
+
+                return None;
+            }
             _ => return None,
         }
     }
@@ -94,17 +153,36 @@ impl PlayerPropertyType {
 #[derive(Clone)]
 pub enum LevelPropertyType {
     DefaultX,
-    DefaultY
+    DefaultY,
+    TintR,
+    TintG,
+    TintB,
+    TintA
 }
 
 impl LevelPropertyType {
     pub fn parse(json: &JsonValue) -> Option<Self> {
-        if !json["type"].is_string() { return None; }
-        match json["type"].as_str().unwrap() {
-            "default_x" => Some(LevelPropertyType::DefaultX),
-            "default_y" => Some(LevelPropertyType::DefaultY),
-            _ => None
+        let mut kind = None;
+        if json.is_string() {
+            kind = Some(json.as_str().unwrap());
         }
+        else if json["type"].is_string() {
+            kind = Some(json["type"].as_str().unwrap());
+        }
+        
+        if let Some(_type) = kind {
+            return match _type {
+                "default_x" => Some(LevelPropertyType::DefaultX),
+                "default_y" => Some(LevelPropertyType::DefaultY),
+                "tint_r" => Some(LevelPropertyType::TintR),
+                "tint_g" => Some(LevelPropertyType::TintG),
+                "tint_b" => Some(LevelPropertyType::TintB),
+                "tint_a" => Some(LevelPropertyType::TintA),
+                _ => None
+            };
+        }
+
+        return None;
     }
 }
 
@@ -155,7 +233,11 @@ impl IntProperty {
                 if let Some(w) = world {
                     match prop {
                         LevelPropertyType::DefaultX => return w.default_pos.map(|f| f.0),
-                        LevelPropertyType::DefaultY => return w.default_pos.map(|f| f.1)
+                        LevelPropertyType::DefaultY => return w.default_pos.map(|f| f.1),
+                        LevelPropertyType::TintA => return Some(w.tint.map_or(0, |c| c.a as i32)),
+                        LevelPropertyType::TintR => return Some(w.tint.map_or(0, |c| c.r as i32)),
+                        LevelPropertyType::TintG => return Some(w.tint.map_or(0, |c| c.g as i32)),
+                        LevelPropertyType::TintB => return Some(w.tint.map_or(0, |c| c.b as i32)),
                     }
                 }
                 return None;
@@ -779,6 +861,9 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "play" => {
             return PlaySoundAction::parse(parsed);
         },
+        "set" => {
+            return SetPropertyAction::parse(parsed);
+        },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -860,6 +945,18 @@ pub struct PlaySoundAction {
     pub sound: String,
     pub volume: f32,
     pub speed: f32
+}
+
+
+
+pub enum PropertyLocation {
+    Player(PlayerPropertyType),
+    World(LevelPropertyType)
+}
+
+pub struct SetPropertyAction {
+    pub property: PropertyLocation,
+    pub val: JsonValue
 }
 
 impl WarpAction {
@@ -1017,6 +1114,43 @@ impl PlaySoundAction {
     }
 }
 
+impl SetPropertyAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        if !parsed["in"].is_string() {
+            return Err("no location for set action".to_string());
+        }
+        if !parsed["val"].is_string() {
+            return Err("no target value for set action".to_string());
+        }
+        if parsed["to"].is_null() {
+            return Err("no value for set action".to_string());
+        }
+
+        let mut location = None;
+        
+        match parsed["in"].as_str().unwrap() {
+            "player" => {
+                location = Some(PropertyLocation::Player(PlayerPropertyType::parse(&parsed["val"]).unwrap()));
+            },
+            "world" => {
+                location = Some(PropertyLocation::World(LevelPropertyType::parse(&parsed["val"]).unwrap()));
+            }
+            _ => return Err("invalid target for set action".to_string())
+        }
+
+        if location.is_some() {
+            return Ok(
+                Box::new(SetPropertyAction {
+                                    property: location.unwrap(),
+                                    val: parsed["to"].clone()
+                                })
+            )
+        }
+
+        return Err(String::new());
+    }
+}
+
 impl Action for FreezeAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(time) = self.time {
@@ -1064,7 +1198,9 @@ impl Action for ConditionalAction {
 impl Action for GiveEffectAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(effect) = Effect::parse(self.effect.as_str()) {
-            player.give_effect(effect);
+            if !player.has_effect(&effect) {
+                world.special_context.effect_get = Some(effect);
+            }
         }
     }
 }
@@ -1086,6 +1222,30 @@ impl Action for SetFlagAction {
 impl Action for PlaySoundAction {
     fn act(&self, _: &mut Player, world: &mut World) {
         world.special_context.play_sounds.push((self.sound.clone(), self.speed, self.volume));
+    }
+}
+
+impl Action for SetPropertyAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        match &self.property {
+            PropertyLocation::Player(prop) => {
+                match prop {
+                    PlayerPropertyType::Height => { player.layer = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    PlayerPropertyType::X => { player.set_x(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) },
+                    PlayerPropertyType::Y => { player.set_y(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) }
+                }
+            },
+            PropertyLocation::World(prop) => {
+                match prop {
+                    LevelPropertyType::DefaultX => { if world.default_pos.is_some() { world.default_pos.as_mut().unwrap().0 = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap(); } },
+                    LevelPropertyType::DefaultY => { if world.default_pos.is_some() { world.default_pos.as_mut().unwrap().1 = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap(); } },
+                    LevelPropertyType::TintA => { if world.tint.is_some() { world.tint.as_mut().unwrap().a = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
+                    LevelPropertyType::TintR => { if world.tint.is_some() { world.tint.as_mut().unwrap().r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
+                    LevelPropertyType::TintG => { if world.tint.is_some() { world.tint.as_mut().unwrap().g = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
+                    LevelPropertyType::TintB => { if world.tint.is_some() { world.tint.as_mut().unwrap().b = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } }
+                }
+            }
+        }
     }
 }
 

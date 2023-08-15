@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc, collections::HashMap};
 
 use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
+use serde_derive::{Serialize, Deserialize};
 
 use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank, tiles::{Tilemap, SpecialTile}};
 
@@ -26,7 +27,18 @@ pub struct Player<'a> {
     pub unlocked_effects: Vec<Effect>,
     pub current_effect: Option<Effect>,
     pub frozen_time: u32,
-    pub effect_textures: HashMap<Effect, Texture<'a>>
+    pub effect_textures: HashMap<Effect, Texture<'a>>,
+    pub extra_textures: ExtraTextures<'a>,
+    pub effect_just_changed: bool,
+    pub money: u32,
+    pub stats: Statistics,
+    pub save_slot: u32
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Statistics {
+    pub steps: u64,
+    pub times_slept: u32
 }
 
 pub struct AnimationInfo {
@@ -90,7 +102,48 @@ impl AnimationInfo {
     }
 }
 
+impl Statistics {
+    pub fn new() -> Self {
+        Self {
+            steps: 0,
+            times_slept: 0
+        }
+    }
+}
+
 pub const MOVE_TIMER_MAX: i32 = 16;
+
+pub struct ExtraTextures<'a> {
+    pub fire: Texture<'a>,
+    pub fire_frame: u32,
+    pub fire_timer: u32
+}
+
+impl<'a> ExtraTextures<'a> {
+    pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
+        let fire = Texture::from_file(&PathBuf::from("res/textures/player/fire_sheet.png"), creator).expect("could not load \"res/textures/fire_sheet.png\"");
+        Self { fire, fire_frame: 0, fire_timer: 5 }
+    }
+
+    pub fn animate(&mut self) {
+        self.fire_timer -= 1;
+        if self.fire_timer == 0 {
+            self.fire_timer = 5;
+            self.fire_frame += 1;
+            if self.fire_frame > 2 {
+                self.fire_frame = 0;
+            }
+        }
+    }
+
+    pub fn get_frame_pos_back(&self) -> (u32, u32) {
+        return (self.fire_frame * 32, 0);
+    }
+
+    pub fn get_frame_pos_front(&self) -> (u32, u32) {
+        return (self.fire_frame * 32, 48);
+    }
+}
 
 impl<'a> Player<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
@@ -112,7 +165,12 @@ impl<'a> Player<'a> {
             current_effect: None,
             frozen_time: 0,
             effect_textures: HashMap::new(),
-            diag_move: 0
+            extra_textures: ExtraTextures::new(creator),
+            diag_move: 0,
+            effect_just_changed: false,
+            stats: Statistics::new(),
+            money: 0,
+            save_slot: 0
         };
 
         player.load_effect_textures(creator);
@@ -123,6 +181,7 @@ impl<'a> Player<'a> {
     fn load_effect_textures<T>(&mut self, creator: &'a TextureCreator<T>) {
         self.effect_textures.insert(Effect::Glasses, Texture::from_file(&PathBuf::from("res/textures/player/glasses.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Speed, Texture::from_file(&PathBuf::from("res/textures/player/running_shoes.png"), creator).unwrap());
+        self.effect_textures.insert(Effect::Fire, Texture::from_file(&PathBuf::from("res/textures/player/fire.png"), creator).unwrap());
     }
 
     pub fn set_x(&mut self, x: i32) {
@@ -349,6 +408,7 @@ impl<'a> Player<'a> {
         self.frozen_time = 32;
         self.animation_info.effect_switch_animation = 8;
         self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
+        self.effect_just_changed = true;
     }
 
     pub fn remove_effect(&mut self) {
@@ -358,6 +418,7 @@ impl<'a> Player<'a> {
             self.frozen_time = 32;
             self.animation_info.effect_switch_animation = 8;
             self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
+            self.effect_just_changed = true;
         }
     }
 
@@ -390,6 +451,7 @@ impl<'a> Player<'a> {
             }
         }
 
+        self.extra_textures.animate();
         self.animation_info.animate_effects();
 
         if self.moving {
@@ -452,6 +514,28 @@ impl<'a> Player<'a> {
         return String::from("step");
     }
 
+    fn pre_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), state: &RenderState) {
+        if self.current_effect.is_some() {
+            let fire = matches!(self.current_effect.as_ref().unwrap(), Effect::Fire);
+
+            if fire {
+                let src = self.extra_textures.get_frame_pos_back();
+                canvas.copy(&self.extra_textures.fire.texture, Rect::new(src.0 as i32, src.1 as i32, 32, 48), Rect::new(pos.0 - 8, pos.1 - 8, 32, 48)).unwrap();
+            }
+        }
+    }
+
+    fn post_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), state: &RenderState) {
+        if self.current_effect.is_some() {
+            let fire = matches!(self.current_effect.as_ref().unwrap(), Effect::Fire);
+
+            if fire {
+                let src = self.extra_textures.get_frame_pos_front();
+                canvas.copy(&self.extra_textures.fire.texture, Rect::new(src.0 as i32, src.1 as i32, 32, 48), Rect::new(pos.0 - 8, pos.1 - 8, 32, 48)).unwrap();
+            }
+        }
+    }
+
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
         let source = self.animation_info.get_frame_pos();
         let x;
@@ -469,15 +553,19 @@ impl<'a> Player<'a> {
             y = (state.screen_extents.1 as i32 / 2) - 16;
         }
 
+        self.pre_draw(canvas, (x, y), state);
         if self.current_effect.is_some() {
+
             if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
                 canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
             } else {
                 canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
             }
+            
         } else {
             canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
         }
+        self.post_draw(canvas, (x, y), state);
 
         if self.animation_info.effect_switch_animation > 0 {
             let frame = 8 - self.animation_info.effect_switch_animation;
@@ -491,6 +579,7 @@ impl<'a> Player<'a> {
 
     pub fn draw_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, _state: &RenderState) {
         let source = self.animation_info.get_frame_pos();
+        self.pre_draw(canvas, (self.x, self.y), _state);
         if self.current_effect.is_some() {
             if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
                 canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
@@ -500,6 +589,7 @@ impl<'a> Player<'a> {
         } else {
             canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
         }
+        self.post_draw(canvas, (self.x, self.y), _state);
 
         if self.animation_info.effect_switch_animation > 0 {
             let frame = 8 - self.animation_info.effect_switch_animation;

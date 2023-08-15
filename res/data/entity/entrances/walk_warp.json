@@ -26,6 +26,6 @@
 		}
 	}],
 	"height": "0",
-	"solid": true,
+	"solid": false,
 	"walk_behind": false
 }

@@ -3,7 +3,7 @@ use std::{sync::Arc, path::PathBuf, collections::HashMap};
 use rodio::{Sink, OutputStreamHandle};
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}, EventSubsystem};
 
-use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, world};
+use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, world, effect::Effect};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -63,6 +63,7 @@ pub struct World<'a> {
     pub global_flags: HashMap<String, i32>,
     pub transitions: TransitionTextures<'a>,
     pub transition_context: TransitionContext<'a>,
+    pub timer: u64,
 }
 
 impl<'a> World<'a> {
@@ -94,7 +95,8 @@ impl<'a> World<'a> {
             flags: HashMap::new(),
             global_flags: HashMap::new(),
             transitions: TransitionTextures::new(creator).unwrap(),
-            transition_context: TransitionContext::new(creator)
+            transition_context: TransitionContext::new(creator),
+            timer: 0
         }
     }
 
@@ -133,7 +135,8 @@ impl<'a> World<'a> {
             transition_context: TransitionContext {
                 screenshot: old.transition_context.screenshot.take(),
                 take_screenshot: true
-            }
+            },
+            timer: 0
         }
     }
 
@@ -171,7 +174,7 @@ impl<'a> World<'a> {
         }
         for entity in self.entities.as_mut().unwrap().iter_mut() {
             for action in &mut entity.actions {
-                if matches!(action.trigger, Trigger::OnLoad) {
+                if action.trigger.contains_trigger(&Trigger::OnLoad) {
                     action.run_on_next_loop = true;
                 }
             }
@@ -191,6 +194,7 @@ impl<'a> World<'a> {
     }
 
     pub fn update(&mut self, player: &mut Player, sfx: &mut SoundEffectBank, sink: &Sink) {
+        self.timer += 1;
         if let Some(transition) = &mut self.transition {
             if transition.holding {
                 transition.hold_timer -= 1;
@@ -241,9 +245,30 @@ impl<'a> World<'a> {
             }
         }
 
+        if let Some(effect) = &self.special_context.effect_get {
+            sfx.play_ex("effect_get", 1.0, 0.5);
+            player.frozen = true;
+            player.give_effect(effect.clone());
+            self.paused = true;
+            self.special_context.effect_get = None;
+        }
+
         if !self.paused {
             for image_layer in self.image_layers.iter_mut() {
                 image_layer.update();
+            }
+
+            for entity in self.entities.as_mut().unwrap().iter_mut() {
+                for action in &mut entity.actions {
+                    if player.effect_just_changed && action.trigger.contains_trigger(&Trigger::EffectSwitch) {
+                        action.run_on_next_loop = true;
+                    }
+                    if let Some(time) = action.trigger.get_tick() {
+                        if self.timer % time as u64 == 0 {
+                            action.run_on_next_loop = true;
+                        }
+                    }
+                }
             }
 
             let mut act_entities = Vec::new();
@@ -843,6 +868,8 @@ pub struct SpecialContext {
     /// all sounds in this vector will be played on the next update
     /// sound, speed, volume
     pub play_sounds: Vec<(String, f32, f32)>,
+
+    pub effect_get: Option<Effect>,
 }
 
 impl SpecialContext {
@@ -851,7 +878,8 @@ impl SpecialContext {
             delayed_run: false,
             action_id: 0,
             entity_id: 0,
-            play_sounds: Vec::new()
+            play_sounds: Vec::new(),
+            effect_get: None
         }
     }
 }

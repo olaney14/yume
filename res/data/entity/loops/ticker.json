@@ -1,0 +1,48 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "tick",
+			"freq": 5
+		},
+		"action": {
+			"type": "set_flag",
+			"flag": "loops_inc0",
+			"value": {
+				"type": "add",
+				"lhs": {
+					"type": "flag",
+					"flag": "loops_inc0"
+				},
+				"rhs": 1
+			}
+		}
+	},
+	{
+		"trigger": {
+			"type": "tick",
+			"freq": 100
+		},
+		"action": {
+			"type": "conditional",
+			"condition": {
+				"type": "int_greater",
+				"lhs": {
+					"type": "flag",
+					"flag": "loops_inc0"
+				},
+				"rhs": 20
+			},
+			"action": {
+				"type": "warp",
+				"map": "nexus.tmx",
+				"pos": {
+					"x": 12,
+					"y": 11
+				},
+				"transition": "pixelate"
+			}
+		}
+	}],
+	"solid": false,
+	"draw": false
+}

@@ -1,0 +1,43 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": ["switch", "onload"]
+		},
+		"action": {
+			"type": "conditional",
+			"condition": {
+				"type": "effect_equipped",
+				"effect": "fire"
+			},
+			"action": {
+				"type": "set",
+				"in": "world",
+				"val": "tint_a",
+				"to": 127
+			}
+		}
+	},
+	{
+		"trigger": {
+			"type": ["switch", "onload"]
+		},
+		"action": {
+			"type": "conditional",
+			"condition": {
+				"type": "negate",
+				"condition": {
+					"type": "effect_equipped",
+					"effect": "fire"
+				}
+			},
+			"action": {
+				"type": "set",
+				"in": "world",
+				"val": "tint_a",
+				"to": 240
+			}
+		}
+	}],
+	"draw": false,
+	"solid": false
+}
