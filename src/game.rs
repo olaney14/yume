@@ -540,8 +540,12 @@ impl Input {
 
 pub struct RenderState {
     pub offset: (i32, i32),
+
+    /// Physical screen dimensions
     pub screen_dims: (u32, u32),
     pub zoom: (f32, f32),
+
+    /// Draw space screen dimensions (scaled)
     pub screen_extents: (u32, u32),
     pub clamp: (bool, bool)
 }
@@ -574,6 +578,7 @@ pub enum TransitionType {
     Fade,
     MusicOnly,
     Spotlight,
+    FadeScreenshot,
     Spin,
     Zoom(f32),
     Pixelate,
@@ -644,7 +649,7 @@ pub struct Transition {
 impl Transition {
     pub fn new(kind: TransitionType, speed: i32, fade_music: bool, hold: u32) -> Self {
         let needs_screenshot = match &kind {
-            TransitionType::Spin | TransitionType::Lines(..) | TransitionType::Pixelate | TransitionType::Zoom(..) | TransitionType::Wave(..) => true,
+            TransitionType::FadeScreenshot | TransitionType::Spin | TransitionType::Lines(..) | TransitionType::Pixelate | TransitionType::Zoom(..) | TransitionType::Wave(..) => true,
             _ => false
         };
 
@@ -738,6 +743,19 @@ impl Transition {
                     canvas.fill_rect(None).unwrap();
                 }
             },
+            TransitionType::FadeScreenshot => {
+                canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_draw_color(Color::RGBA(255, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.copy(&screenshot, None, None).unwrap();
+                }
+                
+                let alpha = (255.0 * (self.progress as f32 / 100.0)).clamp(0.0, 255.0) as u8;
+                canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                canvas.set_draw_color(Color::RGBA(0, 0, 0, alpha));
+                canvas.fill_rect(None).unwrap();
+            }
             TransitionType::Spin => {
                 let progress = if self.direction == -1 {
                     100 - self.progress

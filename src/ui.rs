@@ -1,9 +1,9 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::{path::PathBuf, collections::HashMap, time::{Duration, Instant}};
 
 use rodio::Sink;
 use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{tiles::Tileset, texture::Texture, game::Input, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World};
+use crate::{tiles::Tileset, texture::Texture, game::{Input, RenderState}, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -20,7 +20,7 @@ const MENU_SELECTION_HIGHLIGHT: u32 = 9;
 const MENU_BUTTON_PADDING_VERT: u32 = 2;
 const MENU_BUTTON_PADDING_HORIZ: u32 = 2;
 
-const FONT_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .!,-�?";
+const FONT_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .!,-�?§";
 const DEFAULT_FONT: &str = "res/textures/ui/fonts/font.png";
 const DEFAULT_FONT_WIDTH: u32 = 6;
 const DEFAULT_FONT_HEIGHT: u32 = 10;
@@ -30,15 +30,23 @@ const DEFAULT_FONT_SPACING_VERT: u32 = 1;
 const FONT_VINES: &str = "res/textures/ui/fonts/vines.png";
 
 const BUTTONS_MAIN: u32 = 5;
+const BUTTONS_TITLE: u32 = 3;
 
 const SFX_VOLUME: f32 = 0.7;
+
+const MAIN_MENU_WIDTH: u32 = 5;
+const MAIN_MENU_HEIGHT: u32 = 4;
+const MAIN_MENU_Y: u32 = 175;
+const MAIN_MENU_TITLE_Y: u32 = 25;
+const MAIN_MENU_TITLE: &str = "res/textures/ui/title.png";
 
 pub enum MenuType {
     Home,
     Effects,
     Special,
     Me,
-    Quit
+    Quit,
+    MainMenu
 }
 
 pub struct MenuState {
@@ -48,7 +56,9 @@ pub struct MenuState {
     pub selection_flash: bool,
     pub timer: u32,
     pub should_quit: bool,
-    pub menu_should_close: bool
+    pub menu_should_close: bool,
+    pub player_has_save_file: bool,
+    pub menu_screenshot: bool,
 }
 
 impl MenuState {
@@ -60,11 +70,13 @@ impl MenuState {
             selection_flash: true,
             timer: 0,
             should_quit: false,
-            menu_should_close: false
+            menu_should_close: false,
+            player_has_save_file: false,
+            menu_screenshot: false
         }
     }
 
-    pub fn update(&mut self, input: &Input, player: &mut Player, sfx: &mut SoundEffectBank) {
+    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, sfx: &mut SoundEffectBank) {
         if input.get_just_pressed(Keycode::X) {
             match self.current_menu {
                 MenuType::Effects | MenuType::Quit | MenuType::Special | MenuType::Me => {
@@ -103,7 +115,7 @@ impl MenuState {
                             self.button_id = 0;
                         },
                         4 => {
-                            // Quit :(
+                            // Quit
                             self.current_menu = MenuType::Quit;
                             self.close_on_x = false;
                             self.button_id = 1;
@@ -143,7 +155,9 @@ impl MenuState {
                     match self.button_id {
                         0 => {
                             // Yes
-                            self.should_quit = true;
+                            //self.should_quit = true;
+                            self.current_menu = MenuType::MainMenu;
+                            self.button_id = 2;
                         },
                         1 => {
                             // No
@@ -158,6 +172,32 @@ impl MenuState {
                 },
                 MenuType::Me => {
                     sfx.play("menu_blip_error");
+                },
+                MenuType::MainMenu => {
+                    match self.button_id {
+                        0 => {
+                            // New Game
+                            world.special_context.new_game = true;
+                            world.paused = false;
+                            self.menu_should_close = true;
+                            self.menu_screenshot = true;
+                        }
+                        1 => {
+                            // Continue
+                            if !self.player_has_save_file {
+                                sfx.play_ex("menu_blip_error", 1.0, 0.25);
+                            }
+                        }
+                        2 => {
+                            // Quit
+                            self.should_quit = true;
+                        },
+                        _ => ()
+                    }
+
+                    if !(self.button_id == 1 && !self.player_has_save_file) {
+                        sfx.play_ex("menu_blip_affirmative", 1.0, 0.25);
+                    }
                 }
             }
         }
@@ -194,6 +234,16 @@ impl MenuState {
                 if self.button_id < 0 {
                     self.button_id = 1;
                 }
+            },
+            MenuType::MainMenu => {
+                if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
+                if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
+                if self.button_id >= BUTTONS_TITLE as i32 {
+                    self.button_id = 0;
+                }
+                if self.button_id < 0 {
+                    self.button_id = BUTTONS_TITLE as i32 - 1;
+                }
             }
             _ => ()
         }
@@ -226,6 +276,14 @@ impl<'a> Ui<'a> {
         }
     }
 
+    /// Shows a menu<br>
+    /// Don't forget to freeze the world as well
+    pub fn show_menu(&mut self, menu: MenuType) {
+        self.menu_state.current_menu = menu;
+        self.clear = true;
+        self.open = true;
+    }
+
     pub fn effect_get(&mut self, effect: &Effect) {
         self.effect_get = Some(effect.name().to_string());
         self.effect_get_timer = 128;
@@ -237,7 +295,7 @@ impl<'a> Ui<'a> {
         sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
     }
 
-    pub fn update(&mut self, input: &Input, player: &mut Player, world: &World, sink: &Sink, sfx: &mut SoundEffectBank) {
+    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, sink: &Sink, sfx: &mut SoundEffectBank) {
         if input.get_just_pressed(Keycode::X) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
@@ -247,6 +305,7 @@ impl<'a> Ui<'a> {
                 sfx.play("menu_blip_negative");
             } else if !self.open && !player.moving {
                 //sink.pause();
+                self.menu_state.current_menu = MenuType::Home;
                 sink.set_volume(sink.volume() / 5.0);
                 self.open = true;  
                 self.clear = true;
@@ -268,12 +327,12 @@ impl<'a> Ui<'a> {
         }
 
         if self.open {
-            self.menu_state.update(input, player, sfx);
+            self.menu_state.update(input, player, world, sfx);
         }
     }
 
-    pub fn draw<T: RenderTarget>(&self, player: &Player, canvas: &mut Canvas<T>) {
-        if self.open {
+    pub fn draw<T: RenderTarget>(&self, player: &Player, canvas: &mut Canvas<T>, state: &RenderState) {
+        if self.open || self.menu_state.menu_screenshot {
             match self.menu_state.current_menu {
                 MenuType::Home => {
                     let effects_selected = self.menu_state.button_id == 0;
@@ -282,7 +341,7 @@ impl<'a> Ui<'a> {
                     let unknown_selected = self.menu_state.button_id == 3;
                     let quit_selected = self.menu_state.button_id == 4;
 
-                    self.theme.draw_frame(canvas, 0, 0, 5, 6);
+                    self.theme.draw_frame_tiled(canvas, 0, 0, 5, 6);
                     let button_width = (16 * 5) - (4 + MENU_BUTTON_PADDING_HORIZ as i32) * 2;
                     let button_x = 4 + MENU_BUTTON_PADDING_HORIZ as i32;
                     let button_start_y = 4 + MENU_BUTTON_PADDING_VERT as i32;
@@ -294,8 +353,8 @@ impl<'a> Ui<'a> {
                     self.theme.draw_button(canvas, button_x, button_start_y + button_height * 4, button_width, "Quit", quit_selected, self.menu_state.selection_flash);
                 },
                 MenuType::Effects => {
-                    self.theme.draw_frame(canvas, 0, 0, 25, 2);
-                    self.theme.draw_frame(canvas, 0, 2, 25, 16);
+                    self.theme.draw_frame_tiled(canvas, 0, 0, 25, 2);
+                    self.theme.draw_frame_tiled(canvas, 0, 2, 25, 16);
                     if player.unlocked_effects.len() > 0 {
                         let description = player.unlocked_effects[self.menu_state.button_id as usize].description();
                         self.theme.font.draw_string(canvas, description, (8, 8));
@@ -313,9 +372,9 @@ impl<'a> Ui<'a> {
                     let yes_selected = self.menu_state.button_id == 0;
                     let no_selected = self.menu_state.button_id == 1;
 
-                    self.theme.draw_frame(canvas, (200 - (16 * 5)) / 16, 100 / 16, 10, 2);
+                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 5)) / 16, 100 / 16, 10, 2);
                     self.theme.font.draw_string(canvas, "Do you want to quit?", (200 - (16 * 4) - 4, 100 + 6));
-                    self.theme.draw_frame(canvas, (200 - (16 * 2)) / 16, 150 / 16, 4, 3);
+                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 2)) / 16, 150 / 16, 4, 3);
 
                     let button_x = ((200 - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
                     let button_start_y = 150 + MENU_BUTTON_PADDING_VERT as i32;
@@ -323,6 +382,34 @@ impl<'a> Ui<'a> {
                     self.theme.draw_button(canvas, button_x, button_start_y, button_width, "Yes", yes_selected, self.menu_state.selection_flash);
                     self.theme.draw_button(canvas, button_x, button_start_y + (14 + MENU_BUTTON_PADDING_VERT as i32), button_width, "No", no_selected, self.menu_state.selection_flash);
                 },
+                MenuType::MainMenu => {
+                    let centered_x = (state.screen_extents.0 / 2) - (self.theme.title.width / 2);
+                    let y = MAIN_MENU_TITLE_Y;
+                    canvas.copy(
+                        &self.theme.title.texture, 
+                        None, 
+                        Rect::new(centered_x as i32, y as i32, self.theme.title.width, self.theme.title.height)
+                    ).unwrap();
+
+                    let centered_x = (state.screen_extents.0 / 2) - (MAIN_MENU_WIDTH * 8);
+                    let y = MAIN_MENU_Y;
+                    self.theme.draw_frame(canvas, centered_x, y, MAIN_MENU_WIDTH, MAIN_MENU_HEIGHT);
+
+                    let new_game_selected = self.menu_state.button_id == 0;
+                    let continue_selected = self.menu_state.button_id == 1;
+                    let quit_selected = self.menu_state.button_id == 2;
+
+                    let button_x = (centered_x + MENU_BUTTON_PADDING_HORIZ) as i32;
+                    let button_y = (y + MENU_BUTTON_PADDING_VERT * 3) as i32;
+                    let button_w = (MAIN_MENU_WIDTH as i32 * 16) - (MENU_BUTTON_PADDING_HORIZ as i32 * 2);
+                    self.theme.draw_button(canvas, button_x, button_y, button_w, "New Game", new_game_selected, self.menu_state.selection_flash);
+                    if self.menu_state.player_has_save_file {
+                        self.theme.draw_button(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14), button_w, "Continue", continue_selected, self.menu_state.selection_flash);
+                    } else {
+                        self.theme.draw_button_strikethrough(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14), button_w, "Continue", continue_selected, self.menu_state.selection_flash);
+                    }
+                    self.theme.draw_button(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14) * 2, button_w, "Quit", quit_selected, self.menu_state.selection_flash);
+                }
                 _ => {
                     let width = self.theme.font.string_width("under construction...");
                     self.theme.font.draw_string(canvas, "under construction...", (200 - (width as i32 / 2), 150 - (self.theme.font.char_height as i32 / 2)));
@@ -332,7 +419,7 @@ impl<'a> Ui<'a> {
 
         if let Some(str) = &self.effect_get {
             self.theme.clear_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
-            self.theme.draw_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
+            self.theme.draw_frame_tiled(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
             let text_width = self.theme.font.string_width(str);
             self.theme.font.draw_string(canvas, str, (200 - text_width as i32, 156));
         }
@@ -341,13 +428,15 @@ impl<'a> Ui<'a> {
 
 pub struct MenuSet<'a> {
     pub tileset: Tileset<'a>,
-    pub font: Font<'a>
+    pub font: Font<'a>,
+    pub title: Texture<'a>
 }
 
 impl<'a> MenuSet<'a> {
     pub fn from_tileset<T>(tileset: Tileset<'a>, font: Option<&str>, creator: &'a TextureCreator<T>) -> Self {
         Self {
             tileset,
+            title: Texture::from_file(&PathBuf::from(MAIN_MENU_TITLE), &creator).map_err(|e| format!("failed to load title texture: {}", e)).unwrap(),
             font: Font::load_from_file(
                 &PathBuf::from(font.unwrap_or(DEFAULT_FONT)), 
                 creator, 
@@ -365,9 +454,10 @@ impl<'a> MenuSet<'a> {
         canvas.fill_rect(Rect::new(draw_x, draw_y, (w * 16) - 4, (h * 16) - 4)).unwrap();
     }
 
+    /// Draw a frame at (x, y) with size (w, h) in tiles
     pub fn draw_frame<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: u32, y: u32, w: u32, h: u32) {
-        let draw_x = x as i32 * 16;
-        let draw_y = y as i32 * 16;
+        let draw_x = x as i32;
+        let draw_y = y as i32;
         self.tileset.draw_tile(canvas, MENU_FRAME_TOP_RIGHT, (draw_x, draw_y));
         self.tileset.draw_tile(canvas, MENU_FRAME_TOP_LEFT, (draw_x + ((w as i32 - 1) * 16), draw_y));
         self.tileset.draw_tile(canvas, MENU_FRAME_BOTTOM_LEFT, (draw_x, draw_y + ((h as i32 - 1) * 16)));
@@ -380,6 +470,11 @@ impl<'a> MenuSet<'a> {
             self.tileset.draw_tile(canvas, MENU_FRAME_LEFT, (draw_x, draw_y + (i as i32 * 16)));
             self.tileset.draw_tile(canvas, MENU_FRAME_RIGHT, (draw_x + ((w as i32 - 1) * 16), draw_y + (i as i32 * 16)));
         }
+    }
+
+    /// Draw a frame aligned to the tile grid starting at (0, 0)
+    pub fn draw_frame_tiled<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: u32, y: u32, w: u32, h: u32) {
+        self.draw_frame(canvas, x * 16, y * 16, w, h);
     }
 
     pub fn draw_button<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: i32, y: i32, w: i32, text: &str, selected: bool, flash: bool) {
@@ -397,6 +492,23 @@ impl<'a> MenuSet<'a> {
         }
 
         self.font.draw_string(canvas, text, (x + 4, y + 3));
+    }
+
+    pub fn draw_button_strikethrough<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: i32, y: i32, w: i32, text: &str, selected: bool, flash: bool) {
+        if selected {
+            if flash {
+                let tiles_flash = w / 16;
+                let start = (x + w / 2) - ((tiles_flash * 16) / 2);
+                for tile_x in 0..tiles_flash {
+                    self.tileset.draw_tile(canvas, MENU_SELECTION_HIGHLIGHT, (start + (tile_x * 16), y));
+                }
+            }
+
+            self.tileset.draw_tile(canvas, MENU_SELECTION_BORDER_LEFT, (x, y));
+            self.tileset.draw_tile(canvas, MENU_SELECTION_BORDER_RIGHT, (x + w - 16, y));
+        }
+
+        self.font.draw_string_strikethrough(canvas, text, (x + 4, y + 3));
     }
 }
 
@@ -459,10 +571,18 @@ impl<'a> Font<'a> {
         return string.len() as u32 * (self.char_width + self.char_spacing.0);
     }
 
-    pub fn draw_string<T: RenderTarget>(&self, canvas: &mut Canvas<T>, string: &str, pos: (i32, i32)) {
-        let chars = string.chars().collect::<Vec<char>>();
+    pub fn draw_string<T: RenderTarget,>(&self, canvas: &mut Canvas<T>, message: &str, pos: (i32, i32)) {
+        let chars = message.chars().collect::<Vec<char>>();
         for i in 0..chars.len() {
             self.draw_char(canvas, chars[i], (pos.0 + ((self.char_width + self.char_spacing.0) * i as u32) as i32, pos.1));
+        }
+    }
+
+    pub fn draw_string_strikethrough<T: RenderTarget>(&self, canvas: &mut Canvas<T>, message: &str, pos: (i32, i32)) {
+        let chars = message.chars().collect::<Vec<char>>();
+        for i in 0..chars.len() {
+            self.draw_char(canvas, chars[i], (pos.0 + ((self.char_width + self.char_spacing.0) * i as u32) as i32, pos.1));
+            self.draw_char(canvas, '§', (pos.0 + ((self.char_width + self.char_spacing.0) * i as u32) as i32, pos.1));
         }
     }
 

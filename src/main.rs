@@ -2,13 +2,13 @@ extern crate json;
 
 use std::{path::PathBuf, io::BufReader, sync::Arc, collections::HashMap};
 
-use audio::{SoundEffect, SoundEffectBank};
+use audio::{SoundEffect, SoundEffectBank, Song};
 use debug::Debug;
-use game::{Input, RenderState};
+use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
 use player::Player;
 use rodio::{OutputStream, Sink};
 use sdl2::{image::{InitFlag}, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
-use ui::Ui;
+use ui::{Ui, MenuState, MenuType};
 use world::World;
 
 extern crate sdl2;
@@ -29,6 +29,9 @@ mod save;
 
 pub const START_MAP: &str = "res/maps/nexus.tmx";
 pub const DEBUG: bool = true;
+pub const MAIN_MENU_MUSIC: &str = "res/audio/music/travel.ogg";
+pub const MAIN_MENU_MUSIC_SPEED: f32 = 0.25;
+pub const MAIN_MENU_MUSIC_VOLUME: f32 = 0.5;
 
 fn find_sdl_gl_driver() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
@@ -65,20 +68,24 @@ fn main() {
     let mut sfx = SoundEffectBank::new(Arc::new(stream_handle));
 
     // TODO uhhhhhhh
-    // so rust thinks that the reference in line 37 is still being used here
+    // so rust thinks that the reference in line ?? is still being used here
     // idk how to fix that
-    let mut ui = Ui::new(&PathBuf::from("res/textures/ui/themes/vines.png"), Some("res/textures/ui/fonts/vines.png"), &texture_creator);
+    let mut ui = Ui::new(&PathBuf::from("res/textures/ui/themes/menu.png"), Some("res/textures/ui/fonts/menu.png"), &texture_creator);
     ui.init(&mut sfx);
 
     let mut player = Player::new(&texture_creator);
-    //player.unlocked_effects.push(effect::Effect::Fire);
     player.unlocked_effects.push(effect::Effect::Speed);
     let mut input = Input::new();
-
-    // let sfx_test = SoundEffect::new(PathBuf::from("res/audio/sfx/effect.mp3"));
-    // sfx_test.play(&stream_arc);
-
-    let mut world = World::load_from_file(&START_MAP.to_owned(), &texture_creator, &mut None);
+    // CHANGED
+    // let mut world = World::load_from_file(&START_MAP.to_owned(), &texture_creator, &mut None);
+    let mut world = World::new(&texture_creator);
+    let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
+    song.default_speed = MAIN_MENU_MUSIC_SPEED;
+    song.speed = MAIN_MENU_MUSIC_SPEED;
+    song.volume = MAIN_MENU_MUSIC_VOLUME;
+    song.default_volume = MAIN_MENU_MUSIC_VOLUME;
+    song.dirty = true;
+    world.song = Some(song);
     world.onload(&sink);
     if let Some(def) = world.default_pos {
         player.set_x(def.0 * 16);
@@ -86,6 +93,9 @@ fn main() {
     }
 
     canvas.set_scale(2.0, 2.0).unwrap();
+
+    world.paused = true;
+    ui.show_menu(MenuType::MainMenu);
 
     let mut events = sdl_context.event_pump().unwrap();
     let mut render_state = RenderState::new((800, 600));
@@ -122,7 +132,7 @@ fn main() {
 
         debug.update(&input, &mut world);
 
-        ui.update(&input, &mut player, &world, &sink, &mut sfx);
+        ui.update(&input, &mut player, &mut world, &sink, &mut sfx);
 
         if ui.effect_get_timer > 0 {
             ui.effect_get_timer -= 1;
@@ -132,6 +142,16 @@ fn main() {
                 player.frozen = false;
                 player.frozen_time = 0;
             }
+        }
+
+        if world.special_context.new_game {
+            world.queued_load = Some(QueuedLoad {
+                map: String::from(START_MAP),
+                pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
+            });
+            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 2, true, 32));
+            world.special_context.new_game = false;
+            world.paused = false;
         }
 
         if !ui.open {
@@ -190,7 +210,7 @@ fn main() {
             }
         }
 
-        ui.draw(&player, &mut canvas);
+        ui.draw(&player, &mut canvas, &render_state);
 
         if world.transition_context.take_screenshot {
             let mut screenshot = world.transition_context.screenshot.take().unwrap();
@@ -200,14 +220,19 @@ fn main() {
                 tex_canvas.clear();
                 tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
 
-                if world.looping {
-                    world.draw_looping(tex_canvas, &player, &render_state);
-                } else {
-                    world.draw(tex_canvas, &player, &render_state);
+                if !ui.menu_state.menu_screenshot {
+                    if world.looping {
+                        world.draw_looping(tex_canvas, &player, &render_state);
+                    } else {
+                        world.draw(tex_canvas, &player, &render_state);
+                    }
                 }
+
+                ui.draw(&player, tex_canvas, &render_state);
             }).unwrap();
             world.transition_context.screenshot = Some(screenshot);
             world.transition_context.take_screenshot = false;
+            ui.menu_state.menu_screenshot = false;
         }
 
         canvas.present();
@@ -219,31 +244,8 @@ fn main() {
             let default = world.default_pos.clone();
             player.moving = false;
             player.move_timer = 0;
-            let warp_x = world.queued_load.as_ref().unwrap().pos.x.get(Some(&player), Some(&world));
-            let warp_y = world.queued_load.as_ref().unwrap().pos.y.get(Some(&player), Some(&world));
-            if let Some(x) = warp_x {
-                player.set_x(x * 16);
-            }
-            if let Some(y) = warp_y {
-                player.set_y(y * 16);
-            }
+            let warp_pos = world.queued_load.as_ref().unwrap().pos.clone();
 
-            // TODO: fix all warp coordinates in json
-
-            // match world.queued_load.as_ref().unwrap().pos.0 {
-            //     game::WarpCoord::Pos(x) => player.set_x(x * 16),
-            //     game::WarpCoord::Add(x) => player.set_x(player.x + x * 16),
-            //     game::WarpCoord::Sub(x) => player.set_x(player.x - x * 16),
-            //     game::WarpCoord::Default => player.set_x(default.unwrap_or((0, 0)).0 * 16),
-            //     _ => ()
-            // }
-            // match world.queued_load.as_ref().unwrap().pos.1 {
-            //     game::WarpCoord::Pos(y) => player.set_y(y * 16),
-            //     game::WarpCoord::Add(y) => player.set_y(player.y + y * 16),
-            //     game::WarpCoord::Sub(y) => player.set_y(player.y - y * 16),
-            //     game::WarpCoord::Default => player.set_y(default.unwrap_or((0, 0)).1 * 16),
-            //     _ => ()
-            // }
             if let Some(new_name) = name {
                 if new_name != world.name {
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
@@ -255,7 +257,16 @@ fn main() {
                     world.reset();
                 }
             }
+            if let Some(x) = warp_pos.x.get(Some(&player), Some(&world)) {
+                player.set_x(x * 16);
+            }
+            if let Some(y) = warp_pos.y.get(Some(&player), Some(&world)) {
+                player.set_y(y * 16);
+            }
+
             player.frozen = false;
+            ui.clear = false;
+            ui.open = false;
         }
 
         if ui.menu_state.should_quit {
@@ -264,7 +275,6 @@ fn main() {
 
         unsafe {
             let time = time_left(next_time);
-            //println!("{}", time);
             SDL_Delay(time);
             next_time += TICK_INTERVAL;
         }

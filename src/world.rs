@@ -870,6 +870,9 @@ pub struct SpecialContext {
     pub play_sounds: Vec<(String, f32, f32)>,
 
     pub effect_get: Option<Effect>,
+
+    /// set by the ui, used by main to make a new game
+    pub new_game: bool,
 }
 
 impl SpecialContext {
@@ -879,7 +882,8 @@ impl SpecialContext {
             action_id: 0,
             entity_id: 0,
             play_sounds: Vec::new(),
-            effect_get: None
+            effect_get: None,
+            new_game: false
         }
     }
 }
