@@ -405,11 +405,11 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
-        if self.transition.is_some() {
-            let mut transition = self.transition.take().unwrap();
-            transition.draw(canvas, self);
-            self.transition = Some(transition);
-        }
+        // if self.transition.is_some() {
+        //     let mut transition = self.transition.take().unwrap();
+        //     transition.draw(canvas, self);
+        //     self.transition = Some(transition);
+        // }
     }
 
     pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
@@ -559,6 +559,14 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
+        // if self.transition.is_some() {
+        //     let mut transition = self.transition.take().unwrap();
+        //     transition.draw(canvas, self);
+        //     self.transition = Some(transition);
+        // }
+    }
+
+    pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
         if self.transition.is_some() {
             let mut transition = self.transition.take().unwrap();
             transition.draw(canvas, self);

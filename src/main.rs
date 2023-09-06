@@ -202,12 +202,18 @@ fn main() {
             }
         }
 
-        if !ui.clear {
+        // If the ui is not clearing the screen and a menu screenshot is not being taken
+        if !ui.clear && !ui.menu_state.menu_screenshot {
             if world.looping {
                 world.draw_looping(&mut canvas, &player, &render_state);
             } else {
                 world.draw(&mut canvas, &player, &render_state);
             }
+        }
+
+        // Exclude transitions from screenshots 
+        if !ui.clear {
+            world.draw_transitions(&mut canvas, &render_state);
         }
 
         ui.draw(&player, &mut canvas, &render_state);
