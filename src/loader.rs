@@ -1,11 +1,10 @@
-use std::{path::{PathBuf, Path}, u8, collections::HashMap, any::Any, borrow::BorrowMut, fs, io::Read, ffi::OsString, sync::Arc};
+use std::{path::PathBuf, u8, collections::HashMap, fs, io::Read, ffi::OsString};
 
-use json::{object::Object, JsonValue};
-use rodio::OutputStreamHandle;
-use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormat, PixelFormatEnum, Color}, rect::Rect};
-use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation, ObjectShape};
+use json::JsonValue;
+use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
+use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, self, SpecialTile}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, Animator, parse_animator}};
+use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, SpecialTile}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, parse_animator}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>) -> World<'a> {
@@ -338,9 +337,9 @@ impl<'a> World<'a> {
                 LayerType::Image(image_layer) => {
                     if let Some(image) = &image_layer.image {
                         let mut world_image_layer = ImageLayer::load_from_file(&image.source, creator);
-                        if let Some(prop) = layer.properties.get("looping") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = true; world_image_layer.looping_y = true; } };
-                        if let Some(prop) = layer.properties.get("looping_x") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = true; } };
-                        if let Some(prop) = layer.properties.get("looping_y") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_y = true; } };
+                        if let Some(prop) = layer.properties.get("looping") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_x = true; world_image_layer.looping_y = true; } };
+                        if let Some(prop) = layer.properties.get("looping_x") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_x = true; } };
+                        if let Some(prop) = layer.properties.get("looping_y") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_y = true; } };
                         if let Some(prop) = layer.properties.get("scroll_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_x = *i; } };
                         if let Some(prop) = layer.properties.get("scroll_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_y = *i; } };
                         if let Some(prop) = layer.properties.get("x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.x = *i; } };

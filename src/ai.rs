@@ -1,8 +1,8 @@
-use std::{collections::VecDeque};
+use std::collections::VecDeque;
 
 use json::JsonValue;
 
-use crate::{entity::{Entity, TriggeredAction, EntityMovementInfo}, world::{World, Interaction}, game::Direction, player::Player};
+use crate::{entity::Entity, world::{World, Interaction}, game::Direction, player::Player};
 
 pub enum AnimationAdvancementType {
     Cycle(i32),
@@ -40,7 +40,7 @@ impl Animator {
     pub fn new(data: AnimationFrameData, tileset: u32, speed: u32) -> Self {
         let beginning_frame = match &data {
             AnimationFrameData::SingleFrame(frame) => { *frame },
-            AnimationFrameData::FrameSequence { start, idle, len, advance } => { *start },
+            AnimationFrameData::FrameSequence { start, .. } => { *start },
             AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) }
         };
 
@@ -58,7 +58,7 @@ impl Animator {
     pub fn reset(&mut self) {
         let beginning_frame = match &self.frame_data {
             AnimationFrameData::SingleFrame(frame) => { *frame },
-            AnimationFrameData::FrameSequence { start, idle, len, advance } => { *start },
+            AnimationFrameData::FrameSequence { start, .. } => { *start },
             AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) }
         };
 
@@ -71,7 +71,7 @@ impl Animator {
             self.timer = self.speed as i32;
             match &mut self.frame_data {
                 AnimationFrameData::SingleFrame(frame) => { self.frame = *frame },
-                AnimationFrameData::FrameSequence { start, idle, len, advance } => {
+                AnimationFrameData::FrameSequence { start, len, advance, .. } => {
                     match advance {
                         AnimationAdvancementType::Loop => {
                             self.frame += 1;
@@ -231,7 +231,7 @@ impl Ai for Pushable {
 }
 
 impl Ai for AnimateOnInteract {
-    fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
+    fn act(&mut self, entity: &mut Entity, _world: &mut World, player: &Player, _entity_list: &Vec<Entity>) {
         if entity.interaction.is_some() {
             let mut fulfullled = false;
             if self.takes_use && matches!(entity.interaction.as_ref().unwrap().0, Interaction::Use(_, _)) {
@@ -512,7 +512,7 @@ impl AStarPathfinder {
         self.cur_path.pop_front()
     }
 
-    pub fn pathfind_to(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Result<(), ()> {
+    pub fn pathfind_to(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, _player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Result<(), ()> {
         self.clear();
         let mut i = 0;
         let mut x = x0;
@@ -528,16 +528,6 @@ impl AStarPathfinder {
 
                 if check_x == x1 as i32 && check_y == y1 as i32 {
                     self.costs[(check_y * world.width as i32 + check_x) as usize].direction = Some(dir.flipped());
-                    // for y in 0..world.height {
-                    //     for x in 0..world.width {
-                    //         print!("{}", match self.costs[(y * world.width + x) as usize].direction {
-                    //             Some(Direction::Down) => "v", Some(Direction::Up) => "^", Some(Direction::Left) => "<", Some(Direction::Right) => ">",
-                    //             None => "."
-                    //         });
-                    //     }
-                    //     println!("");
-                    // }
-                    // println!("");
                     if self.calc_path(x0, y0, x1 as u32, y1 as u32, world) {
                         return Ok(());
                     } else {

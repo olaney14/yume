@@ -1,14 +1,15 @@
 extern crate json;
 
-use std::{path::PathBuf, io::BufReader, sync::Arc, collections::HashMap};
+use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::File};
 
-use audio::{SoundEffect, SoundEffectBank, Song};
+use audio::{SoundEffectBank, Song};
 use debug::Debug;
 use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
 use player::Player;
 use rodio::{OutputStream, Sink};
-use sdl2::{image::{InitFlag}, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
-use ui::{Ui, MenuState, MenuType};
+use save::{SaveInfo, SaveData, SaveSlot};
+use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}};
+use ui::{Ui, MenuType};
 use world::World;
 
 extern crate sdl2;
@@ -27,7 +28,7 @@ mod debug;
 mod effect;
 mod save;
 
-pub const START_MAP: &str = "res/maps/nexus.tmx";
+pub const START_MAP: &str = "res/maps/bedroom.tmx";
 pub const DEBUG: bool = true;
 pub const MAIN_MENU_MUSIC: &str = "res/audio/music/travel.ogg";
 pub const MAIN_MENU_MUSIC_SPEED: f32 = 0.25;
@@ -73,8 +74,11 @@ fn main() {
     let mut ui = Ui::new(&PathBuf::from("res/textures/ui/themes/menu.png"), Some("res/textures/ui/fonts/menu.png"), &texture_creator);
     ui.init(&mut sfx);
 
+    //let mut save_info = SaveInfo::create_new().expect("baha");
+    let mut save_info = SaveInfo::read().expect("failed to read or open save data");
+
     let mut player = Player::new(&texture_creator);
-    player.unlocked_effects.push(effect::Effect::Speed);
+    //player.unlocked_effects.push(effect::Effect::Speed);
     let mut input = Input::new();
     // CHANGED
     // let mut world = World::load_from_file(&START_MAP.to_owned(), &texture_creator, &mut None);
@@ -105,14 +109,14 @@ fn main() {
         load_handle: None
     };
 
+    //let new_save = SaveData::create(&player);
+    //new_save.save(0, &PathBuf::from("saves/0.save"), &mut save_info).expect("error saving new file");
+
     'mainloop: loop {
         for event in events.poll_iter() {
             use sdl2::event::Event;
             match event {
-                Event::Quit { .. } | Event::KeyDown { 
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'mainloop,
+                Event::Quit { .. } => break 'mainloop,
                 Event::KeyDown { keycode, repeat, .. } => {
                     if keycode.is_some() && !repeat {
                         input.pressed(keycode.unwrap());
@@ -132,7 +136,12 @@ fn main() {
 
         debug.update(&input, &mut world);
 
-        ui.update(&input, &mut player, &mut world, &sink, &mut sfx);
+        ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
+
+        if world.special_context.write_save_to_pending {
+            let save_data = SaveData::create(&player);
+            save_data.save(world.special_context.pending_save as u32, &PathBuf::from("saves/".to_string() + &world.special_context.pending_save.to_string() + ".save"), &mut save_info).expect("failed to save game data");
+        }
 
         if ui.effect_get_timer > 0 {
             ui.effect_get_timer -= 1;
@@ -145,6 +154,12 @@ fn main() {
         }
 
         if world.special_context.new_game {
+            if let Some(load) = world.special_context.pending_load {
+                let file = File::open(&PathBuf::from("saves/".to_string() + &load.to_string() + ".save")).expect("failed to open save file");
+                let save_data: SaveData = serde_cbor::from_reader(&file).expect("failed to read save data. data may be corrupted");
+                player = save_data.get_player(&texture_creator);
+            }
+
             world.queued_load = Some(QueuedLoad {
                 map: String::from(START_MAP),
                 pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
@@ -216,7 +231,7 @@ fn main() {
             world.draw_transitions(&mut canvas, &render_state);
         }
 
-        ui.draw(&player, &mut canvas, &render_state);
+        ui.draw(&player, &mut canvas, &save_info, &render_state);
 
         if world.transition_context.take_screenshot {
             let mut screenshot = world.transition_context.screenshot.take().unwrap();
@@ -234,7 +249,7 @@ fn main() {
                     }
                 }
 
-                ui.draw(&player, tex_canvas, &render_state);
+                ui.draw(&player, tex_canvas, &save_info, &render_state);
             }).unwrap();
             world.transition_context.screenshot = Some(screenshot);
             world.transition_context.take_screenshot = false;
@@ -252,6 +267,8 @@ fn main() {
             player.move_timer = 0;
             let warp_pos = world.queued_load.as_ref().unwrap().pos.clone();
 
+            let mut skip_end = false;
+
             if let Some(new_name) = name {
                 if new_name != world.name {
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
@@ -262,6 +279,28 @@ fn main() {
                 } else {
                     world.reset();
                 }
+            } else {
+                if map == "" {
+                    let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
+                    world = World::new(&texture_creator);
+                    world.global_flags = old_flags;
+                    world.transition = transition;
+                    let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
+                    song.default_speed = MAIN_MENU_MUSIC_SPEED;
+                    song.speed = MAIN_MENU_MUSIC_SPEED;
+                    song.volume = MAIN_MENU_MUSIC_VOLUME;
+                    song.default_volume = MAIN_MENU_MUSIC_VOLUME;
+                    song.dirty = true;
+                    world.song = Some(song);
+                    world.onload(&sink);
+
+                    ui.menu_state.current_menu = MenuType::MainMenu;
+                    ui.open = true;
+                    ui.clear = true;
+                    ui.menu_state.button_id = 2;
+                    world.paused = true;
+                    skip_end = true;
+                }
             }
             if let Some(x) = warp_pos.x.get(Some(&player), Some(&world)) {
                 player.set_x(x * 16);
@@ -270,9 +309,11 @@ fn main() {
                 player.set_y(y * 16);
             }
 
-            player.frozen = false;
-            ui.clear = false;
-            ui.open = false;
+            if !skip_end {
+                player.frozen = false;
+                ui.clear = false;
+                ui.open = false;
+            }
         }
 
         if ui.menu_state.should_quit {

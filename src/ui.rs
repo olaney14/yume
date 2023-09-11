@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap, time::{Duration, Instant}};
 use rodio::Sink;
 use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{tiles::Tileset, texture::Texture, game::{Input, RenderState}, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World};
+use crate::{tiles::Tileset, texture::Texture, game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType}, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World, save::SaveInfo};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -46,7 +46,11 @@ pub enum MenuType {
     Special,
     Me,
     Quit,
-    MainMenu
+    MainMenu,
+    SaveConfirm,
+
+    /// True - save, False - load
+    SaveLoad(bool)
 }
 
 pub struct MenuState {
@@ -56,8 +60,8 @@ pub struct MenuState {
     pub selection_flash: bool,
     pub timer: u32,
     pub should_quit: bool,
+    pub switch_to_main: bool,
     pub menu_should_close: bool,
-    pub player_has_save_file: bool,
     pub menu_screenshot: bool,
 }
 
@@ -71,12 +75,12 @@ impl MenuState {
             timer: 0,
             should_quit: false,
             menu_should_close: false,
-            player_has_save_file: false,
-            menu_screenshot: false
+            menu_screenshot: false,
+            switch_to_main: false
         }
     }
 
-    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, sfx: &mut SoundEffectBank) {
+    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sfx: &mut SoundEffectBank) {
         if input.get_just_pressed(Keycode::X) {
             match self.current_menu {
                 MenuType::Effects | MenuType::Quit | MenuType::Special | MenuType::Me => {
@@ -89,6 +93,11 @@ impl MenuState {
                     self.current_menu = MenuType::Home;
                     self.close_on_x = true;
                 },
+                MenuType::SaveConfirm => {
+                    self.current_menu = MenuType::SaveLoad(true);
+                    self.close_on_x = true;
+                    self.button_id = world.special_context.pending_save as i32;
+                }
                 _ => ()
             }
         }
@@ -158,6 +167,15 @@ impl MenuState {
                             //self.should_quit = true;
                             self.current_menu = MenuType::MainMenu;
                             self.button_id = 2;
+
+                            self.menu_should_close = true;
+                            //world.paused = false;
+
+                            world.queued_load = Some(QueuedLoad {
+                                map: String::new(),
+                                pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
+                            });
+                            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 32, true, 2));
                         },
                         1 => {
                             // No
@@ -181,11 +199,17 @@ impl MenuState {
                             world.paused = false;
                             self.menu_should_close = true;
                             self.menu_screenshot = true;
+                            sfx.play_ex("menu_blip_affirmative", 1.0, 0.25);
                         }
                         1 => {
                             // Continue
-                            if !self.player_has_save_file {
+                            if save_info.files.is_empty() {
                                 sfx.play_ex("menu_blip_error", 1.0, 0.25);
+                            } else {
+                                self.button_id = 0;
+                                self.close_on_x = false;
+                                self.current_menu = MenuType::SaveLoad(false);
+                                sfx.play_ex("menu_blip_affirmative", 1.0, 0.25);
                             }
                         }
                         2 => {
@@ -194,10 +218,32 @@ impl MenuState {
                         },
                         _ => ()
                     }
-
-                    if !(self.button_id == 1 && !self.player_has_save_file) {
+                },
+                MenuType::SaveLoad(b) => {
+                    if b {
+                        // this shouldn't fail because button_id can only be negative in the scrolling functions
+                        world.special_context.pending_save = self.button_id as usize;
+                        self.current_menu = MenuType::SaveConfirm;
+                        self.close_on_x = false;
+                        self.button_id = 0;
+                    } else {
+                        world.special_context.pending_load = Some(self.button_id as usize);
+                        world.special_context.new_game = true;
+                        world.paused = false;
+                        self.menu_should_close = true;
+                        self.menu_screenshot = true;
                         sfx.play_ex("menu_blip_affirmative", 1.0, 0.25);
                     }
+                },
+                MenuType::SaveConfirm => {
+                    if self.button_id == 0 {
+                        world.special_context.write_save_to_pending = true;
+                        sfx.play_ex("magic0", 1.0, 0.25);
+                    }
+
+                    self.close_on_x = true;
+                    self.current_menu = MenuType::SaveLoad(true);
+                    self.button_id = world.special_context.pending_save as i32;
                 }
             }
         }
@@ -225,7 +271,7 @@ impl MenuState {
                     self.button_id = player.unlocked_effects.len() as i32 - 1;
                 }
             },
-            MenuType::Quit => {
+            MenuType::Quit | MenuType::SaveConfirm => {
                 if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
                 if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
                 if self.button_id > 1 {
@@ -244,6 +290,26 @@ impl MenuState {
                 if self.button_id < 0 {
                     self.button_id = BUTTONS_TITLE as i32 - 1;
                 }
+            },
+            MenuType::SaveLoad(b) => {
+                let button_max = save_info.files.len() as i32;
+                if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
+                if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
+                if b {
+                    if self.button_id >= button_max + 1 {
+                        self.button_id = 0;
+                    }
+                    if self.button_id < 0 {
+                        self.button_id = button_max;
+                    }
+                } else {
+                    if self.button_id >= button_max {
+                        self.button_id = 0;
+                    }
+                    if self.button_id < 0 {
+                        self.button_id = button_max - 1;
+                    }
+                }
             }
             _ => ()
         }
@@ -260,7 +326,8 @@ pub struct Ui<'a> {
     pub open: bool,
     pub menu_state: MenuState,
     pub effect_get: Option<String>,
-    pub effect_get_timer: u32
+    pub effect_get_timer: u32,
+    pub player_preview_texture: Texture<'a>,
 }
 
 impl<'a> Ui<'a> {
@@ -272,12 +339,12 @@ impl<'a> Ui<'a> {
             open: false,
             menu_state: MenuState::new(),
             effect_get: None,
-            effect_get_timer: 0
+            effect_get_timer: 0,
+            player_preview_texture: Texture::from_file(&PathBuf::from("res/textures/misc/preview.png"), creator).expect("could not finish loading textures")
         }
     }
 
     /// Shows a menu<br>
-    /// Don't forget to freeze the world as well
     pub fn show_menu(&mut self, menu: MenuType) {
         self.menu_state.current_menu = menu;
         self.clear = true;
@@ -295,7 +362,14 @@ impl<'a> Ui<'a> {
         sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
     }
 
-    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, sink: &Sink, sfx: &mut SoundEffectBank) {
+    pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sink: &Sink, sfx: &mut SoundEffectBank) {
+        if world.special_context.save_game {
+            self.show_menu(MenuType::SaveLoad(true));
+            self.menu_state.close_on_x = true;
+            self.menu_state.button_id = 0;
+            world.special_context.save_game = false;
+        }
+        
         if input.get_just_pressed(Keycode::X) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
@@ -327,11 +401,11 @@ impl<'a> Ui<'a> {
         }
 
         if self.open {
-            self.menu_state.update(input, player, world, sfx);
+            self.menu_state.update(input, player, world, save_info, sfx);
         }
     }
 
-    pub fn draw<T: RenderTarget>(&self, player: &Player, canvas: &mut Canvas<T>, state: &RenderState) {
+    pub fn draw<T: RenderTarget>(&self, player: &Player, canvas: &mut Canvas<T>, save_info: &SaveInfo, state: &RenderState) {
         if self.open || self.menu_state.menu_screenshot {
             match self.menu_state.current_menu {
                 MenuType::Home => {
@@ -382,6 +456,20 @@ impl<'a> Ui<'a> {
                     self.theme.draw_button(canvas, button_x, button_start_y, button_width, "Yes", yes_selected, self.menu_state.selection_flash);
                     self.theme.draw_button(canvas, button_x, button_start_y + (14 + MENU_BUTTON_PADDING_VERT as i32), button_width, "No", no_selected, self.menu_state.selection_flash);
                 },
+                MenuType::SaveConfirm => {
+                    let yes_selected = self.menu_state.button_id == 0;
+                    let no_selected = self.menu_state.button_id == 1;
+
+                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 5)) / 16, 100 / 16, 12, 2);
+                    self.theme.font.draw_string(canvas, "Overwrite this save file?", (200 - (16 * 4) - 4, 100 + 6));
+                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 2)) / 16, 150 / 16, 4, 3);
+
+                    let button_x = ((200 - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
+                    let button_start_y = 150 + MENU_BUTTON_PADDING_VERT as i32;
+                    let button_width = (16 * 4) - (4 + MENU_BUTTON_PADDING_HORIZ as i32) * 2;
+                    self.theme.draw_button(canvas, button_x, button_start_y, button_width, "Yes", yes_selected, self.menu_state.selection_flash);
+                    self.theme.draw_button(canvas, button_x, button_start_y + (14 + MENU_BUTTON_PADDING_VERT as i32), button_width, "No", no_selected, self.menu_state.selection_flash);
+                },
                 MenuType::MainMenu => {
                     let centered_x = (state.screen_extents.0 / 2) - (self.theme.title.width / 2);
                     let y = MAIN_MENU_TITLE_Y;
@@ -403,13 +491,42 @@ impl<'a> Ui<'a> {
                     let button_y = (y + MENU_BUTTON_PADDING_VERT * 3) as i32;
                     let button_w = (MAIN_MENU_WIDTH as i32 * 16) - (MENU_BUTTON_PADDING_HORIZ as i32 * 2);
                     self.theme.draw_button(canvas, button_x, button_y, button_w, "New Game", new_game_selected, self.menu_state.selection_flash);
-                    if self.menu_state.player_has_save_file {
+                    if !save_info.files.is_empty() {
                         self.theme.draw_button(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14), button_w, "Continue", continue_selected, self.menu_state.selection_flash);
                     } else {
                         self.theme.draw_button_strikethrough(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14), button_w, "Continue", continue_selected, self.menu_state.selection_flash);
                     }
                     self.theme.draw_button(canvas, button_x, button_y + (MENU_BUTTON_PADDING_VERT as i32 + 14) * 2, button_w, "Quit", quit_selected, self.menu_state.selection_flash);
-                }
+                },
+                MenuType::SaveLoad(b) => {
+                    self.theme.draw_frame(canvas, 0, 0, state.screen_extents.0 / 16, 2);
+                    self.theme.font.draw_string(canvas, if b { "Save Game" } else { "Load Game" }, (14, 9));
+                    let mut y = 32;
+                    for (id, entry) in save_info.files.iter() {
+                        self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
+                        let slot_message = String::from("Slot ") + &(id + 1).to_string();
+                        let effects_message = entry.effects.to_string() + if entry.effects == 1 { " Effect" } else { " Effects" };
+                        self.theme.draw_button(canvas, 14, y as i32 + 9, 48, &slot_message, self.menu_state.button_id == *id as i32, self.menu_state.selection_flash);
+                        self.theme.font.draw_string(canvas, "Haigotsuki", (14, y as i32 + 9 + 16));
+                        self.theme.font.draw_string(canvas, &effects_message, (14, y as i32 + 9 + 32));
+                        canvas.copy(
+                            &self.player_preview_texture.texture, 
+                            None, 
+                            Rect::new(
+                                100, y as i32 + 8, 48, 48
+                            )
+                        ).unwrap();
+
+                        y += 64;
+                    }
+
+                    if b {
+                        let slot_message = String::from("Slot ") + &(save_info.files.len() + 1).to_string();
+                        self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
+                        self.theme.draw_button(canvas, 14, y as i32 + 9, 48, &slot_message, self.menu_state.button_id == save_info.files.len() as i32, self.menu_state.selection_flash);
+                        self.theme.font.draw_string(canvas, "New Save", (14, y as i32 + 9 + 16));
+                    }
+                },
                 _ => {
                     let width = self.theme.font.string_width("under construction...");
                     self.theme.font.draw_string(canvas, "under construction...", (200 - (width as i32 / 2), 150 - (self.theme.font.char_height as i32 / 2)));

@@ -1,9 +1,9 @@
 use core::fmt;
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use sdl2::{render::{Canvas, TextureCreator, RenderTarget}, rect::Rect};
+use crate::texture::Texture;
 
-use crate::{texture::Texture};
 
 #[derive(Debug)]
 pub struct Tileset<'a> {

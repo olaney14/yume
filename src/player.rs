@@ -1,10 +1,9 @@
-use std::{path::PathBuf, sync::Arc, collections::HashMap};
+use std::{path::PathBuf, collections::HashMap};
 
-use rodio::OutputStreamHandle;
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank, tiles::{Tilemap, SpecialTile}};
+use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank, tiles::SpecialTile};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
 
@@ -413,7 +412,7 @@ impl<'a> Player<'a> {
 
     pub fn remove_effect(&mut self) {
         if self.current_effect.is_some() {
-            let mut effect = self.current_effect.take().unwrap();
+            let effect = self.current_effect.take().unwrap();
             effect.remove(self);
             self.frozen_time = 32;
             self.animation_info.effect_switch_animation = 8;
@@ -514,7 +513,7 @@ impl<'a> Player<'a> {
         return String::from("step");
     }
 
-    fn pre_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), state: &RenderState) {
+    fn pre_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), _state: &RenderState) {
         if self.current_effect.is_some() {
             let fire = matches!(self.current_effect.as_ref().unwrap(), Effect::Fire);
 
@@ -525,7 +524,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    fn post_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), state: &RenderState) {
+    fn post_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), _state: &RenderState) {
         if self.current_effect.is_some() {
             let fire = matches!(self.current_effect.as_ref().unwrap(), Effect::Fire);
 

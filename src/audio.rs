@@ -1,6 +1,6 @@
-use std::{path::PathBuf, fs::File, io::BufReader, sync::Arc, thread, collections::HashMap, process::Output};
+use std::{path::PathBuf, fs::File, io::BufReader, sync::Arc, thread, collections::HashMap};
 
-use rodio::{Sink, Decoder, Source, source::{Repeat, Buffered}, dynamic_mixer::{DynamicMixerController, self, DynamicMixer}, OutputStreamHandle};
+use rodio::{Sink, Decoder, Source, source::{Repeat, Buffered}, OutputStreamHandle};
 
 pub struct SoundEffectBank {
     pub sound_effects: HashMap<String, SoundEffect>,
@@ -76,16 +76,6 @@ impl SoundEffect {
 
     pub fn play(&self, output_handle: &Arc<OutputStreamHandle>) {
         self.play_ex(output_handle, self.speed, self.volume);
-        // let sound_sink = Sink::try_new(&output_handle).unwrap();
-        // let cloned_source = self.source.clone();
-        // let speed = self.speed;
-        // let volume = self.volume;
-        // thread::spawn(move || {
-        //     sound_sink.set_speed(speed);
-        //     sound_sink.set_volume(volume);
-        //     sound_sink.append(cloned_source);
-        //     sound_sink.sleep_until_end();
-        // });
     }
 
     pub fn play_ex(&self, output_handle: &Arc<OutputStreamHandle>, speed: f32, volume: f32) {

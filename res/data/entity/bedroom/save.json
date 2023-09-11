@@ -1,0 +1,16 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "set",
+			"in": "world",
+			"val": "special_save_game",
+			"to": true
+		}
+	}],
+	"draw": false,
+	"solid": false
+}

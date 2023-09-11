@@ -2,6 +2,7 @@ use std::{sync::Arc, path::PathBuf, collections::HashMap};
 
 use rodio::{Sink, OutputStreamHandle};
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}, EventSubsystem};
+use serde_derive::{Serialize, Deserialize};
 
 use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, world, effect::Effect};
 
@@ -863,6 +864,7 @@ impl Layer {
     }
 }
 
+/// misc logic 
 pub struct SpecialContext {
     /// if a delayed action is ready
     pub delayed_run: bool,
@@ -881,6 +883,14 @@ pub struct SpecialContext {
 
     /// set by the ui, used by main to make a new game
     pub new_game: bool,
+
+    /// when true, opens the save menu next frame
+    pub save_game: bool,
+
+    pub pending_save: usize,
+    pub write_save_to_pending: bool,
+
+    pub pending_load: Option<usize>,
 }
 
 impl SpecialContext {
@@ -891,7 +901,11 @@ impl SpecialContext {
             entity_id: 0,
             play_sounds: Vec::new(),
             effect_get: None,
-            new_game: false
+            new_game: false,
+            save_game: false,
+            pending_save: 0,
+            write_save_to_pending: false,
+            pending_load: None
         }
     }
 }

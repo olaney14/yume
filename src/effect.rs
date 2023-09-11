@@ -10,10 +10,18 @@ pub enum Effect {
 impl Effect {
     pub fn parse(source: &str) -> Option<Self> {
         match source {
-            "glasses" => Some(Self::Glasses),
-            "shoes" => Some(Self::Speed),
-            "fire" => Some(Self::Fire),
+            "glasses" | "Glasses" => Some(Self::Glasses),
+            "shoes" | "Running shoes" => Some(Self::Speed),
+            "fire" | "Fire" => Some(Self::Fire),
             _ => None
+        }
+    }
+
+    pub fn parsable(&self) -> &str {
+        match self {
+            Self::Fire => "fire",
+            Self::Speed => "shoes",
+            Self::Glasses => "glasses"
         }
     }
 

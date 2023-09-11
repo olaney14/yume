@@ -1,8 +1,9 @@
-use rodio::static_buffer::StaticSamplesBuffer;
+use std::{path::PathBuf, fs::File, error::Error, collections::{HashMap, BTreeMap}};
+
 use sdl2::render::TextureCreator;
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{player::{Player, Statistics}, effect::Effect, world::{self, World}};
+use crate::{player::{Player, Statistics}, effect::Effect};
 
 #[derive(Serialize, Deserialize)]
 pub struct SerializablePlayer {
@@ -41,7 +42,7 @@ pub struct SerializableEffect {
 impl SerializableEffect {
     pub fn from_effect(effect: &Effect) -> Self {
         Self {
-            effect: effect.name().to_string()
+            effect: effect.parsable().to_string()
         }
     }
 
@@ -64,5 +65,66 @@ impl SaveData {
 
     pub fn get_player<'a, T>(&self, creator: &'a TextureCreator<T>) -> Player<'a> {
         self.player.to_player(creator)
+    }
+
+    pub fn save(&self, id: u32, name: &PathBuf, saves: &mut SaveInfo) -> Result<(), Box<dyn Error>> {
+        let mut file = File::create(name)?;
+        serde_cbor::to_writer(&mut file, &self)?;
+
+        saves.update(id, SaveSlot::new(name, self.player.unlocked_effects.len()));
+
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SaveSlot {
+    pub file: String,
+    pub effects: usize,
+}
+
+impl SaveSlot {
+    pub fn new(path: &PathBuf, effects: usize) -> Self {
+        Self { effects, file: path.to_str().expect("invalid save file name").to_string() }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SaveInfo {
+    pub files: BTreeMap<u32, SaveSlot>,
+    //pub files_ordered: BTreeMap<usize, SaveSlot>
+}
+
+impl SaveInfo {
+    pub fn update(&mut self, new_id: u32, new_save: SaveSlot) {
+        self.files.insert(new_id, new_save);
+        self.write().expect("failed to update save info");
+    }
+
+    pub fn read() -> Result<Self, Box<dyn Error>> {
+        let file = File::open("saves/.saves")?;
+        let read: Result<SaveInfo, serde_cbor::Error> = serde_cbor::from_reader(&file);
+        if let Ok(save) = read {
+            return Ok(save);
+        } else {
+            return Err(Box::new(read.err().unwrap()));
+        }
+    }
+
+    pub fn create_new() -> Result<Self, Box<dyn Error>> {
+        let save_data = SaveInfo {
+            files: BTreeMap::new(),
+            //files_ordered: BTreeMap::new()
+        };
+        let mut write = File::create("saves/.saves")?;
+        serde_cbor::to_writer(&mut write, &save_data)?;
+        Ok(save_data)
+    }
+
+    pub fn write(&self) -> Result<(), Box<dyn Error>> {
+        let mut file = File::create("saves/.saves")?;
+        serde_cbor::to_writer(&mut file, self)?;
+
+        Ok(())
     }
 }

@@ -4,7 +4,7 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, main};
+use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
@@ -133,7 +133,7 @@ pub enum PlayerPropertyType {
 
 impl PlayerPropertyType {
     pub fn parse(json: &JsonValue) -> Option<Self> {
-        let mut kind = "";
+        let kind;
         if json.is_string() {
             kind = json.as_str().unwrap();
         } else {
@@ -157,7 +157,12 @@ pub enum LevelPropertyType {
     TintR,
     TintG,
     TintB,
-    TintA
+    TintA,
+    SpecialSaveGame,
+    Paused,
+    BackgroundR,
+    BackgroundG,
+    BackgroundB
 }
 
 impl LevelPropertyType {
@@ -178,6 +183,11 @@ impl LevelPropertyType {
                 "tint_g" => Some(LevelPropertyType::TintG),
                 "tint_b" => Some(LevelPropertyType::TintB),
                 "tint_a" => Some(LevelPropertyType::TintA),
+                "special_save_game" => Some(LevelPropertyType::SpecialSaveGame),
+                "paused" => Some(LevelPropertyType::Paused),
+                "background_r" => Some(LevelPropertyType::BackgroundR),
+                "background_g" => Some(LevelPropertyType::BackgroundG),
+                "background_b" => Some(LevelPropertyType::BackgroundB),
                 _ => None
             };
         }
@@ -190,6 +200,216 @@ impl LevelPropertyType {
 pub enum FlagPropertyType {
     Global(String),
     Local(String)
+}
+
+#[derive(Clone)]
+pub enum BoolProperty {
+    Bool(bool),
+    Player(PlayerPropertyType),
+    Level(LevelPropertyType),
+    And(Box<BoolProperty>, Box<BoolProperty>),
+    Or(Box<BoolProperty>, Box<BoolProperty>),
+    Not(Box<BoolProperty>),
+    Xor(Box<BoolProperty>, Box<BoolProperty>)
+}
+
+impl BoolProperty {
+    pub fn get(&self, player: Option<&Player>, world: Option<&World>) -> Option<bool> {
+        match self {
+            BoolProperty::Bool(b) => return Some(*b),
+            BoolProperty::Player(prop) => {
+                if let Some(p) = player {
+                    match prop {
+                        _ => return None
+                    }
+                }
+            },
+            BoolProperty::Level(prop) => {
+                if let Some(level) = world {
+                    match prop {
+                        LevelPropertyType::Paused => return Some(level.paused),
+                        LevelPropertyType::SpecialSaveGame => return Some(level.special_context.save_game),
+                        _ => return None
+                    }
+                }
+            },
+            BoolProperty::And(b0, b1) => {
+                let (lhs, rhs) = (b0.get(player, world), b1.get(player, world));
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() && rhs.unwrap())
+                }   return None;
+            },
+            BoolProperty::Or(b0, b1) => {
+                let (lhs, rhs) = (b0.get(player, world), b1.get(player, world));
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() || rhs.unwrap())
+                }   return None;
+            },
+            BoolProperty::Xor(b0, b1) => {
+                let (lhs, rhs) = (b0.get(player, world), b1.get(player, world));
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(lhs.unwrap() ^ rhs.unwrap())
+                }   return None;
+            },
+            BoolProperty::Not(b) => {
+                let arg = b.get(player, world);
+                if arg.is_some() {
+                    return Some(!arg.unwrap())
+                }   return None;
+            }
+        }
+        
+        None
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if json.is_boolean() {
+            return Some(Self::Bool(json.as_bool().unwrap()));
+        }
+
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "bool" => return Some(BoolProperty::Bool(json["val"].as_bool().unwrap())),
+            "player" => return Some(BoolProperty::Player(PlayerPropertyType::parse(&json["property"]).unwrap())),
+            "level" => return Some(BoolProperty::Level(LevelPropertyType::parse(&json["property"]).unwrap())),
+            "and" => {
+                if !(json["lhs"].is_boolean() || json["lhs"].is_object()) || !(json["rhs"].is_boolean() || json["rhs"].is_object()) { return None; }
+                let lhs = BoolProperty::parse(&json["lhs"]);
+                let rhs = BoolProperty::parse(&json["rhs"]);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(BoolProperty::And(Box::new(lhs.unwrap()), Box::new(rhs.unwrap())));
+                } return None;
+            },
+            "or" => {
+                if !(json["lhs"].is_boolean() || json["lhs"].is_object()) || !(json["rhs"].is_boolean() || json["rhs"].is_object()) { return None; }
+                let lhs = BoolProperty::parse(&json["lhs"]);
+                let rhs = BoolProperty::parse(&json["rhs"]);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(BoolProperty::Or(Box::new(lhs.unwrap()), Box::new(rhs.unwrap())));
+                } return None;
+            },
+            "xor" => {
+                if !(json["lhs"].is_boolean() || json["lhs"].is_object()) || !(json["rhs"].is_boolean() || json["rhs"].is_object()) { return None; }
+                let lhs = BoolProperty::parse(&json["lhs"]);
+                let rhs = BoolProperty::parse(&json["rhs"]);
+                if lhs.is_some() && rhs.is_some() {
+                    return Some(BoolProperty::Xor(Box::new(lhs.unwrap()), Box::new(rhs.unwrap())));
+                } return None;
+            },
+            "not" => {
+                if !(json["val"].is_boolean() || json["val"].is_object()) { return None; }
+                let val = BoolProperty::parse(&json["val"]);
+                if val.is_some() {
+                    return Some(BoolProperty::Not(Box::new(val.unwrap())));
+                } return None;
+            },
+            _ => return None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum FloatProperty {
+    Float(f32),
+    Player(PlayerPropertyType),
+    Level(LevelPropertyType),
+    Add(Box<FloatProperty>, Box<FloatProperty>),
+    Sub(Box<FloatProperty>, Box<FloatProperty>),
+    Mul(Box<FloatProperty>, Box<FloatProperty>),
+    Div(Box<FloatProperty>, Box<FloatProperty>)
+}
+
+// IntProperty::Add(a, b) => {
+//     let lhs = a.get(player, world);
+//     let rhs = b.get(player, world);
+//     if lhs.is_some() && rhs.is_some() {
+//         return Some(lhs.unwrap() + rhs.unwrap());
+//     }
+
+//     return None;
+// },
+
+impl FloatProperty {
+    pub fn get(&self, player: Option<&Player>, world: Option<&World>) -> Option<f32> {
+        match self {
+            FloatProperty::Float(f) => return Some(*f),
+            FloatProperty::Player(prop) => {
+                if let Some(p) = player {
+                    match prop {
+                        _ => return None
+                    }
+                } else {
+                    return None;
+                }
+            },
+            FloatProperty::Level(prop) => {
+                if let Some(w) = world {
+                    match prop {
+                        _ => return None
+                    }
+                } else {
+                    return None;
+                }
+            },
+            FloatProperty::Add(a, b) => {
+                let (lhs, rhs) = (a.get(player, world), b.get(player, world));
+                if lhs.is_some() && rhs.is_some() { return Some(lhs.unwrap() + rhs.unwrap()); }
+                return None;
+            },
+            FloatProperty::Sub(a, b) => {
+                let (lhs, rhs) = (a.get(player, world), b.get(player, world));
+                if lhs.is_some() && rhs.is_some() { return Some(lhs.unwrap() - rhs.unwrap()); }
+                return None;
+            },
+            FloatProperty::Mul(a, b) => {
+                let (lhs, rhs) = (a.get(player, world), b.get(player, world));
+                if lhs.is_some() && rhs.is_some() { return Some(lhs.unwrap() * rhs.unwrap()); }
+                return None;
+            },
+            FloatProperty::Div(a, b) => {
+                let (lhs, rhs) = (a.get(player, world), b.get(player, world));
+                if lhs.is_some() && rhs.is_some() { return Some(lhs.unwrap() / rhs.unwrap()); }
+                return None;
+            }
+        }
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        if json.is_number() {
+            return Some(FloatProperty::Float(json.as_f32().unwrap()));
+        }
+
+        if !json["type"].is_string() { return None; }
+        match json["type"].as_str().unwrap() {
+            "float" => return Some(FloatProperty::Float(json["val"].as_f32().unwrap())),
+            "player" => return Some(FloatProperty::Player(PlayerPropertyType::parse(&json["property"]).unwrap())),
+            "level" => return Some(FloatProperty::Level(LevelPropertyType::parse(&json["property"]).unwrap())),
+            "add" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) { return None; }
+                let (left, right) = ( FloatProperty::parse(&json["lhs"]), FloatProperty::parse(&json["rhs"]) );
+                if left.is_some() && right.is_some() { return Some(FloatProperty::Add(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
+                return None;
+            },
+            "sub" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) { return None; }
+                let (left, right) = ( FloatProperty::parse(&json["lhs"]), FloatProperty::parse(&json["rhs"]) );
+                if left.is_some() && right.is_some() { return Some(FloatProperty::Sub(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
+                return None;
+            },
+            "mul" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) { return None; }
+                let (left, right) = ( FloatProperty::parse(&json["lhs"]), FloatProperty::parse(&json["rhs"]) );
+                if left.is_some() && right.is_some() { return Some(FloatProperty::Mul(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
+                return None;
+            },
+            "div" => {
+                if !(json["lhs"].is_number() || json["lhs"].is_object()) || !(json["rhs"].is_number() || json["rhs"].is_object()) { return None; }
+                let (left, right) = ( FloatProperty::parse(&json["lhs"]), FloatProperty::parse(&json["rhs"]) );
+                if left.is_some() && right.is_some() { return Some(FloatProperty::Div(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
+                return None;
+            },
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -238,6 +458,10 @@ impl IntProperty {
                         LevelPropertyType::TintR => return Some(w.tint.map_or(0, |c| c.r as i32)),
                         LevelPropertyType::TintG => return Some(w.tint.map_or(0, |c| c.g as i32)),
                         LevelPropertyType::TintB => return Some(w.tint.map_or(0, |c| c.b as i32)),
+                        LevelPropertyType::BackgroundR => return Some(w.background_color.r as i32),
+                        LevelPropertyType::BackgroundG => return Some(w.background_color.g as i32),
+                        LevelPropertyType::BackgroundB => return Some(w.background_color.b as i32),
+                        _ => return None
                     }
                 }
                 return None;
@@ -291,6 +515,7 @@ impl IntProperty {
         match json["type"].as_str().unwrap() {
             "int" => return Some(IntProperty::Int(json["val"].as_i32().unwrap())),
             "player" => return Some(IntProperty::Player(PlayerPropertyType::parse(&json["property"]).unwrap())),
+            "level" => return Some(IntProperty::Level(LevelPropertyType::parse(&json["property"]).unwrap())),
             "flag" => {
                 let mut global = false;
                 if json["global"].is_boolean() {
@@ -589,7 +814,7 @@ pub enum TransitionType {
 
 impl TransitionType {
     pub fn parse(json: &JsonValue) -> Option<Self> {
-        let mut kind = "";
+        let kind;
 
         if json.is_string() {
             kind = json.as_str().unwrap();
@@ -965,8 +1190,6 @@ pub struct PlaySoundAction {
     pub speed: f32
 }
 
-
-
 pub enum PropertyLocation {
     Player(PlayerPropertyType),
     World(LevelPropertyType)
@@ -977,10 +1200,16 @@ pub struct SetPropertyAction {
     pub val: JsonValue
 }
 
+pub struct ChangeSongAction {
+    pub new_song: Option<StringProperty>,
+    pub song_speed: Option<FloatProperty>,
+    pub song_volume: Option<FloatProperty>
+}
+
 impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut map = None;
-        let mut transition = None;
+        let transition;
         //let mut transition_type = None;
 
         // Map
@@ -1169,8 +1398,26 @@ impl SetPropertyAction {
     }
 }
 
+impl ChangeSongAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let mut new_volume = None;
+        let mut new_speed = None;
+        let mut new_song = None;
+
+        if !parsed["volume"].is_null() { new_volume = FloatProperty::parse(&parsed["volume"]); }
+        if !parsed["speed"].is_null() { new_speed = FloatProperty::parse(&parsed["volume"]); }
+        if !parsed["song"].is_null() { new_song = StringProperty::parse(&parsed["song"]); }
+
+        Ok(Box::new(Self {
+                    new_song,
+                    song_speed: new_speed,
+                    song_volume: new_volume
+                }))
+    }
+}
+
 impl Action for FreezeAction {
-    fn act(&self, player: &mut Player, world: &mut World) {
+    fn act(&self, player: &mut Player, _world: &mut World) {
         if let Some(time) = self.time {
             player.frozen_time = time;
         } else {
@@ -1180,7 +1427,7 @@ impl Action for FreezeAction {
 }
 
 impl Action for WarpAction {
-    fn act(&self, player: &mut Player, world: &mut World) {
+    fn act(&self, _player: &mut Player, world: &mut World) {
         if let Some(map) = &self.map {
             world.queued_load = Some(QueuedLoad {
                 map: String::from("res/maps/") + map.as_str(),
@@ -1260,8 +1507,23 @@ impl Action for SetPropertyAction {
                     LevelPropertyType::TintA => { if world.tint.is_some() { world.tint.as_mut().unwrap().a = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
                     LevelPropertyType::TintR => { if world.tint.is_some() { world.tint.as_mut().unwrap().r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
                     LevelPropertyType::TintG => { if world.tint.is_some() { world.tint.as_mut().unwrap().g = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
-                    LevelPropertyType::TintB => { if world.tint.is_some() { world.tint.as_mut().unwrap().b = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } }
+                    LevelPropertyType::TintB => { if world.tint.is_some() { world.tint.as_mut().unwrap().b = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 } },
+                    LevelPropertyType::BackgroundB => { world.background_color.b = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
+                    LevelPropertyType::BackgroundG => { world.background_color.g = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
+                    LevelPropertyType::BackgroundR => { world.background_color.r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
+                    LevelPropertyType::Paused => { world.paused = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    LevelPropertyType::SpecialSaveGame => { world.special_context.save_game = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                 }
+            }
+        }
+    }
+}
+
+impl Action for ChangeSongAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if let Some(new_song) = &self.new_song {
+            if let Some(song_path) = new_song.get(Some(player), Some(world)) {
+
             }
         }
     }

@@ -1,9 +1,9 @@
-use std::{thread::{JoinHandle, self}, path::{PathBuf}};
+use std::{thread::{JoinHandle, self}, path::PathBuf};
 
 use rfd::FileDialog;
 use sdl2::keyboard::Keycode;
 
-use crate::{world::World, game::{Input, WarpCoord, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType}};
+use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType}};
 
 pub struct Debug {
     pub load_handle: Option<JoinHandle<Option<PathBuf>>>
