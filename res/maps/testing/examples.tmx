@@ -33,8 +33,8 @@
 		&quot;transition&quot;: &quot;fade&quot;
 	}
 }</property>
-  <property name="music" value="res/audio/music/ghost.ogg"/>
-  <property name="music_speed" type="float" value="0.3"/>
+  <property name="music" value="res/audio/music/newworld.mp3"/>
+  <property name="music_speed" type="float" value="1"/>
   <property name="music_volume" type="float" value="2"/>
   <property name="tint" value="0,0,0,127"/>
  </properties>

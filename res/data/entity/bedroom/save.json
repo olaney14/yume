@@ -5,10 +5,25 @@
 			"side": "bottom"
 		},
 		"action": {
-			"type": "set",
-			"in": "world",
-			"val": "special_save_game",
-			"to": true
+			"type": "delayed",
+			"delay": 2,
+			"action": {
+				"type": "set",
+				"in": "world",
+				"val": "special_save_game",
+				"to": true
+			}
+		}
+	},
+	{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "change_song",
+			"volume": 0.5,
+			"song": "res/audio/music/travel.ogg"
 		}
 	}],
 	"draw": false,

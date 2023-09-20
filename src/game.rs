@@ -4,7 +4,7 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture};
+use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, audio::Song};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
@@ -408,6 +408,7 @@ impl FloatProperty {
                 if left.is_some() && right.is_some() { return Some(FloatProperty::Div(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
                 return None;
             },
+            _ => return None,
         }
     }
 }
@@ -608,6 +609,9 @@ impl StringProperty {
     }
 
     pub fn parse(json: &JsonValue) -> Option<Self> {
+        if json.is_string() {
+            return Some(StringProperty::String(json.as_str().unwrap().to_string()));
+        }
         if !json["type"].is_string() { return None; }
         match json["type"].as_str().unwrap() {
             "string" => return Some(StringProperty::String(json["val"].as_str().unwrap().to_string())),
@@ -1107,6 +1111,9 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "set" => {
             return SetPropertyAction::parse(parsed);
         },
+        "change_song" => {
+            return ChangeSongAction::parse(parsed);
+        }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -1203,7 +1210,8 @@ pub struct SetPropertyAction {
 pub struct ChangeSongAction {
     pub new_song: Option<StringProperty>,
     pub song_speed: Option<FloatProperty>,
-    pub song_volume: Option<FloatProperty>
+    pub song_volume: Option<FloatProperty>,
+    pub set_defaults: BoolProperty
 }
 
 impl WarpAction {
@@ -1403,15 +1411,18 @@ impl ChangeSongAction {
         let mut new_volume = None;
         let mut new_speed = None;
         let mut new_song = None;
+        let mut set_defaults = BoolProperty::Bool(false);
 
         if !parsed["volume"].is_null() { new_volume = FloatProperty::parse(&parsed["volume"]); }
         if !parsed["speed"].is_null() { new_speed = FloatProperty::parse(&parsed["volume"]); }
         if !parsed["song"].is_null() { new_song = StringProperty::parse(&parsed["song"]); }
+        if !parsed["set_defaults"].is_null() { set_defaults = BoolProperty::parse(&parsed["set_defaults"]).expect("failed to parse set_defaults"); }
 
         Ok(Box::new(Self {
                     new_song,
                     song_speed: new_speed,
-                    song_volume: new_volume
+                    song_volume: new_volume,
+                    set_defaults
                 }))
     }
 }
@@ -1521,11 +1532,26 @@ impl Action for SetPropertyAction {
 
 impl Action for ChangeSongAction {
     fn act(&self, player: &mut Player, world: &mut World) {
-        if let Some(new_song) = &self.new_song {
-            if let Some(song_path) = new_song.get(Some(player), Some(world)) {
-
-            }
+        if let Some(path) = &self.new_song {
+            world.song = Some(Song::new(PathBuf::from(path.get(Some(player), Some(world)).expect("Error in getting song path"))));
+            world.song.as_mut().unwrap().dirty = true;
         }
+        let mut current_song_opt = world.song.take();
+        if let Some(current_song) = &mut current_song_opt {
+            if let Some(new_speed) = &self.song_speed {
+                let new_speed_get = new_speed.get(Some(player), Some(world)).unwrap();
+                current_song.speed = new_speed_get;
+                if self.set_defaults.get(Some(player), Some(world)).unwrap() { current_song.default_speed = new_speed_get; }
+                current_song.dirty = true;
+            }
+            if let Some(new_volume) = &self.song_volume {
+                let new_volume_get = new_volume.get(Some(player), Some(world)).unwrap();
+                current_song.volume = new_volume_get;
+                if self.set_defaults.get(Some(player), Some(world)).unwrap() { current_song.default_volume = new_volume_get; }
+                current_song.dirty = true;
+            }  
+        }
+        world.song = current_song_opt;
     }
 }
 

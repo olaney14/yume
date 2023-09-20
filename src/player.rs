@@ -31,7 +31,8 @@ pub struct Player<'a> {
     pub effect_just_changed: bool,
     pub money: u32,
     pub stats: Statistics,
-    pub save_slot: u32
+    pub save_slot: u32,
+    pub dreaming: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -169,7 +170,8 @@ impl<'a> Player<'a> {
             effect_just_changed: false,
             stats: Statistics::new(),
             money: 0,
-            save_slot: 0
+            save_slot: 0,
+            dreaming: false
         };
 
         player.load_effect_textures(creator);
@@ -210,7 +212,7 @@ impl<'a> Player<'a> {
                         self.move_timer = MOVE_TIMER_MAX;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = (self.occupied_tile.0 as i32 + diag) as u32;
-                        sfx.play_ex("step", 1.0, 0.5);
+                        sfx.play_ex("step", 1.0, 0.25);
 
                         if !force {
                             self.animation_info.frame = 1;
@@ -236,7 +238,7 @@ impl<'a> Player<'a> {
                 self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
                 let pos = self.get_standing_tile();
 
-                sfx.play_ex(&self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32)), 1.0, 0.5);
+                sfx.play_ex(&self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32)), 1.0, 0.25);
 
                 if !force {
                     self.animation_info.frame = 1;

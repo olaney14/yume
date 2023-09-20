@@ -5,10 +5,11 @@ use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::File};
 use audio::{SoundEffectBank, Song};
 use debug::Debug;
 use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
+use gl::RGBA;
 use player::Player;
 use rodio::{OutputStream, Sink};
 use save::{SaveInfo, SaveData, SaveSlot};
-use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}};
+use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
 use ui::{Ui, MenuType};
 use world::World;
 
@@ -131,7 +132,11 @@ fn main() {
             }
         }
 
-        canvas.set_draw_color(world.background_color);
+        if !ui.clear {
+            canvas.set_draw_color(world.background_color);
+        } else {
+            canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        }
         canvas.clear();
 
         debug.update(&input, &mut world);

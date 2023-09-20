@@ -373,10 +373,25 @@ impl<'a> Ui<'a> {
         if input.get_just_pressed(Keycode::X) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
-                sink.set_volume(sink.volume() * 5.0);
+                match self.menu_state.current_menu {
+                    MenuType::SaveLoad(b) => {
+                        if b {
+                            if let Some(song) = &mut world.song {
+                                
+                                song.default_volume = 0.0;
+                                song.volume = 0.0;
+                                song.dirty = true;
+                            }
+                        }
+                    }
+                    _ => {
+                        sink.set_volume(sink.volume() * 5.0);
+                    }
+                }
                 self.open = false;
                 self.clear = false;
                 sfx.play("menu_blip_negative");
+
             } else if !self.open && !player.moving {
                 //sink.pause();
                 self.menu_state.current_menu = MenuType::Home;
