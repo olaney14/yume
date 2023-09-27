@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="59" height="44" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#90a680" nextlayerid="6" nextobjectid="2">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="59" height="44" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#90a680" nextlayerid="6" nextobjectid="3">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/forest.ogg"/>
  </properties>
  <tileset firstgid="1" source="forest.tsx"/>
  <tileset firstgid="121" source="entity/nexus_doors.tsx"/>
+ <tileset firstgid="136" source="teleport_maze.tsx"/>
  <layer id="1" name="floor" width="59" height="44">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -71,6 +72,14 @@
     <property name="warp_map" value="nexus.tmx"/>
     <property name="warp_x" type="int" value="15"/>
     <property name="warp_y" type="int" value="18"/>
+   </properties>
+  </object>
+  <object id="2" gid="139" x="736" y="464" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="warp_map" value="teleport_maze.tmx"/>
+    <property name="warp_x" type="int" value="35"/>
+    <property name="warp_y" type="int" value="16"/>
    </properties>
   </object>
  </objectgroup>

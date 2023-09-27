@@ -238,7 +238,8 @@ impl<'a> Player<'a> {
                 self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
                 let pos = self.get_standing_tile();
 
-                sfx.play_ex(&self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32)), 1.0, 0.25);
+                let (sound, volume) = self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32));
+                sfx.play_ex(&sound, 1.0, volume);
 
                 if !force {
                     self.animation_info.frame = 1;
@@ -309,7 +310,8 @@ impl<'a> Player<'a> {
                         self.move_timer = MOVE_TIMER_MAX;
                         self.draw_over = true;
                         let new_pos = self.get_standing_tile();
-                        sfx.play_ex(&self.get_step_sound(world, ((new_pos.0 as i32 + direction.x()) as u32, (new_pos.1 as i32 + direction.y()) as u32)), 1.0, 0.5);
+                        let (sound, volume) = self.get_step_sound(world, ((new_pos.0 as i32 + direction.x()) as u32, (new_pos.1 as i32 + direction.y()) as u32));
+                        sfx.play_ex(&sound, 1.0, volume);
 
                     }
                 } else {
@@ -505,14 +507,14 @@ impl<'a> Player<'a> {
         return false;
     }
 
-    pub fn get_step_sound(&self, world: &World, pos: (u32, u32)) -> String {
+    pub fn get_step_sound(&self, world: &World, pos: (u32, u32)) -> (String, f32) {
         for special in world.get_special_in_layer(self.layer, pos.0, pos.1) {
-            if let SpecialTile::Step(sound) = special {
-                return sound.clone();
+            if let SpecialTile::Step(sound, volume) = special {
+                return (sound.clone(), *volume);
             }
         }
 
-        return String::from("step");
+        return (String::from("step"), 0.25);
     }
 
     fn pre_draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, pos: (i32, i32), _state: &RenderState) {

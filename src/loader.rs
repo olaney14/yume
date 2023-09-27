@@ -181,7 +181,21 @@ impl<'a> World<'a> {
 
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("step") {
                                         if let PropertyValue::StringValue(step) = prop {
-                                            tilemap.set_special(i, j, SpecialTile::Step(step.clone()));
+                                            tilemap.set_special(i, j, SpecialTile::Step(step.clone(), 0.25));
+                                        }
+                                    }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("step_volume") {
+                                        if let PropertyValue::FloatValue(step_volume) = prop {
+                                            let sound = tilemap.get_special(i, j).map(|f| {
+                                                if let SpecialTile::Step(step, _) = f {
+                                                    return step.clone()
+                                                } else {
+                                                    return "step".to_string()
+                                                }
+                                            }).unwrap_or("step".to_string());
+                                            let new_tile = SpecialTile::Step(sound, *step_volume);
+                                            tilemap.set_special(i, j, new_tile);
                                         }
                                     }
 

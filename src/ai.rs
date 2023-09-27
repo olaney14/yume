@@ -63,6 +63,26 @@ impl Animator {
         };
 
         self.frame = beginning_frame;
+        self.timer = self.speed as i32;
+        match &mut self.frame_data {
+            AnimationFrameData::FrameSequence { advance, .. } => {
+                match advance {
+                    AnimationAdvancementType::Cycle(direction) => {
+                        *direction = 1;
+                    },
+                    _ => ()
+                }
+            },
+            AnimationFrameData::Directional(dir) => {
+                match &mut dir.advance {
+                    AnimationAdvancementType::Cycle(direction) => {
+                        *direction = 1;
+                    },
+                    _ => ()
+                }
+            }
+            _ => ()
+        }
     }
 
     pub fn step(&mut self) -> u32 {

@@ -263,7 +263,7 @@ fn main() {
 
         canvas.present();
 
-        if world.queued_load.is_some() && world.transition.is_some() && world.transition.as_ref().unwrap().progress == 100 {
+        if world.queued_load.is_some() && world.transition.is_some() && world.transition.as_ref().unwrap().progress >= 100 {
             let transition = world.transition.clone();
             let map = world.queued_load.as_ref().unwrap().map.clone();
             let name = PathBuf::from(map.clone()).file_stem().map(|f| f.to_str().unwrap_or("error").to_string());
@@ -283,6 +283,7 @@ fn main() {
                     world.onload(&sink);
                 } else {
                     world.reset();
+                    world.transition_context.take_screenshot = true;
                 }
             } else {
                 if map == "" {
@@ -307,6 +308,7 @@ fn main() {
                     skip_end = true;
                 }
             }
+
             if let Some(x) = warp_pos.x.get(Some(&player), Some(&world)) {
                 player.set_x(x * 16);
             }

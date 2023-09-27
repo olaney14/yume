@@ -1,0 +1,55 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 3,
+		"length": 2,
+		"speed": 8,
+		"repeat": "loop"
+	},
+	"actions": [{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "warp",
+				"map": "$warp_map",
+				"pos": {
+					"x": "$warp_x",
+					"y": "$warp_y"
+				},
+				"transition": {
+					"type": "wave",
+					"dir": "horizontal",
+					"music": false,
+					"speed": 4,
+					"waves": 20
+				}
+			},
+			"delay": 8
+		}
+	},
+	{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": {
+			"type": "freeze"
+		}
+	},
+	{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": {
+			"type": "play",
+			"sound": "entry",
+			"volume": 0.25,
+			"speed": 0.5
+		}
+	}],
+	"height": "0",
+	"solid": false,
+	"walk_behind": false
+}

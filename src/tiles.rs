@@ -76,7 +76,7 @@ impl<'a> Tileset<'a> {
 #[derive(Clone)]
 pub enum SpecialTile {
     Stairs,
-    Step(String)
+    Step(String, f32)
 }
 
 pub struct Tilemap {

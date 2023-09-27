@@ -1,4 +1,4 @@
-use std::{path::PathBuf, fs::File, io::BufReader, sync::Arc, thread, collections::HashMap};
+use std::{path::PathBuf, fs::File, io::BufReader, sync::Arc, thread, collections::HashMap, error::Error};
 
 use rodio::{Sink, Decoder, Source, source::{Repeat, Buffered}, OutputStreamHandle};
 
@@ -6,6 +6,10 @@ pub struct SoundEffectBank {
     pub sound_effects: HashMap<String, SoundEffect>,
     pub output_handle: Arc<OutputStreamHandle>
 }
+
+const ACCEPTED_SFX_EXTENSIONS: [&str; 3] = [
+    "mp3", "wav", "ogg"
+];
 
 impl SoundEffectBank {
     pub fn new(output_handle: Arc<OutputStreamHandle>) -> Self {
@@ -15,15 +19,35 @@ impl SoundEffectBank {
         }
     }
 
+    fn try_insert_sfx_with_extension(&mut self, name: &str, ext: &str, speed: f32, volume: f32) -> Result<(), Box<dyn Error>> {
+        let file = File::open(PathBuf::from(format!("res/audio/sfx/{}.{}", name, ext)))?;
+        //let file = File::open(PathBuf::from("res/audio/sfx/step6_walk.wav"))?;
+        let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
+        self.sound_effects.insert(name.to_string(), SoundEffect {
+            speed, volume, source
+        });
+        Ok(())
+    }
+
+    pub fn try_load(&mut self, name: &str, speed: f32, volume: f32) -> bool {
+        for extension in ACCEPTED_SFX_EXTENSIONS.iter() {
+            match self.try_insert_sfx_with_extension(name, extension, speed, volume) {
+                Ok(()) => return true,
+                Err(_e) => {
+                    //eprintln!("{:?} at res/audio/sfx/{}.{}", e, name, extension);
+                }
+            }
+        }
+
+        false
+    }
+
     pub fn play(&mut self, name: &str) {
         if self.sound_effects.contains_key(name) {
             self.sound_effects.get(name).unwrap().play(&self.output_handle);
         } else {
-            if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
-
-                self.sound_effects.insert(name.to_string().clone(), SoundEffect { speed: 1.0, volume: 1.0, source });
-                self.sound_effects.get(name).unwrap().play(&self.output_handle);
+            if self.try_load(name, 1.0, 1.0) {
+                self.play(name);
             } else {
                 eprintln!("Could not play sound effect {}", name);
             }
@@ -34,17 +58,15 @@ impl SoundEffectBank {
         if self.sound_effects.contains_key(name) {
             self.sound_effects.get(name).unwrap().play_ex(&self.output_handle, speed, volume);
         } else {
-            if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
-
-                self.sound_effects.insert(name.to_string().clone(), SoundEffect { speed: 1.0, volume: 1.0, source });
-                self.sound_effects.get(name).unwrap().play_ex(&self.output_handle, speed, volume);
+            if self.try_load(name, speed, volume) {
+                self.play_ex(name, speed, volume);
             } else {
                 eprintln!("Could not play sound effect {}", name);
             }
         }
     }
 
+    #[deprecated]
     pub fn load(&mut self, name: &String, volume: f32, speed: f32) {
         if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
             let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();

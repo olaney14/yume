@@ -890,7 +890,7 @@ pub struct SpecialContext {
     pub pending_save: usize,
     pub write_save_to_pending: bool,
 
-    pub pending_load: Option<usize>,
+    pub pending_load: Option<usize>
 }
 
 impl SpecialContext {
