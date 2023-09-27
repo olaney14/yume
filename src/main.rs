@@ -1,9 +1,9 @@
 extern crate json;
 
-use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::File};
+use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::{File, OpenOptions}, time::Instant};
 
 use audio::{SoundEffectBank, Song};
-use debug::Debug;
+use debug::{Debug, ProfileInfo};
 use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
 use gl::RGBA;
 use player::Player;
@@ -12,6 +12,7 @@ use save::{SaveInfo, SaveData, SaveSlot};
 use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
 use ui::{Ui, MenuType};
 use world::World;
+use std::io::Write;
 
 extern crate sdl2;
 
@@ -107,13 +108,17 @@ fn main() {
 
     let mut next_time = unsafe { SDL_GetTicks() } + TICK_INTERVAL;
     let mut debug = Debug {
-        load_handle: None
+        load_handle: None,
+        profiler: ProfileInfo::new(),
+        enable_profiling: false
     };
 
     //let new_save = SaveData::create(&player);
     //new_save.save(0, &PathBuf::from("saves/0.save"), &mut save_info).expect("error saving new file");
 
     'mainloop: loop {
+        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::Frame); }
+        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::HandleEvents); }
         for event in events.poll_iter() {
             use sdl2::event::Event;
             match event {
@@ -131,6 +136,7 @@ fn main() {
                 _ => ()
             }
         }
+        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::HandleEvents); }
 
         if !ui.clear {
             canvas.set_draw_color(world.background_color);
@@ -141,7 +147,9 @@ fn main() {
 
         debug.update(&input, &mut world);
 
+        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::UIUpdate); }
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
+        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::UIUpdate); }
 
         if world.special_context.write_save_to_pending {
             let save_data = SaveData::create(&player);
@@ -174,20 +182,28 @@ fn main() {
             world.paused = false;
         }
 
+
         if !ui.open {
+            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::PlayerUpdate); }
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
+            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::PlayerUpdate); }
+            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::WorldUpdate); }
             world.update(&mut player, &mut sfx, &sink);
+            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::PlayerUpdate); }
             if player.effect_just_changed {
                 player.effect_just_changed = false;
             }
         }
 
+        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::InputUpdate); }
         input.update();
+        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::InputUpdate); }
 
         render_state.offset = (-player.x + (render_state.screen_extents.0 as i32 / 2) - 8, -player.y + (render_state.screen_extents.1 as i32 / 2) - 16);
         if world.clamp_camera {
+            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::ClampCamera); }
             render_state.clamp.0 = false;
             render_state.clamp.1 = false;
 
@@ -220,15 +236,18 @@ fn main() {
                     render_state.clamp.1 = true;
                 }
             }
+            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::ClampCamera); }
         }
 
         // If the ui is not clearing the screen and a menu screenshot is not being taken
         if !ui.clear && !ui.menu_state.menu_screenshot {
+            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::WorldDraw); }
             if world.looping {
                 world.draw_looping(&mut canvas, &player, &render_state);
             } else {
                 world.draw(&mut canvas, &player, &render_state);
             }
+            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::WorldDraw); }
         }
 
         // Exclude transitions from screenshots 
@@ -236,7 +255,9 @@ fn main() {
             world.draw_transitions(&mut canvas, &render_state);
         }
 
+        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::UIDraw); }
         ui.draw(&player, &mut canvas, &save_info, &render_state);
+        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::UIDraw); }
 
         if world.transition_context.take_screenshot {
             let mut screenshot = world.transition_context.screenshot.take().unwrap();
@@ -260,6 +281,9 @@ fn main() {
             world.transition_context.take_screenshot = false;
             ui.menu_state.menu_screenshot = false;
         }
+
+        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::Frame); }
+        debug.draw(&mut canvas, &ui);
 
         canvas.present();
 

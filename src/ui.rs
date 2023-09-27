@@ -20,7 +20,7 @@ const MENU_SELECTION_HIGHLIGHT: u32 = 9;
 const MENU_BUTTON_PADDING_VERT: u32 = 2;
 const MENU_BUTTON_PADDING_HORIZ: u32 = 2;
 
-const FONT_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .!,-�?§";
+const FONT_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .!,-�?§µ";
 const DEFAULT_FONT: &str = "res/textures/ui/fonts/font.png";
 const DEFAULT_FONT_WIDTH: u32 = 6;
 const DEFAULT_FONT_HEIGHT: u32 = 10;

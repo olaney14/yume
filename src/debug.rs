@@ -1,12 +1,94 @@
-use std::{thread::{JoinHandle, self}, path::PathBuf};
+use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, collections::{HashMap, LinkedList}};
 
 use rfd::FileDialog;
-use sdl2::keyboard::Keycode;
+use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
 
-use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType}};
+use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType}, ui::Ui};
+
+#[derive(PartialEq, Eq, Hash, Debug)]
+pub enum ProfileTargetType {
+    HandleEvents,
+    UIUpdate,
+    PlayerUpdate,
+    WorldUpdate,
+    InputUpdate,
+    ClampCamera,
+    WorldDraw,
+    UIDraw,
+    Frame,
+    Loop
+}
+
+pub struct ProfileTarget {
+    pub start: Option<Instant>,
+    pub end: Option<Instant>
+    //pub duration: Option<Duration>
+}
+
+impl ProfileTarget {
+    fn new() -> Self {
+        Self {
+            start: None, end: None
+        }
+    }
+}
+
+const FRAME_AVG_SAMPLE: usize = 100;
+const SPIKE_LIMIT: u32 = 10;
+
+pub struct ProfileInfo {
+    stages: HashMap<ProfileTargetType, ProfileTarget>,
+    past_frames: LinkedList<Duration>
+}
+
+impl ProfileInfo {
+    pub fn new() -> Self {
+        let mut stages = HashMap::new();
+        stages.insert(ProfileTargetType::HandleEvents, ProfileTarget::new());
+        stages.insert(ProfileTargetType::UIUpdate, ProfileTarget::new());
+        stages.insert(ProfileTargetType::PlayerUpdate, ProfileTarget::new());
+        stages.insert(ProfileTargetType::WorldUpdate, ProfileTarget::new());
+        stages.insert(ProfileTargetType::InputUpdate, ProfileTarget::new());
+        stages.insert(ProfileTargetType::ClampCamera, ProfileTarget::new());
+        stages.insert(ProfileTargetType::WorldDraw, ProfileTarget::new());
+        stages.insert(ProfileTargetType::UIDraw, ProfileTarget::new());
+        stages.insert(ProfileTargetType::Frame, ProfileTarget::new());
+        stages.insert(ProfileTargetType::Loop, ProfileTarget::new());
+        Self {
+            stages, past_frames: LinkedList::new()
+        }
+    }
+    
+    #[inline]
+    pub fn begin_stage(&mut self, stage: ProfileTargetType) {
+        if self.stages.contains_key(&stage) {
+            self.stages.get_mut(&stage).unwrap().start = Some(Instant::now());
+        }
+    }
+
+    #[inline]
+    pub fn end_stage(&mut self, stage: ProfileTargetType) {
+        if self.stages.contains_key(&stage) {
+            self.stages.get_mut(&stage).unwrap().end = Some(Instant::now());
+        }
+    }
+
+    #[inline]
+    pub fn get_stage_timing(&self, stage: &ProfileTargetType) -> Option<Duration> {
+        if self.stages.contains_key(stage) {
+            let stage = self.stages.get(&stage).unwrap();
+            if stage.end.is_some() && stage.start.is_some() {
+                return Some(*stage.end.as_ref().unwrap() - *stage.start.as_ref().unwrap())
+            }
+        }
+        return None
+    }
+}
 
 pub struct Debug {
-    pub load_handle: Option<JoinHandle<Option<PathBuf>>>
+    pub load_handle: Option<JoinHandle<Option<PathBuf>>>,
+    pub profiler: ProfileInfo,
+    pub enable_profiling: bool
 }
 
 impl Debug {
@@ -36,6 +118,11 @@ impl Debug {
             );
         }
 
+        // F3 + P - show profiling info
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
+            self.enable_profiling = !self.enable_profiling;
+        }
+
         if self.load_handle.is_some() {
             if self.load_handle.as_ref().unwrap().is_finished() {
                 let handle = self.load_handle.take().unwrap();
@@ -53,6 +140,42 @@ impl Debug {
                 }
                 world.paused = false;
             }
+        }
+    }
+
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui) {
+        if self.enable_profiling {
+            self.profiler.past_frames.push_front(self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO));
+            if self.profiler.past_frames.len() >= FRAME_AVG_SAMPLE {
+                self.profiler.past_frames.pop_back();
+            }
+            
+            let avg: u128 = self.profiler.past_frames.iter().map(|f| f.as_nanos()).reduce(|a, e| a + e).unwrap() / self.profiler.past_frames.len() as u128;
+            let avg_dur = Duration::from_nanos(avg.try_into().unwrap());
+            if self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO).as_nanos() > avg * SPIKE_LIMIT as u128 {
+                println!("SPIKE: {:?} at avg {:?}", self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO), Duration::from_nanos(avg as u64));
+            }
+
+            ui.theme.clear_frame(canvas, 400 - 172, 0, 12, 16);
+            ui.theme.draw_frame(canvas, 400 - 172, 0, 12, 16);
+            let text_x = 400 - 172 + 6;
+            let mut y = 4;
+            for stage in self.profiler.stages.keys() {
+                let timing = self.profiler.get_stage_timing(stage);
+                if let Some(timing) = timing {
+                    ui.theme.font.draw_string(
+                        canvas, 
+                        format!("{:?}: {:?}", stage, timing).as_str(), 
+                        (text_x, y)
+                    );
+                }
+                y += 12;
+            }
+            ui.theme.font.draw_string(
+                canvas, 
+                format!("avg: {:?}", avg_dur).as_str(), 
+                (text_x, y)
+            );
         }
     }
 }
