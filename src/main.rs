@@ -5,14 +5,12 @@ use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::{File, Ope
 use audio::{SoundEffectBank, Song};
 use debug::{Debug, ProfileInfo};
 use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
-use gl::RGBA;
 use player::Player;
 use rodio::{OutputStream, Sink};
 use save::{SaveInfo, SaveData, SaveSlot};
 use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
 use ui::{Ui, MenuType};
 use world::World;
-use std::io::Write;
 
 extern crate sdl2;
 
@@ -61,6 +59,7 @@ fn main() {
         .into_canvas()
         .index(find_sdl_gl_driver().expect("No OpenGL driver found"))
         .target_texture()
+        .present_vsync()
         .build()
         .map_err(|e| e.to_string()).unwrap();
     let texture_creator = canvas.texture_creator();
@@ -117,8 +116,6 @@ fn main() {
     //new_save.save(0, &PathBuf::from("saves/0.save"), &mut save_info).expect("error saving new file");
 
     'mainloop: loop {
-        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::Frame); }
-        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::HandleEvents); }
         for event in events.poll_iter() {
             use sdl2::event::Event;
             match event {
@@ -136,7 +133,6 @@ fn main() {
                 _ => ()
             }
         }
-        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::HandleEvents); }
 
         if !ui.clear {
             canvas.set_draw_color(world.background_color);
@@ -146,24 +142,12 @@ fn main() {
         canvas.clear();
 
         debug.update(&input, &mut world);
-
-        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::UIUpdate); }
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
-        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::UIUpdate); }
 
         if world.special_context.write_save_to_pending {
             let save_data = SaveData::create(&player);
             save_data.save(world.special_context.pending_save as u32, &PathBuf::from("saves/".to_string() + &world.special_context.pending_save.to_string() + ".save"), &mut save_info).expect("failed to save game data");
-        }
-
-        if ui.effect_get_timer > 0 {
-            ui.effect_get_timer -= 1;
-            if ui.effect_get_timer == 0 {
-                ui.effect_get = None;
-                world.paused = false;
-                player.frozen = false;
-                player.frozen_time = 0;
-            }
+            world.special_context.write_save_to_pending = false
         }
 
         if world.special_context.new_game {
@@ -184,70 +168,25 @@ fn main() {
 
 
         if !ui.open {
-            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::PlayerUpdate); }
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
-            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::PlayerUpdate); }
-            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::WorldUpdate); }
             world.update(&mut player, &mut sfx, &sink);
-            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::PlayerUpdate); }
             if player.effect_just_changed {
                 player.effect_just_changed = false;
             }
         }
 
-        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::InputUpdate); }
         input.update();
-        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::InputUpdate); }
-
-        render_state.offset = (-player.x + (render_state.screen_extents.0 as i32 / 2) - 8, -player.y + (render_state.screen_extents.1 as i32 / 2) - 16);
-        if world.clamp_camera {
-            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::ClampCamera); }
-            render_state.clamp.0 = false;
-            render_state.clamp.1 = false;
-
-            if world.width * 16 < render_state.screen_extents.0 {
-                render_state.clamp.0 = true;
-                render_state.offset.0 = ((render_state.screen_extents.0 / 2) - ((world.width * 16) / 2)) as i32;
-            } else {
-                if render_state.offset.0 > 0 {
-                    render_state.offset.0 = 0;
-                    render_state.clamp.0 = true;
-                }
-
-                if render_state.offset.0 - 400 < -(world.width as i32 * 16) {
-                    render_state.offset.0 = -(world.width as i32 * 16) + 400;
-                    render_state.clamp.0 = true;
-                }
-            }
-            
-            if world.height * 16 < render_state.screen_extents.1 {
-                render_state.clamp.1 = true;
-                render_state.offset.1 = ((render_state.screen_extents.1 / 2) - ((world.height * 16) / 2)) as i32;
-            } else {
-                if render_state.offset.1 > 0 {
-                    render_state.offset.1 = 0;
-                    render_state.clamp.1 = true;
-                }
-
-                if render_state.offset.1 - 300 < -(world.height as i32 * 16) {
-                    render_state.offset.1 = -(world.height as i32 * 16) + 300;
-                    render_state.clamp.1 = true;
-                }
-            }
-            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::ClampCamera); }
-        }
+        clamp_camera(&mut render_state, &world, &player);
 
         // If the ui is not clearing the screen and a menu screenshot is not being taken
         if !ui.clear && !ui.menu_state.menu_screenshot {
-            if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::WorldDraw); }
             if world.looping {
                 world.draw_looping(&mut canvas, &player, &render_state);
             } else {
                 world.draw(&mut canvas, &player, &render_state);
             }
-            if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::WorldDraw); }
         }
 
         // Exclude transitions from screenshots 
@@ -255,9 +194,7 @@ fn main() {
             world.draw_transitions(&mut canvas, &render_state);
         }
 
-        if debug.enable_profiling { debug.profiler.begin_stage(debug::ProfileTargetType::UIDraw); }
         ui.draw(&player, &mut canvas, &save_info, &render_state);
-        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::UIDraw); }
 
         if world.transition_context.take_screenshot {
             let mut screenshot = world.transition_context.screenshot.take().unwrap();
@@ -282,7 +219,6 @@ fn main() {
             ui.menu_state.menu_screenshot = false;
         }
 
-        if debug.enable_profiling { debug.profiler.end_stage(debug::ProfileTargetType::Frame); }
         debug.draw(&mut canvas, &ui);
 
         canvas.present();
@@ -355,6 +291,44 @@ fn main() {
             let time = time_left(next_time);
             SDL_Delay(time);
             next_time += TICK_INTERVAL;
+        }
+    }
+}
+
+fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) {
+    render_state.offset = (-player.x + (render_state.screen_extents.0 as i32 / 2) - 8, -player.y + (render_state.screen_extents.1 as i32 / 2) - 16);
+    if world.clamp_camera {
+        render_state.clamp.0 = false;
+        render_state.clamp.1 = false;
+
+        if world.width * 16 < render_state.screen_extents.0 {
+            render_state.clamp.0 = true;
+            render_state.offset.0 = ((render_state.screen_extents.0 / 2) - ((world.width * 16) / 2)) as i32;
+        } else {
+            if render_state.offset.0 > 0 {
+                render_state.offset.0 = 0;
+                render_state.clamp.0 = true;
+            }
+
+            if render_state.offset.0 - 400 < -(world.width as i32 * 16) {
+                render_state.offset.0 = -(world.width as i32 * 16) + 400;
+                render_state.clamp.0 = true;
+            }
+        }
+        
+        if world.height * 16 < render_state.screen_extents.1 {
+            render_state.clamp.1 = true;
+            render_state.offset.1 = ((render_state.screen_extents.1 / 2) - ((world.height * 16) / 2)) as i32;
+        } else {
+            if render_state.offset.1 > 0 {
+                render_state.offset.1 = 0;
+                render_state.clamp.1 = true;
+            }
+
+            if render_state.offset.1 - 300 < -(world.height as i32 * 16) {
+                render_state.offset.1 = -(world.height as i32 * 16) + 300;
+                render_state.clamp.1 = true;
+            }
         }
     }
 }

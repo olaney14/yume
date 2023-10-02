@@ -458,6 +458,7 @@ impl<'a> Player<'a> {
         self.animation_info.animate_effects();
 
         if self.moving {
+
             self.x += self.facing.x() * self.speed as i32;
             self.y += self.facing.y() * self.speed as i32;
             self.y += self.diag_move * self.speed as i32;
@@ -469,10 +470,18 @@ impl<'a> Player<'a> {
             //     self.animation_info.do_step = false;
             // }
 
-            if self.move_timer <= 0 {
+            if self.frozen {
                 self.x = (self.x as f32 / 16.0).round() as i32 * 16;
                 self.y = (self.y as f32 / 16.0).round() as i32 * 16;
                 self.moving = false;
+                self.move_timer = 0;
+                self.draw_over = false;
+                self.diag_move = 0;
+            } else if self.move_timer <= 0 {
+                self.x = (self.x as f32 / 16.0).round() as i32 * 16;
+                self.y = (self.y as f32 / 16.0).round() as i32 * 16;
+                self.moving = false;
+                self.move_timer = 0;
                 self.draw_over = false;
                 self.diag_move = 0;
                 world.player_walk(self.x / 16, (self.y / 16) + 1);

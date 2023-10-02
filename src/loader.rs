@@ -231,6 +231,7 @@ impl<'a> World<'a> {
                             }
                         }
 
+                        world_layer.name = layer.name.clone();
                         if let Some(prop) = layer.properties.get("name")  {
                             if let PropertyValue::StringValue(name) = prop {
                                 world_layer.name = name.clone();

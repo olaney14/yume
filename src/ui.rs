@@ -415,6 +415,16 @@ impl<'a> Ui<'a> {
             self.menu_state.menu_should_close = false;
         }
 
+        if self.effect_get_timer > 0 {
+            self.effect_get_timer -= 1;
+            if self.effect_get_timer == 0 {
+                self.effect_get = None;
+                world.paused = false;
+                player.frozen = false;
+                player.frozen_time = 0;
+            }
+        }
+
         if self.open {
             self.menu_state.update(input, player, world, save_info, sfx);
         }

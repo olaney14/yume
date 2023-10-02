@@ -382,7 +382,7 @@ impl<'a> World<'a> {
             for layer in self.layers.iter() {
                 if layer.draw && layer.height == height {
                     //layer.map.draw(canvas, self.tilesets[layer.map.tileset_id], state);
-                    self.draw_tile_layer(canvas, layer, state);
+                    self.draw_tile_layer(canvas, layer, false, state);
                 } else if layer.height > height {
                     // because layers are sorted, breaking early is fine
                     break;
@@ -391,7 +391,7 @@ impl<'a> World<'a> {
 
             for entity in self.entities.as_ref().unwrap().iter() {
                 if entity.draw && entity.get_height(player.y) == height {
-                    self.draw_entity(canvas, entity, state);
+                    self.draw_entity(canvas, entity, false, state);
                 }
             }
 
@@ -414,144 +414,33 @@ impl<'a> World<'a> {
     }
 
     pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
-        assert!(self.render_texture.is_some(), "world needs to have a render texture to do looping draws");
-        let mut render_texture = self.render_texture.take();
+        for height in self.layer_min..=self.layer_max {
 
-        // TODO: Image layer height support for looping draws
-
-        for image_layer in self.image_layers.iter() {
-            image_layer.draw(canvas, state);
-        }
-
-        canvas.with_texture_canvas(render_texture.as_mut().unwrap(), |tex_canvas| {
-            tex_canvas.set_draw_color(Color::RGBA(255, 255, 255, 0));
-            tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
-            tex_canvas.clear();
-            // HAHAHAHHAHAAAAAAAAA
-            let world_state = RenderState::new((self.width * 16, self.height * 16));
-            for height in self.layer_min..=self.layer_max {
-
-                for layer in self.layers.iter() {
-                    if layer.draw && layer.height == height {
-                        //layer.map.draw(canvas, self.tilesets[layer.map.tileset_id], state);
-                        self.draw_tile_layer(tex_canvas, layer, &world_state);
-                    } else if layer.height > height {
-                        // because layers are sorted, breaking early is fine
-                        break;
-                    }
-                }
-                for entity in self.entities.as_ref().unwrap().iter() {
-                    if entity.draw && entity.get_height(player.y) == height {
-                        self.draw_entity(tex_canvas, entity, &world_state);
-                    }
-                }
-                if player.layer == height {
-                    player.draw_looping(tex_canvas, &world_state);
+            for image_layer in self.image_layers.iter() {
+                if image_layer.draw && image_layer.height == height {
+                    image_layer.draw(canvas, state);
                 }
             }
-        }).unwrap();
-        self.render_texture = render_texture;
 
-        let mut dest = Rect::new(0, 0, state.screen_extents.0, state.screen_extents.1);
-        let mut source = Rect::new(player.x + 8 - (state.screen_extents.0 as i32 / 2), player.y + 16 - (state.screen_extents.1 as i32 / 2), state.screen_extents.0, state.screen_extents.1);
+            for layer in self.layers.iter() {
+                if layer.draw && layer.height == height {
+                    //layer.map.draw(canvas, self.tilesets[layer.map.tileset_id], state);
+                    self.draw_tile_layer(canvas, layer, true, state);
+                } else if layer.height > height {
+                    // because layers are sorted, breaking early is fine
+                    break;
+                }
+            }
 
-        let mut left_loop = false;
-        let mut right_loop = false;
-        let mut up_loop = false;
-        let mut down_loop = false;
-        let width_px = self.width as i32 * 16;
-        let height_px = self.height as i32 * 16;
+            for entity in self.entities.as_ref().unwrap().iter() {
+                if entity.draw && entity.get_height(player.y) == height {
+                    self.draw_entity(canvas, entity, true, state);
+                }
+            }
 
-        if state.offset.0 > 0 {
-            dest.x = state.offset.0;
-            source.x = 0;
-            left_loop = true;
-        }
-
-        if state.offset.1 > 0 {
-            dest.y = state.offset.1;
-            source.y = 0;
-            up_loop = true;
-        }
-
-        if state.offset.0 * -1 + state.screen_extents.0 as i32 > self.width as i32 * 16 {
-            source.w = width_px + state.offset.0;
-            dest.w = source.w;
-            right_loop = true;
-        }
-
-        if -state.offset.1 + state.screen_extents.1 as i32 > self.height as i32 * 16 {
-            source.h = height_px + state.offset.1;
-            dest.h = source.h;
-            down_loop = true;
-        }
-
-        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
-
-        if left_loop {
-            let sub_rect = Rect::new(width_px - state.offset.0 as i32, source.y.max(0), state.offset.0 as u32, source.height());
-            let dest_rect = Rect::new(0, dest.y, state.offset.0 as u32, dest.height());
-            canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap();
-        }
-
-        if right_loop {
-            let sub_rect = Rect::new(0, source.y, (width_px + state.offset.0) as u32 + 16, source.height());
-            let dest_rect = Rect::new(width_px + state.offset.0, dest.y, sub_rect.width(), dest.height());
-            canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap();
-        }
-
-        if up_loop {
-            let sub_rect = Rect::new(source.x.max(0), height_px - state.offset.1, source.width(), state.offset.1 as u32);
-            let dest_rect = Rect::new(dest.x, 0, dest.width(), state.offset.1 as u32);
-            canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap(); 
-        }
-
-        if down_loop {
-            let sub_rect = Rect::new(source.x, 0, source.width(), (height_px + state.offset.1) as u32 + 16);
-            let dest_rect = Rect::new(dest.x, height_px + state.offset.1, dest.width(), sub_rect.height());
-            canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap(); 
-        }
-
-        // Top-left corner
-        if up_loop && left_loop {
-            canvas.copy(
-                self.render_texture.as_ref().unwrap(),
-                Some(Rect::new(width_px - state.offset.0 as i32, height_px - state.offset.1 as i32, state.offset.0 as u32, state.offset.1 as u32)),
-                Some(Rect::new(0, 0, state.offset.0 as u32, state.offset.1 as u32))
-            ).unwrap();
-        }
-
-        // Top-right corner
-        if up_loop && right_loop {
-            canvas.copy(
-                self.render_texture.as_ref().unwrap(),
-                Some(Rect::new(0, height_px - state.offset.1 as i32, (width_px + state.offset.0) as u32 + 16, source.height())),
-                Some(Rect::new(width_px + state.offset.0, 0, (width_px + state.offset.0) as u32 + 16, state.offset.1 as u32))
-            ).unwrap();
-        }
-
-        // Bottom-left corner
-        if down_loop && left_loop {
-            canvas.copy(
-                self.render_texture.as_ref().unwrap(),
-                Some(Rect::new(width_px - state.offset.0 as i32, 0, state.offset.0 as u32, (height_px + state.offset.1) as u32 + 16)),
-                Some(Rect::new(0, height_px + state.offset.1, state.offset.0 as u32, (height_px + state.offset.1) as u32 + 16))
-            ).unwrap();
-        }
-
-        // Bottom-right corner
-        if down_loop && right_loop {
-            canvas.copy(
-                self.render_texture.as_ref().unwrap(),
-                Some(Rect::new(0, 0, (width_px + state.offset.0) as u32 + 16, (height_px + state.offset.1) as u32 + 16)),
-                Some(Rect::new(width_px + state.offset.0, height_px + state.offset.1, (width_px + state.offset.0) as u32 + 16, (height_px + state.offset.1) as u32 + 16)),
-            ).unwrap();
-        }
-
-        canvas.copy(self.render_texture.as_ref().unwrap(), Some(source), Some(dest)).unwrap();
-
-        if player.draw_over || player.y < 0 {
-            player.draw(canvas, state);
+            if player.layer == height {
+                player.draw(canvas, state);
+            }
         }
 
         if let Some(tint) = self.tint {
@@ -559,13 +448,161 @@ impl<'a> World<'a> {
             canvas.set_draw_color(tint);
             canvas.fill_rect(None).unwrap();
         }
-
-        // if self.transition.is_some() {
-        //     let mut transition = self.transition.take().unwrap();
-        //     transition.draw(canvas, self);
-        //     self.transition = Some(transition);
-        // }
     }
+
+    // pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+    //     assert!(self.render_texture.is_some(), "world needs to have a render texture to do looping draws");
+    //     let mut render_texture = self.render_texture.take();
+
+    //     // TODO: Image layer height support for looping draws
+
+    //     for image_layer in self.image_layers.iter() {
+    //         image_layer.draw(canvas, state);
+    //     }
+
+    //     canvas.with_texture_canvas(render_texture.as_mut().unwrap(), |tex_canvas| {
+    //         tex_canvas.set_draw_color(Color::RGBA(255, 255, 255, 0));
+    //         tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+    //         tex_canvas.clear();
+    //         // HAHAHAHHAHAAAAAAAAA
+    //         let world_state = RenderState::new((self.width * 16, self.height * 16));
+    //         for height in self.layer_min..=self.layer_max {
+
+    //             for layer in self.layers.iter() {
+    //                 if layer.draw && layer.height == height {
+    //                     //layer.map.draw(canvas, self.tilesets[layer.map.tileset_id], state);
+    //                     self.draw_whole_tile_layer(tex_canvas, layer, &world_state);
+    //                 } else if layer.height > height {
+    //                     // because layers are sorted, breaking early is fine
+    //                     break;
+    //                 }
+    //             }
+    //             for entity in self.entities.as_ref().unwrap().iter() {
+    //                 if entity.draw && entity.get_height(player.y) == height {
+    //                     self.draw_entity(tex_canvas, entity, &world_state);
+    //                 }
+    //             }
+    //             if player.layer == height {
+    //                 player.draw_looping(tex_canvas, &world_state);
+    //             }
+    //         }
+    //     }).unwrap();
+    //     self.render_texture = render_texture;
+
+    //     let mut dest = Rect::new(0, 0, state.screen_extents.0, state.screen_extents.1);
+    //     let mut source = Rect::new(player.x + 8 - (state.screen_extents.0 as i32 / 2), player.y + 16 - (state.screen_extents.1 as i32 / 2), state.screen_extents.0, state.screen_extents.1);
+
+    //     let mut left_loop = false;
+    //     let mut right_loop = false;
+    //     let mut up_loop = false;
+    //     let mut down_loop = false;
+    //     let width_px = self.width as i32 * 16;
+    //     let height_px = self.height as i32 * 16;
+
+    //     if state.offset.0 > 0 {
+    //         dest.x = state.offset.0;
+    //         source.x = 0;
+    //         left_loop = true;
+    //     }
+
+    //     if state.offset.1 > 0 {
+    //         dest.y = state.offset.1;
+    //         source.y = 0;
+    //         up_loop = true;
+    //     }
+
+    //     if state.offset.0 * -1 + state.screen_extents.0 as i32 > self.width as i32 * 16 {
+    //         source.w = width_px + state.offset.0;
+    //         dest.w = source.w;
+    //         right_loop = true;
+    //     }
+
+    //     if -state.offset.1 + state.screen_extents.1 as i32 > self.height as i32 * 16 {
+    //         source.h = height_px + state.offset.1;
+    //         dest.h = source.h;
+    //         down_loop = true;
+    //     }
+
+    //     canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+
+    //     if left_loop {
+    //         let sub_rect = Rect::new(width_px - state.offset.0 as i32, source.y.max(0), state.offset.0 as u32, source.height());
+    //         let dest_rect = Rect::new(0, dest.y, state.offset.0 as u32, dest.height());
+    //         canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap();
+    //     }
+
+    //     if right_loop {
+    //         let sub_rect = Rect::new(0, source.y, (width_px + state.offset.0) as u32 + 16, source.height());
+    //         let dest_rect = Rect::new(width_px + state.offset.0, dest.y, sub_rect.width(), dest.height());
+    //         canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap();
+    //     }
+
+    //     if up_loop {
+    //         let sub_rect = Rect::new(source.x.max(0), height_px - state.offset.1, source.width(), state.offset.1 as u32);
+    //         let dest_rect = Rect::new(dest.x, 0, dest.width(), state.offset.1 as u32);
+    //         canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap(); 
+    //     }
+
+    //     if down_loop {
+    //         let sub_rect = Rect::new(source.x, 0, source.width(), (height_px + state.offset.1) as u32 + 16);
+    //         let dest_rect = Rect::new(dest.x, height_px + state.offset.1, dest.width(), sub_rect.height());
+    //         canvas.copy(self.render_texture.as_ref().unwrap(), Some(sub_rect), Some(dest_rect)).unwrap(); 
+    //     }
+
+    //     // Top-left corner
+    //     if up_loop && left_loop {
+    //         canvas.copy(
+    //             self.render_texture.as_ref().unwrap(),
+    //             Some(Rect::new(width_px - state.offset.0 as i32, height_px - state.offset.1 as i32, state.offset.0 as u32, state.offset.1 as u32)),
+    //             Some(Rect::new(0, 0, state.offset.0 as u32, state.offset.1 as u32))
+    //         ).unwrap();
+    //     }
+
+    //     // Top-right corner
+    //     if up_loop && right_loop {
+    //         canvas.copy(
+    //             self.render_texture.as_ref().unwrap(),
+    //             Some(Rect::new(0, height_px - state.offset.1 as i32, (width_px + state.offset.0) as u32 + 16, source.height())),
+    //             Some(Rect::new(width_px + state.offset.0, 0, (width_px + state.offset.0) as u32 + 16, state.offset.1 as u32))
+    //         ).unwrap();
+    //     }
+
+    //     // Bottom-left corner
+    //     if down_loop && left_loop {
+    //         canvas.copy(
+    //             self.render_texture.as_ref().unwrap(),
+    //             Some(Rect::new(width_px - state.offset.0 as i32, 0, state.offset.0 as u32, (height_px + state.offset.1) as u32 + 16)),
+    //             Some(Rect::new(0, height_px + state.offset.1, state.offset.0 as u32, (height_px + state.offset.1) as u32 + 16))
+    //         ).unwrap();
+    //     }
+
+    //     // Bottom-right corner
+    //     if down_loop && right_loop {
+    //         canvas.copy(
+    //             self.render_texture.as_ref().unwrap(),
+    //             Some(Rect::new(0, 0, (width_px + state.offset.0) as u32 + 16, (height_px + state.offset.1) as u32 + 16)),
+    //             Some(Rect::new(width_px + state.offset.0, height_px + state.offset.1, (width_px + state.offset.0) as u32 + 16, (height_px + state.offset.1) as u32 + 16)),
+    //         ).unwrap();
+    //     }
+
+    //     canvas.copy(self.render_texture.as_ref().unwrap(), Some(source), Some(dest)).unwrap();
+
+    //     if player.draw_over || player.y < 0 {
+    //         player.draw(canvas, state);
+    //     }
+
+    //     if let Some(tint) = self.tint {
+    //         canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+    //         canvas.set_draw_color(tint);
+    //         canvas.fill_rect(None).unwrap();
+    //     }
+
+    //     // if self.transition.is_some() {
+    //     //     let mut transition = self.transition.take().unwrap();
+    //     //     transition.draw(canvas, self);
+    //     //     self.transition = Some(transition);
+    //     // }
+    // }
 
     pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
         if self.transition.is_some() {
@@ -576,7 +613,7 @@ impl<'a> World<'a> {
     }
 
     //pub fn draw<'a, T: RenderTarget>(&self, canvas: &mut Canvas<T>, tileset: Tileset<'a>, state: &RenderState) {
-    pub fn draw_tile_layer<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, state: &RenderState) {
+    pub fn draw_whole_tile_layer<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, state: &RenderState) {
         let width = self.width;
 
         for y in 0..self.height {
@@ -589,12 +626,73 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn draw_entity<T: RenderTarget>(&self, canvas: &mut Canvas<T>, entity: &Entity, state: &RenderState) {
-        // canvas.copy(&self.texture.texture, Rect::new(tile_x as i32 * 16, tile_y as i32 * 16, 16, 16), Rect::new(pos.0, pos.1, 16, 16)).unwrap();
-        if let Some(animator) = &entity.animator {
-            self.tilesets[animator.tileset as usize].draw_tile_sized(canvas, animator.frame, (entity.x + state.offset.0, entity.y + state.offset.1));
+    pub fn draw_tile_layer<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, looping: bool, state: &RenderState) {
+        let orig_x = -state.offset.0 / 16;
+        let orig_y = -state.offset.1 / 16;
+        if looping {
+            self.draw_tile_layer_section_looping(canvas, layer, 
+                (orig_x - 1, orig_y - 1), 
+                (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
+            state);
         } else {
-            self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, (entity.x + state.offset.0, entity.y + state.offset.1));
+            self.draw_tile_layer_section(canvas, layer, 
+                (orig_x, orig_y), 
+                (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
+            state);
+        }
+    }
+
+    pub fn draw_tile_layer_section<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, 
+        start: (i32, i32), end: (i32, i32), state: &RenderState) {
+        let start_y = start.1.max(0);
+        let start_x = start.0.max(0);
+        let end_x = end.0.min(self.width as i32);
+        let end_y = end.1.min(self.height as i32);
+        for y in start_y..end_y {
+            for x in start_x..end_x {
+                let tile = layer.map.tiles[(y * self.width as i32 + x) as usize];
+                if tile.tileset >= 0 && tile.id >= 0 {
+                    self.tilesets[tile.tileset as usize].draw_tile(canvas, tile.id as u32, 
+                        (x as i32 * 16 + state.offset.0, y as i32 * 16 + state.offset.1)
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn draw_tile_layer_section_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, 
+        start: (i32, i32), end: (i32, i32), state: &RenderState) {
+        for y in start.1..end.1 {
+            for x in start.0..end.0 {
+                let draw_coord = ( x.rem_euclid(self.width as i32), y.rem_euclid(self.height as i32) );
+                let tile = layer.map.tiles[(draw_coord.1 * self.width as i32 + draw_coord.0) as usize];
+                if tile.tileset >= 0 && tile.id >= 0 {
+                    self.tilesets[tile.tileset as usize].draw_tile(canvas, tile.id as u32, 
+                        (x as i32 * 16 + state.offset.0, y as i32 * 16 + state.offset.1)
+                    );
+                }
+            }
+        }
+    }
+
+    // TODO: Don't draw entities out of the screen, use entity.collider
+    pub fn draw_entity<T: RenderTarget>(&self, canvas: &mut Canvas<T>, entity: &Entity, looping: bool, state: &RenderState) {
+        if looping {
+            let draw_pos = (entity.x + state.offset.0, entity.y + state.offset.1);
+            let draw_pos_euclid_mod = ((entity.x + state.offset.0).rem_euclid(self.width as i32 * 16), (entity.y + state.offset.1).rem_euclid(self.height as i32 * 16));
+            for position in [draw_pos, draw_pos_euclid_mod] {
+                if let Some(animator) = &entity.animator {
+                    self.tilesets[animator.tileset as usize].draw_tile_sized(canvas, animator.frame, position);
+                } else {
+                    self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, position);
+                }
+            }
+        } else {
+            if let Some(animator) = &entity.animator {
+                self.tilesets[animator.tileset as usize].draw_tile_sized(canvas, animator.frame, (entity.x + state.offset.0, entity.y + state.offset.1));
+            } else {
+                self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, (entity.x + state.offset.0, entity.y + state.offset.1));
+            }
         }
     }
 
