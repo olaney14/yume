@@ -143,22 +143,23 @@ impl MenuState {
                 },
                 MenuType::Effects => {
                     if player.unlocked_effects.len() > 0 {
-                        if player.current_effect.is_some() && player.current_effect.as_ref().unwrap() == &player.unlocked_effects[self.button_id as usize] {
-                            player.remove_effect();
-                            sfx.play("effect_negate");
-                        } else {
-                            if player.current_effect.is_some() {
+                        if player.dreaming {
+                            if player.current_effect.is_some() && player.current_effect.as_ref().unwrap() == &player.unlocked_effects[self.button_id as usize] {
                                 player.remove_effect();
+                                sfx.play("effect_negate");
+                            } else {
+                                if player.current_effect.is_some() {
+                                    player.remove_effect();
+                                }
+                                player.apply_effect(player.unlocked_effects[self.button_id as usize].clone());
+                                sfx.play("effect");
                             }
-                            player.apply_effect(player.unlocked_effects[self.button_id as usize].clone());
-                            sfx.play("effect");
+                            self.current_menu = MenuType::Home;
+                            self.menu_should_close = true;
+                        } else {
+                            sfx.play("menu_blip_error");
                         }
-                        self.current_menu = MenuType::Home;
-                        self.menu_should_close = true;
                     }
-                },
-                MenuType::Special => {
-                    sfx.play("menu_blip_error");
                 },
                 MenuType::Quit => {
                     match self.button_id {
@@ -175,7 +176,7 @@ impl MenuState {
                                 map: String::new(),
                                 pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
                             });
-                            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 32, true, 2));
+                            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 32, 0, true, 2));
                         },
                         1 => {
                             // No
@@ -244,6 +245,29 @@ impl MenuState {
                     self.close_on_x = true;
                     self.current_menu = MenuType::SaveLoad(true);
                     self.button_id = world.special_context.pending_save as i32;
+                },
+                MenuType::Special => {
+                    if self.button_id == 0 {
+                        if player.dreaming {
+                            self.menu_should_close = true;
+                            sfx.play_ex("song1", 1.5, 0.5);
+
+                            world.queued_load = Some(
+                                crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
+                                    x: IntProperty::Level(LevelPropertyType::DefaultX),
+                                    y: IntProperty::Level(LevelPropertyType::DefaultY)
+                                } }
+                            );
+                            world.transition = Some(
+                                Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
+                            );
+
+                            player.dreaming = false;
+                            player.remove_effect();
+                        } else {
+                            sfx.play("menu_blip_error");
+                        }
+                    }
                 }
             }
         }
@@ -309,6 +333,17 @@ impl MenuState {
                     if self.button_id < 0 {
                         self.button_id = button_max - 1;
                     }
+                }
+            },
+            MenuType::Special => {
+                let button_max = 1;
+                if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
+                if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
+                if self.button_id >= button_max {
+                    self.button_id = 0;
+                }
+                if self.button_id < 0 {
+                    self.button_id = button_max - 1;
                 }
             }
             _ => ()
@@ -463,7 +498,11 @@ impl<'a> Ui<'a> {
                         let button_width = 200 - 8;
                         for i in 0..player.unlocked_effects.len() {
                             let name = player.unlocked_effects[i].name();
-                            self.theme.draw_button(canvas, start_x + (button_width * (i as i32 % 2)), start_y + (button_height * (i as i32 / 2)), button_width - 6, name, self.menu_state.button_id as usize == i, self.menu_state.selection_flash);
+                            if player.dreaming {
+                                self.theme.draw_button(canvas, start_x + (button_width * (i as i32 % 2)), start_y + (button_height * (i as i32 / 2)), button_width - 6, name, self.menu_state.button_id as usize == i, self.menu_state.selection_flash);
+                            } else {
+                                self.theme.draw_button_strikethrough(canvas, start_x + (button_width * (i as i32 % 2)), start_y + (button_height * (i as i32 / 2)), button_width - 6, name, self.menu_state.button_id as usize == i, self.menu_state.selection_flash);
+                            }
                         }
                     }
                 },
@@ -552,6 +591,18 @@ impl<'a> Ui<'a> {
                         self.theme.font.draw_string(canvas, "New Save", (14, y as i32 + 9 + 16));
                     }
                 },
+                MenuType::Special => {
+                    self.theme.draw_frame(canvas, 0, 0, state.screen_extents.0 / 16, 2);
+                    self.theme.draw_frame(canvas, 0, 32, state.screen_extents.0 / 16, 6);
+                    let buttons_x = 6;
+                    let buttons_y = 32 + 6;
+                    let buttons_width = state.screen_extents.0 - 16;
+                    if player.dreaming {
+                        self.theme.draw_button(canvas, 6, 32 + 6, buttons_width as i32, "Wake Up", self.menu_state.button_id == 0, self.menu_state.selection_flash);
+                    } else {
+                        self.theme.draw_button_strikethrough(canvas, buttons_x, buttons_y, buttons_width as i32, "Wake Up", self.menu_state.button_id == 0, self.menu_state.selection_flash);
+                    }
+                }
                 _ => {
                     let width = self.theme.font.string_width("under construction...");
                     self.theme.font.draw_string(canvas, "under construction...", (200 - (width as i32 / 2), 150 - (self.theme.font.char_height as i32 / 2)));

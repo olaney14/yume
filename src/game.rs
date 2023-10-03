@@ -128,7 +128,8 @@ impl Condition {
 pub enum PlayerPropertyType {
     X,
     Y,
-    Height
+    Height,
+    Dreaming
 }
 
 impl PlayerPropertyType {
@@ -145,6 +146,7 @@ impl PlayerPropertyType {
             "x" => Some(PlayerPropertyType::X),
             "y" => Some(PlayerPropertyType::Y),
             "height" => Some(PlayerPropertyType::Height),
+            "dreaming" => Some(PlayerPropertyType::Dreaming),
             _ => None
         }
     }
@@ -220,6 +222,7 @@ impl BoolProperty {
             BoolProperty::Player(prop) => {
                 if let Some(p) = player {
                     match prop {
+                        PlayerPropertyType::Dreaming => return Some(p.dreaming),
                         _ => return None
                     }
                 }
@@ -434,7 +437,8 @@ impl IntProperty {
                     match prop {
                         PlayerPropertyType::X => return Some(p.x / 16),
                         PlayerPropertyType::Y => return Some(p.y / 16),
-                        PlayerPropertyType::Height => return Some(p.layer)
+                        PlayerPropertyType::Height => return Some(p.layer),
+                        _ => return None
                     }   
                 } else {
                     return None;
@@ -813,6 +817,7 @@ pub enum TransitionType {
     Pixelate,
     Lines(u32),
     Wave(bool, u32),
+    GridCycle
     //ZoomFade(f32)
 }
 
@@ -838,6 +843,7 @@ impl TransitionType {
             "pixelate" => Some(Self::Pixelate),
             "lines" => Some(Self::Lines(1)),
             "wave" => Some(Self::Wave(false, 10)),
+            "grid_cycle" => Some(Self::GridCycle),
             _ => None
         }
     }
@@ -872,11 +878,13 @@ pub struct Transition {
     pub hold: u32,
     pub hold_timer: u32,
     pub holding: bool,
-    pub needs_screenshot: bool
+    pub needs_screenshot: bool,
+    pub delay: i32,
+    pub delay_timer: i32,
 }
 
 impl Transition {
-    pub fn new(kind: TransitionType, speed: i32, fade_music: bool, hold: u32) -> Self {
+    pub fn new(kind: TransitionType, speed: i32, delay: i32, fade_music: bool, hold: u32) -> Self {
         let needs_screenshot = match &kind {
             TransitionType::FadeScreenshot | TransitionType::Spin | TransitionType::Lines(..) | TransitionType::Pixelate | TransitionType::Zoom(..) | TransitionType::Wave(..) => true,
             _ => false
@@ -887,14 +895,15 @@ impl Transition {
             progress: 0,
             fade_music, kind, speed,
             hold, holding: false, hold_timer: hold,
-            needs_screenshot
+            needs_screenshot,
+            delay, delay_timer: 0
         }
     }
 
     pub fn parse(json: &JsonValue) -> Option<Self> {
         if json.is_string() {
             if let Some(transition_type) = TransitionType::parse(json) {
-                return Some(Self::new(transition_type, 8, true, 0));
+                return Some(Self::new(transition_type, 8, 0, true, 0));
             } else {
                 eprintln!("Error parsing transition: invalid transition type");
                 return None;
@@ -908,12 +917,12 @@ impl Transition {
                 match parsed_type {
                     TransitionType::Zoom(..) => {
                         return Some(
-                            Self::new(TransitionType::Zoom(json["scale"].as_f32().unwrap_or(1.0)), speed, music, hold)
+                            Self::new(TransitionType::Zoom(json["scale"].as_f32().unwrap_or(1.0)), speed, 0, music, hold)
                         )
                     },
                     TransitionType::Lines(..) => {
                         return Some(
-                            Self::new(TransitionType::Lines(json["height"].as_u32().unwrap_or(1)), speed, music, hold)
+                            Self::new(TransitionType::Lines(json["height"].as_u32().unwrap_or(1)), speed, 0, music, hold)
                         )
                     },
                     TransitionType::Wave(..) => {
@@ -929,10 +938,14 @@ impl Transition {
                         };
 
                         return Some(
-                            Self::new(TransitionType::Wave(direction, json["waves"].as_u32().unwrap_or(10)), speed, music, hold)
+                            Self::new(TransitionType::Wave(direction, json["waves"].as_u32().unwrap_or(10)), speed, 0, music, hold)
                         )
+                    }, TransitionType::GridCycle => {
+                        return Some(
+                            Self::new(TransitionType::GridCycle, speed, 0, music, hold)
+                        );
                     }
-                    _ => return Some(Self::new(parsed_type, speed, music, hold))
+                    _ => return Some(Self::new(parsed_type, speed, 0, music, hold))
                 }
             } else {
                 eprintln!("Error parsing transition: invalid transition type");
@@ -1070,6 +1083,34 @@ impl Transition {
                             let src = Rect::new(x, 0, 1, 300);
                             let dst = Rect::new(x, sin, 1, 300);
                             canvas.copy(&screenshot, src, dst).unwrap();
+                        }
+                    }
+                }
+            },
+            TransitionType::GridCycle => {
+                let progress = (100.0 * (self.progress as f32 / 100.0)) as i32;
+
+                if let Some(screenshot) = &world.transition_context.screenshot {
+                    canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                    canvas.fill_rect(None).unwrap();
+                    canvas.set_blend_mode(sdl2::render::BlendMode::None);
+                    let width = 400 / 20;
+                    let height = 300 / 20;
+                    let radius = 50.0;
+                    for y in 0..20 {
+                        for x in 0..20 {
+                            let i = (((y * width + x) as f32 / (width * height) as f32) - 0.5) * 4.0 * PI + (progress as f32 / 10.0);
+                            let src = Rect::new(x * width, y * height, width as u32, height as u32);
+                            let start = (src.x as f32, src.y as f32);
+                            let target = (i.cos() * radius + 200.0, i.sin() * radius + 150.0);
+                            let a = progress as f32 / 100.0;
+                            let dest = Rect::new(
+                                (start.0 * (1.0 - a) + (target.0 * a)) as i32,
+                                (start.1 * (1.0 - a) + (target.1 * a)) as i32,
+                                width as u32, height as u32
+                            );
+                            canvas.copy(&screenshot, src, dest).unwrap();
                         }
                     }
                 }
@@ -1508,7 +1549,8 @@ impl Action for SetPropertyAction {
                 match prop {
                     PlayerPropertyType::Height => { player.layer = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     PlayerPropertyType::X => { player.set_x(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) },
-                    PlayerPropertyType::Y => { player.set_y(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) }
+                    PlayerPropertyType::Y => { player.set_y(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) },
+                    PlayerPropertyType::Dreaming => { player.dreaming = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() }
                 }
             },
             PropertyLocation::World(prop) => {

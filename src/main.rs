@@ -161,7 +161,7 @@ fn main() {
                 map: String::from(START_MAP),
                 pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
             });
-            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 2, true, 32));
+            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 2, 0, true, 32));
             world.special_context.new_game = false;
             world.paused = false;
         }

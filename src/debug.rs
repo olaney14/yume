@@ -114,7 +114,7 @@ impl Debug {
                 } }
             );
             world.transition = Some(
-                Transition::new(TransitionType::Lines(1), 2, true, 5)
+                Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
             );
         }
 
@@ -135,7 +135,7 @@ impl Debug {
                                     y: IntProperty::Level(LevelPropertyType::DefaultY)
                                 }
                             });
-                        world.transition = Some(Transition::new(TransitionType::Fade, 8, true, 0));
+                        world.transition = Some(Transition::new(TransitionType::Fade, 8, 0, true, 0));
                     }
                 }
                 world.paused = false;

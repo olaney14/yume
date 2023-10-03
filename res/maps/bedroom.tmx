@@ -116,7 +116,7 @@
   <object id="1" gid="14" x="176" y="128" width="16" height="16">
    <properties>
     <property name="draw" type="bool" value="false"/>
-    <property name="file" value="res/data/entity/entrances/warp_fade_slow.json"/>
+    <property name="file" value="res/data/entity/bedroom/sleep.json"/>
     <property name="solid" type="bool" value="true"/>
     <property name="warp_map" value="nexus.tmx"/>
     <property name="warp_x" type="int" value="12"/>

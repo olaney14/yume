@@ -206,28 +206,37 @@ impl<'a> World<'a> {
                     transition.holding = false;
                 }
             } else {
-                transition.progress += transition.direction * transition.speed;
-                self.paused = true;
-                if transition.fade_music {
-                    if let Some(song) = &mut self.song {
-                        song.volume = song.default_volume - (((transition.progress as f32) / 100.0) * song.default_volume);
-                        song.dirty = true;
-                    }
+                if transition.delay > 0 && transition.delay_timer == 0 {
+                    transition.delay_timer = transition.delay
                 }
-                if transition.progress >= 100 {
-                    transition.progress = 100;
-                    transition.direction = -1;
-                    if transition.hold > 0 {
-                        transition.holding = true;
-                        transition.progress = 99;
+
+                if transition.delay_timer > 0 {
+                    transition.delay_timer -= 1;
+                } 
+                if transition.delay_timer <= 0 {
+                    transition.progress += transition.direction * transition.speed;
+                    self.paused = true;
+                    if transition.fade_music {
+                        if let Some(song) = &mut self.song {
+                            song.volume = song.default_volume - (((transition.progress as f32) / 100.0) * song.default_volume);
+                            song.dirty = true;
+                        }
                     }
-                } else if transition.progress <= -1 {
-                    self.paused = false;
-                    self.transition = None;
-                    if let Some(song) = &mut self.song {
-                        song.volume = song.default_volume;
-                        song.speed = song.default_speed;
-                        song.dirty = true;
+                    if transition.progress >= 100 {
+                        transition.progress = 100;
+                        transition.direction = -1;
+                        if transition.hold > 0 {
+                            transition.holding = true;
+                            transition.progress = 99;
+                        }
+                    } else if transition.progress <= -1 {
+                        self.paused = false;
+                        self.transition = None;
+                        if let Some(song) = &mut self.song {
+                            song.volume = song.default_volume;
+                            song.speed = song.default_speed;
+                            song.dirty = true;
+                        }
                     }
                 }
             }
