@@ -3,7 +3,7 @@ use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
 
-use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType}, ui::Ui};
+use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType, RenderState}, ui::Ui};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -143,7 +143,7 @@ impl Debug {
         }
     }
 
-    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui) {
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui, state: &RenderState) {
         if self.enable_profiling {
             self.profiler.past_frames.push_front(self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO));
             if self.profiler.past_frames.len() >= FRAME_AVG_SAMPLE {
@@ -156,9 +156,9 @@ impl Debug {
                 println!("SPIKE: {:?} at avg {:?}", self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO), Duration::from_nanos(avg as u64));
             }
 
-            ui.theme.clear_frame(canvas, 400 - 172, 0, 12, 16);
-            ui.theme.draw_frame(canvas, 400 - 172, 0, 12, 16);
-            let text_x = 400 - 172 + 6;
+            ui.theme.clear_frame(canvas, state.screen_extents.0 - 172, 0, 12, 16);
+            ui.theme.draw_frame(canvas, state.screen_extents.0 - 172, 0, 12, 16);
+            let text_x = state.screen_extents.0 as i32 - 172 + 6;
             let mut y = 4;
             for stage in self.profiler.stages.keys() {
                 let timing = self.profiler.get_stage_timing(stage);

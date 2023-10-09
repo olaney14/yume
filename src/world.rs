@@ -1,10 +1,9 @@
-use std::{sync::Arc, path::PathBuf, collections::HashMap};
+use std::{path::PathBuf, collections::HashMap};
 
-use rodio::{Sink, OutputStreamHandle};
-use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}, EventSubsystem};
-use serde_derive::{Serialize, Deserialize};
+use rodio::Sink;
+use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 
-use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::{Player, self}, game::{RenderState, QueuedLoad, Action, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, world, effect::Effect};
+use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::Player, game::{RenderState, QueuedLoad, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, effect::Effect, actions::Action};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -68,7 +67,7 @@ pub struct World<'a> {
 }
 
 impl<'a> World<'a> {
-    pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
+    pub fn new<T>(creator: &'a TextureCreator<T>, state: &RenderState) -> Self {
         Self {
             layers: Vec::new(),
             image_layers: Vec::new(),
@@ -96,7 +95,7 @@ impl<'a> World<'a> {
             flags: HashMap::new(),
             global_flags: HashMap::new(),
             transitions: TransitionTextures::new(creator).unwrap(),
-            transition_context: TransitionContext::new(creator),
+            transition_context: TransitionContext::new(creator, state),
             timer: 0
         }
     }
@@ -616,7 +615,7 @@ impl<'a> World<'a> {
     pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
         if self.transition.is_some() {
             let mut transition = self.transition.take().unwrap();
-            transition.draw(canvas, self);
+            transition.draw(canvas, self, state);
             self.transition = Some(transition);
         }
     }
@@ -1023,12 +1022,12 @@ pub struct TransitionContext<'a> {
 }
 
 impl<'a> TransitionContext<'a> {
-    pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
+    pub fn new<T>(creator: &'a TextureCreator<T>, state: &RenderState) -> Self {
         // world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
         // world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
 
         Self {
-            screenshot: Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target,400, 300).expect("failed to create render texture for transitions")),
+            screenshot: Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, state.screen_extents.0, state.screen_extents.1).expect("failed to create render texture for transitions")),
             take_screenshot: false
         }
     }

@@ -4,17 +4,17 @@ use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, SpecialTile}, texture::Texture, game::{self, parse_action}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, parse_animator}};
+use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, SpecialTile}, texture::Texture, game::{self, RenderState}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, parse_animator}, actions};
 
 impl<'a> World<'a> {
-    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>) -> World<'a> {
+    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> World<'a> {
         let mut loader = Loader::new();
         let map = loader.load_tmx_map(file).unwrap();
 
         let mut world = if let Some(old) = old_world {
             World::with_old(old, creator)
         } else {
-            World::new(creator)
+            World::new(creator, state)
         };
         //let mut world = World::new(creator);
         world.name = PathBuf::from(file).file_stem().unwrap_or(&OsString::from("none")).to_str().unwrap_or("none").to_string();
@@ -57,16 +57,16 @@ impl<'a> World<'a> {
             if let PropertyValue::StringValue(edges) = prop {
                 let parsed = json::parse(&edges.as_str()).unwrap();
                 if !parsed["down"].is_null() {
-                    world.side_actions[1] = (false, Some(game::parse_action(&parsed["down"]).expect("failed to parse down screen transition action")));
+                    world.side_actions[1] = (false, Some(actions::parse_action(&parsed["down"]).expect("failed to parse down screen transition action")));
                 }
                 if !parsed["up"].is_null() {
-                    world.side_actions[0] = (false, Some(game::parse_action(&parsed["up"]).expect("failed to parse up screen action")));
+                    world.side_actions[0] = (false, Some(actions::parse_action(&parsed["up"]).expect("failed to parse up screen action")));
                 }
                 if !parsed["left"].is_null() {
-                    world.side_actions[2] = (false, Some(game::parse_action(&parsed["left"]).expect("failed to parse left screen transition action")));
+                    world.side_actions[2] = (false, Some(actions::parse_action(&parsed["left"]).expect("failed to parse left screen transition action")));
                 }
                 if !parsed["right"].is_null() {
-                    world.side_actions[3] = (false, Some(game::parse_action(&parsed["right"]).expect("failed to parse right screen action")));
+                    world.side_actions[3] = (false, Some(actions::parse_action(&parsed["right"]).expect("failed to parse right screen action")));
                 }
             }
         }
@@ -321,7 +321,7 @@ impl<'a> World<'a> {
                                                     trigger = Some(parse_trigger(&mut cur_action["trigger"]).expect("failed to parse trigger"));
                                                 }
                                                 if cur_action["action"].is_object() {
-                                                    action = Some(parse_action(&cur_action["action"]).expect("failed to parse action"));
+                                                    action = Some(actions::parse_action(&cur_action["action"]).expect("failed to parse action"));
                                                 }
 
                                                 if trigger.is_some() && action.is_some() {

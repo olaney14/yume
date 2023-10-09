@@ -487,8 +487,8 @@ impl<'a> Ui<'a> {
                     self.theme.draw_button(canvas, button_x, button_start_y + button_height * 4, button_width, "Quit", quit_selected, self.menu_state.selection_flash);
                 },
                 MenuType::Effects => {
-                    self.theme.draw_frame_tiled(canvas, 0, 0, 25, 2);
-                    self.theme.draw_frame_tiled(canvas, 0, 2, 25, 16);
+                    self.theme.draw_frame_tiled(canvas, 0, 0, state.screen_extents.0 / 16, 2);
+                    self.theme.draw_frame_tiled(canvas, 0, 2, state.screen_extents.0 / 16, (state.screen_extents.1 / 16) - 2);
                     if player.unlocked_effects.len() > 0 {
                         let description = player.unlocked_effects[self.menu_state.button_id as usize].description();
                         self.theme.font.draw_string(canvas, description, (8, 8));
@@ -510,12 +510,12 @@ impl<'a> Ui<'a> {
                     let yes_selected = self.menu_state.button_id == 0;
                     let no_selected = self.menu_state.button_id == 1;
 
-                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 5)) / 16, 100 / 16, 10, 2);
-                    self.theme.font.draw_string(canvas, "Do you want to quit?", (200 - (16 * 4) - 4, 100 + 6));
-                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 2)) / 16, 150 / 16, 4, 3);
+                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 5)) / 16, 64 / 16, 10, 2);
+                    self.theme.font.draw_string(canvas, "Do you want to quit?", ((state.screen_extents.0 as i32 / 2) - (16 * 4) - 4, 64 + 10));
+                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 2)) / 16, 112 / 16, 4, 3);
 
-                    let button_x = ((200 - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
-                    let button_start_y = 150 + MENU_BUTTON_PADDING_VERT as i32;
+                    let button_x = (((state.screen_extents.0 as i32 / 2) - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
+                    let button_start_y = 112 + 6 + MENU_BUTTON_PADDING_VERT as i32;
                     let button_width = (16 * 4) - (4 + MENU_BUTTON_PADDING_HORIZ as i32) * 2;
                     self.theme.draw_button(canvas, button_x, button_start_y, button_width, "Yes", yes_selected, self.menu_state.selection_flash);
                     self.theme.draw_button(canvas, button_x, button_start_y + (14 + MENU_BUTTON_PADDING_VERT as i32), button_width, "No", no_selected, self.menu_state.selection_flash);
@@ -524,12 +524,12 @@ impl<'a> Ui<'a> {
                     let yes_selected = self.menu_state.button_id == 0;
                     let no_selected = self.menu_state.button_id == 1;
 
-                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 5)) / 16, 100 / 16, 12, 2);
-                    self.theme.font.draw_string(canvas, "Overwrite this save file?", (200 - (16 * 4) - 4, 100 + 6));
-                    self.theme.draw_frame_tiled(canvas, (200 - (16 * 2)) / 16, 150 / 16, 4, 3);
+                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 5)) / 16, 64 / 16, 12, 2);
+                    self.theme.font.draw_string(canvas, "Overwrite this save file?", ((state.screen_extents.0 as i32 / 2) - (16 * 4) - 4, 64 + 10));
+                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 2)) / 16, 112 / 16, 4, 3);
 
-                    let button_x = ((200 - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
-                    let button_start_y = 150 + MENU_BUTTON_PADDING_VERT as i32;
+                    let button_x = (((state.screen_extents.0 as i32 / 2) - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
+                    let button_start_y = 112 + 6 + MENU_BUTTON_PADDING_VERT as i32;
                     let button_width = (16 * 4) - (4 + MENU_BUTTON_PADDING_HORIZ as i32) * 2;
                     self.theme.draw_button(canvas, button_x, button_start_y, button_width, "Yes", yes_selected, self.menu_state.selection_flash);
                     self.theme.draw_button(canvas, button_x, button_start_y + (14 + MENU_BUTTON_PADDING_VERT as i32), button_width, "No", no_selected, self.menu_state.selection_flash);
@@ -605,7 +605,7 @@ impl<'a> Ui<'a> {
                 }
                 _ => {
                     let width = self.theme.font.string_width("under construction...");
-                    self.theme.font.draw_string(canvas, "under construction...", (200 - (width as i32 / 2), 150 - (self.theme.font.char_height as i32 / 2)));
+                    self.theme.font.draw_string(canvas, "under construction...", ((state.screen_extents.0 as i32 / 2) - (width as i32 / 2), (state.screen_extents.1 as i32 / 2) - (self.theme.font.char_height as i32 / 2)));
                 }
             }
         }

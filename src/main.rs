@@ -8,12 +8,13 @@ use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyTy
 use player::Player;
 use rodio::{OutputStream, Sink};
 use save::{SaveInfo, SaveData, SaveSlot};
-use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color};
+use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color, video::FullscreenType, rect::Rect};
 use ui::{Ui, MenuType};
 use world::World;
 
 extern crate sdl2;
 
+mod actions;
 mod tiles;
 mod texture;
 mod player;
@@ -49,7 +50,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG);
     let window = video_subsystem
-        .window("yume", 800, 600)
+        .window("yume", 640, 480)
         .opengl()
         .position_centered()
         .build()
@@ -63,6 +64,7 @@ fn main() {
         .build()
         .map_err(|e| e.to_string()).unwrap();
     let texture_creator = canvas.texture_creator();
+    let mut render_state = RenderState::new((640, 480));
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
@@ -83,7 +85,7 @@ fn main() {
     let mut input = Input::new();
     // CHANGED
     // let mut world = World::load_from_file(&START_MAP.to_owned(), &texture_creator, &mut None);
-    let mut world = World::new(&texture_creator);
+    let mut world = World::new(&texture_creator, &render_state);
     let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
     song.default_speed = MAIN_MENU_MUSIC_SPEED;
     song.speed = MAIN_MENU_MUSIC_SPEED;
@@ -103,7 +105,6 @@ fn main() {
     ui.show_menu(MenuType::MainMenu);
 
     let mut events = sdl_context.event_pump().unwrap();
-    let mut render_state = RenderState::new((800, 600));
 
     let mut next_time = unsafe { SDL_GetTicks() } + TICK_INTERVAL;
     let mut debug = Debug {
@@ -129,17 +130,19 @@ fn main() {
                     if keycode.is_some() {
                         input.released(keycode.unwrap());
                     }
-                }
+                },
                 _ => ()
             }
         }
 
+        canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        canvas.clear();
         if !ui.clear {
             canvas.set_draw_color(world.background_color);
         } else {
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         }
-        canvas.clear();
+        canvas.fill_rect(Rect::new(0, 0, 640, 480)).unwrap();
 
         debug.update(&input, &mut world);
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
@@ -175,6 +178,28 @@ fn main() {
             if player.effect_just_changed {
                 player.effect_just_changed = false;
             }
+        }
+
+        if input.get_just_pressed(Keycode::F4) {
+            //println!("scale");
+            if render_state.fullscreen {
+                canvas.set_scale(2.0, 2.0).unwrap();
+                //render_state.update_zoom(2.0, 2.0);
+                canvas.window_mut().set_fullscreen(FullscreenType::Off).unwrap();
+            } else {
+                canvas.set_scale(4.0, 4.0).unwrap();
+                canvas.window_mut().set_fullscreen(FullscreenType::Desktop).unwrap();
+                //render_state.update_zoom(4.0, 4.0);
+                canvas.set_clip_rect(Rect::new(0, 0, render_state.screen_dims.0 / 2, render_state.screen_dims.1 / 2));
+                let window_size = canvas.window().size();
+                canvas.set_viewport(Rect::new(
+                    (window_size.0 / 2 - (render_state.screen_dims.0)) as i32 / 4,
+                    (window_size.1 / 2 - (render_state.screen_dims.1)) as i32 / 4,
+                    render_state.screen_dims.0 / 2,
+                    render_state.screen_dims.1 / 2
+                ));
+            }
+            render_state.fullscreen = !render_state.fullscreen;
         }
 
         input.update();
@@ -219,7 +244,7 @@ fn main() {
             ui.menu_state.menu_screenshot = false;
         }
 
-        debug.draw(&mut canvas, &ui);
+        debug.draw(&mut canvas, &ui, &render_state);
 
         canvas.present();
 
@@ -237,7 +262,7 @@ fn main() {
             if let Some(new_name) = name {
                 if new_name != world.name {
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
-                    world = World::load_from_file(&map, &texture_creator, &mut Some(world));
+                    world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state);
                     world.global_flags = old_flags;
                     world.transition = transition;
                     world.onload(&sink);
@@ -248,7 +273,7 @@ fn main() {
             } else {
                 if map == "" {
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
-                    world = World::new(&texture_creator);
+                    world = World::new(&texture_creator, &render_state);
                     world.global_flags = old_flags;
                     world.transition = transition;
                     let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
@@ -310,8 +335,8 @@ fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) 
                 render_state.clamp.0 = true;
             }
 
-            if render_state.offset.0 - 400 < -(world.width as i32 * 16) {
-                render_state.offset.0 = -(world.width as i32 * 16) + 400;
+            if render_state.offset.0 - (render_state.screen_dims.0 as i32 / 2) < -(world.width as i32 * 16) {
+                render_state.offset.0 = -(world.width as i32 * 16) + (render_state.screen_dims.0 as i32 / 2);
                 render_state.clamp.0 = true;
             }
         }
@@ -325,8 +350,8 @@ fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) 
                 render_state.clamp.1 = true;
             }
 
-            if render_state.offset.1 - 300 < -(world.height as i32 * 16) {
-                render_state.offset.1 = -(world.height as i32 * 16) + 300;
+            if render_state.offset.1 - (render_state.screen_dims.1 as i32 / 2) < -(world.height as i32 * 16) {
+                render_state.offset.1 = -(world.height as i32 * 16) + (render_state.screen_dims.1 as i32 / 2);
                 render_state.clamp.1 = true;
             }
         }

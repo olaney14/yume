@@ -1,6 +1,6 @@
-use sdl2::{rect::Rect, sys::PointerMotionMask};
+use sdl2::rect::Rect;
 
-use crate::{game::{Action, Direction}, world::{Interaction, World}, ai::{Ai, Animator, AnimationFrameData}, player::{self, Player}};
+use crate::{game::Direction, world::{Interaction, World}, ai::{Ai, Animator, AnimationFrameData}, player::{self, Player}, actions::Action};
 
 pub struct TriggeredAction {
     pub trigger: Trigger,
