@@ -3,7 +3,7 @@ use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
 
-use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType, RenderState}, ui::Ui};
+use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType, RenderState}, ui::{Ui, Font}, player::Player};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -85,13 +85,15 @@ impl ProfileInfo {
     }
 }
 
-pub struct Debug {
+pub struct Debug<'a> {
     pub load_handle: Option<JoinHandle<Option<PathBuf>>>,
     pub profiler: ProfileInfo,
-    pub enable_profiling: bool
+    pub enable_profiling: bool,
+    pub enable_debug_overlay: bool,
+    pub mini_font: Font<'a>
 }
 
-impl Debug {
+impl<'a> Debug<'a> {
     pub fn update(&mut self, input: &Input, world: &mut World) {
         
         // F3 + M - Load map
@@ -118,9 +120,27 @@ impl Debug {
             );
         }
 
+        // F3 + I - show debug info
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::I) {
+            self.enable_debug_overlay = !self.enable_debug_overlay;
+        }
+
         // F3 + P - show profiling info
         if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
             self.enable_profiling = !self.enable_profiling;
+        }
+
+        // F3 + F - print all flags
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::F) {
+            println!("===Global Flags===");
+            for (i, v) in world.global_flags.iter() {
+                println!("{}: {}", i, v);
+            }
+
+            println!("===Local Flags===");
+            for (i, v) in world.flags.iter() {
+                println!("{}: {}", i, v);
+            }
         }
 
         if self.load_handle.is_some() {
@@ -143,7 +163,7 @@ impl Debug {
         }
     }
 
-    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui, state: &RenderState) {
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui, player: &Player, world: &World, state: &RenderState) {
         if self.enable_profiling {
             self.profiler.past_frames.push_front(self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO));
             if self.profiler.past_frames.len() >= FRAME_AVG_SAMPLE {
@@ -156,7 +176,8 @@ impl Debug {
                 println!("SPIKE: {:?} at avg {:?}", self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO), Duration::from_nanos(avg as u64));
             }
 
-            ui.theme.clear_frame(canvas, state.screen_extents.0 - 172, 0, 12, 16);
+            ui.theme.clear_frame(canvas, 8,/*(state.screen_extents.0 - 172) / 16 */ 0, 12, 16);
+            //ui.theme.clear_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
             ui.theme.draw_frame(canvas, state.screen_extents.0 - 172, 0, 12, 16);
             let text_x = state.screen_extents.0 as i32 - 172 + 6;
             let mut y = 4;
@@ -176,6 +197,16 @@ impl Debug {
                 format!("avg: {:?}", avg_dur).as_str(), 
                 (text_x, y)
             );
+        }
+
+        if self.enable_debug_overlay {
+            ui.theme.clear_frame(canvas, (state.screen_extents.0 - 140) / 16, 0, 9, 15);
+            ui.theme.draw_frame(canvas, state.screen_extents.0 - 140, 0, 9, 15);
+            let text_x = state.screen_extents.0 as i32 - 140 + 6;
+            let mut y = 4;
+            let standing_tile = player.get_standing_tile();
+            self.mini_font.draw_string(canvas, format!("Tile: ({}, {})", standing_tile.0, standing_tile.1).as_str(), (text_x, y));
+            y += 6;
         }
     }
 }

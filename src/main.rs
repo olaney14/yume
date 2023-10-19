@@ -9,25 +9,26 @@ use player::Player;
 use rodio::{OutputStream, Sink};
 use save::{SaveInfo, SaveData, SaveSlot};
 use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color, video::FullscreenType, rect::Rect};
-use ui::{Ui, MenuType};
+use texture::Texture;
+use ui::{Ui, MenuType, Font};
 use world::World;
 
 extern crate sdl2;
 
 mod actions;
-mod tiles;
-mod texture;
-mod player;
-mod game;
-mod world;
-mod loader;
-mod audio;
-mod entity;
 mod ai;
-mod ui;
+mod audio;
 mod debug;
 mod effect;
+mod entity;
+mod game;
+mod loader;
+mod player;
 mod save;
+mod tiles;
+mod texture;
+mod ui;
+mod world;
 
 pub const START_MAP: &str = "res/maps/bedroom.tmx";
 pub const DEBUG: bool = true;
@@ -110,7 +111,9 @@ fn main() {
     let mut debug = Debug {
         load_handle: None,
         profiler: ProfileInfo::new(),
-        enable_profiling: false
+        enable_profiling: false,
+        enable_debug_overlay: false,
+        mini_font: Font::new_mini(Texture::from_file(&PathBuf::from(ui::MINIFONT_PATH), &texture_creator).expect("failed to load debug font"))
     };
 
     //let new_save = SaveData::create(&player);
@@ -244,7 +247,7 @@ fn main() {
             ui.menu_state.menu_screenshot = false;
         }
 
-        debug.draw(&mut canvas, &ui, &render_state);
+        debug.draw(&mut canvas, &ui, &player, &world, &render_state);
 
         canvas.present();
 

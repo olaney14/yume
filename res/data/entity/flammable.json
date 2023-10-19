@@ -1,0 +1,201 @@
+{
+    "actions": [
+        {
+            "trigger": {
+                "type": "onload"
+            },
+            "action": {
+                "type": "set_flag",
+                "flag": {
+                    "type": "concatenate",
+                    "lhs": "burn_frame",
+                    "rhs": {
+                        "type": "from_int",
+                        "val": {
+                            "type": "entity",
+                            "property": "id"
+                        }
+                    }
+                },
+                "val": "$burn_frame_start"
+            }
+        },
+        {
+            "trigger": {
+                "type": "use"
+            },
+            "action": {
+                "type": "conditional",
+                "condition": {
+                    "type": "effect_equipped",
+                    "effect": "fire"
+                },
+                "action": {
+                    "type": "set_flag",
+                    "flag": {
+                        "type": "concatenate",
+                        "lhs": "burning",
+                        "rhs": {
+                            "type": "from_int",
+                            "val": {
+                                "type": "entity",
+                                "property": "id"
+                            }
+                        }
+                    },
+                    "val": 1
+                }
+            }
+        },
+        {
+            "trigger": {
+                "type": "tick",
+                "freq": 5
+            },
+            "action": {
+                "type": "conditional",
+                "condition": {
+                    "type": "int_equals",
+                    "lhs": {
+                        "type": "flag",
+                        "flag": {
+                            "type": "concatenate",
+                            "lhs": "burning",
+                            "rhs": {
+                                "type": "from_int",
+                                "val": {
+                                    "type": "entity",
+                                    "property": "id"
+                                }
+                            }
+                        }
+                    },
+                    "rhs": 1
+                },
+                "action": {
+                    "type": "set_flag",
+                    "flag": {
+                        "type": "concatenate",
+                        "lhs": "burn_frame",
+                        "rhs": {
+                            "type": "from_int",
+                            "val": {
+                                "type": "entity",
+                                "property": "id"
+                            }
+                        }
+                    },
+                    "val": {
+                        "type": "add",
+                        "lhs": {
+                            "type": "flag",
+                            "flag": {
+                                "type": "concatenate",
+                                "lhs": "burn_frame",
+                                "rhs": {
+                                    "type": "from_int",
+                                    "val": {
+                                        "type": "entity",
+                                        "property": "id"
+                                    }
+                                }
+                            }
+                        },
+                        "rhs": 1
+                    }
+                }
+            }
+        },
+        {
+            "trigger": {
+                "type": "tick",
+                "freq": 5
+            },
+            "action": {
+                "type": "conditional",
+                "condition": {
+                    "type": "int_equals",
+                    "lhs": {
+                        "type": "flag",
+                        "flag": {
+                            "type": "concatenate",
+                            "lhs": "burning",
+                            "rhs": {
+                                "type": "from_int",
+                                "val": {
+                                    "type": "entity",
+                                    "property": "id"
+                                }
+                            }
+                        }
+                    },
+                    "rhs": 1
+                },
+                "action": {
+                    "type": "set_animation_frame",
+                    "target": "self",
+                    "val": {
+                        "type": "flag",
+                        "flag": {
+                            "type": "concatenate",
+                            "lhs": "burn_frame",
+                            "rhs": {
+                                "type": "from_int",
+                                "val": {
+                                    "type": "entity",
+                                    "property": "id"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+		{
+			"trigger": {
+				"type": "tick",
+				"freq": 5
+			},
+			"action": {
+				"type": "conditional",
+				"condition": {
+					"type": "int_equals",
+					"lhs": {
+						"type": "flag",
+                        "flag": {
+                            "type": "concatenate",
+                            "lhs": "burn_frame",
+                            "rhs": {
+                                "type": "from_int",
+                                "val": {
+                                    "type": "entity",
+                                    "property": "id"
+                                }
+                            }
+                        }
+					},
+					"rhs": {
+						"type": "add",
+						"lhs": "$burn_frame_start",
+						"rhs": "$burn_frames"
+					}
+				},
+				"action": {
+					"type": "set_flag",
+					"flag": {
+						"type": "concatenate",
+						"lhs": "burn_frame",
+						"rhs": {
+							"type": "from_int",
+							"val": {
+								"type": "entity",
+								"property": "id"
+							}
+						}
+					},
+					"val": "$burn_frame_start"
+				}
+			}
+		}
+    ]
+}

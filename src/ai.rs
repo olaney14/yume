@@ -23,7 +23,7 @@ pub struct DirectionalAnimationData {
 pub enum AnimationFrameData {
     SingleFrame(u32),
     FrameSequence{start: u32, idle: u32, len: u32, advance: AnimationAdvancementType},
-    Directional(DirectionalAnimationData)
+    Directional(DirectionalAnimationData),
 }
 
 pub struct Animator {

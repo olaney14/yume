@@ -27,6 +27,13 @@ const DEFAULT_FONT_HEIGHT: u32 = 10;
 const DEFAULT_FONT_SPACING_HORIZ: u32 = 0;
 const DEFAULT_FONT_SPACING_VERT: u32 = 1;
 
+const MINIFONT_CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .!,-�?§µ()[]{}<>'\"`+=/\\*|#%^:;";
+pub const MINIFONT_PATH: &str = "res/textures/ui/fonts/minifont.png";
+const MINIFONT_FONT_WIDTH: u32 = 3;
+const MINIFONT_FONT_HEIGHT: u32 = 5;
+const MINIFONT_FONT_SPACING_HORIZ: u32 = 1;
+const MINIFONT_FONT_SPACING_VERT: u32 = 1;
+
 const FONT_VINES: &str = "res/textures/ui/fonts/vines.png";
 
 const BUTTONS_MAIN: u32 = 5;
@@ -742,6 +749,34 @@ impl<'a> Font<'a> {
             image_chars_width: width,
             chars_map: map,
             char_spacing: (DEFAULT_FONT_SPACING_HORIZ, DEFAULT_FONT_SPACING_VERT)
+        }
+    }
+
+    pub fn new_mini(texture: Texture<'a>) -> Self {
+        let width = texture.width / MINIFONT_FONT_WIDTH;
+        let height = texture.height / MINIFONT_FONT_HEIGHT;
+        let chars = MINIFONT_CHARS.to_string().chars().collect::<Vec<char>>();
+        let mut map = HashMap::new();
+
+        let mut i = 0;
+        'outer: for y in 0..height {
+            for x in 0..width {
+                if i >= chars.len() {
+                    break 'outer;
+                }
+                map.insert(chars[i], (x * MINIFONT_FONT_WIDTH, y * MINIFONT_FONT_HEIGHT));
+                i += 1;
+            }
+        }
+
+        Self {
+            texture,
+            char_height: MINIFONT_FONT_HEIGHT,
+            char_width: MINIFONT_FONT_WIDTH,
+            char_spacing: (MINIFONT_FONT_SPACING_HORIZ, MINIFONT_FONT_SPACING_VERT),
+            chars: MINIFONT_CHARS.to_string(),
+            chars_map: map,
+            image_chars_width: MINIFONT_FONT_WIDTH
         }
     }
 

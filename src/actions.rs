@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use json::JsonValue;
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song};
+use crate::{player::Player, world::{World, QueuedEntityAction}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if !parsed["type"].is_string() { return Err("Invalid or no type".to_string()); }
@@ -37,6 +37,9 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         },
         "change_song" => {
             return ChangeSongAction::parse(parsed);
+        },
+        "set_animation_frame" => {
+            return SetAnimationFrameAction::parse(parsed);
         }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
@@ -195,7 +198,7 @@ impl Action for GiveEffectAction {
 
 pub struct SetFlagAction {
     pub global: bool,
-    pub flag: String,
+    pub flag: StringProperty,
     pub value: IntProperty
 }
 
@@ -204,30 +207,31 @@ impl SetFlagAction {
         let mut global = false;
         if parsed["global"].is_boolean() { global = parsed["global"].as_bool().unwrap(); }
 
-        if parsed["flag"].is_string() {
-            if parsed["value"].is_number() {
-                return Ok(Box::new(SetFlagAction {
-                    flag: parsed["flag"].as_str().unwrap().to_string(),
-                    global,
-                    value: IntProperty::Int(parsed["value"].as_i32().unwrap())
-                }));
-            } else if parsed["value"].is_object() {
-                let parsed_property = IntProperty::parse(&parsed["value"]);
-                if let Some(property) = parsed_property {
-                    return Ok(Box::new(SetFlagAction {
-                        flag: parsed["flag"].as_str().unwrap().to_string(),
-                        global,
-                        value: property
-                    }));
-                } else {
-                    return Err("Could not parse property for flag".to_string());
-                }
+        let flag_name = if parsed["flag"].is_string() {
+            StringProperty::String(parsed["flag"].as_str().unwrap().to_string())
+        } else {
+            StringProperty::parse(&parsed["flag"])?
+        };
 
+        if parsed["val"].is_number() {
+            return Ok(Box::new(SetFlagAction {
+                flag: flag_name,
+                global,
+                value: IntProperty::Int(parsed["val"].as_i32().unwrap())
+            }));
+        } else if parsed["val"].is_object() {
+            let parsed_property = IntProperty::parse(&parsed["val"]);
+            if let Some(property) = parsed_property {
+                return Ok(Box::new(SetFlagAction {
+                    flag: flag_name,
+                    global,
+                    value: property
+                }));
             } else {
-                return Err(String::from("Bad value for flag"));
+                return Err("Could not parse property for flag".to_string());
             }
         } else {
-            return Err(String::from("No flag specified"));
+            return Err(String::from("Bad value for flag"));
         }
     }
 }
@@ -238,9 +242,9 @@ impl Action for SetFlagAction {
         
         if let Some(value) = value_opt {
             if self.global {
-                world.global_flags.insert(self.flag.clone(), value);
+                world.global_flags.insert(self.flag.get(Some(player), Some(world)).unwrap(), value);
             } else {
-                world.flags.insert(self.flag.clone(), value);
+                world.flags.insert(self.flag.get(Some(player), Some(world)).unwrap(), value);
             }
         }
     }
@@ -401,7 +405,7 @@ impl ChangeSongAction {
 
         if !parsed["volume"].is_null() { new_volume = FloatProperty::parse(&parsed["volume"]); }
         if !parsed["speed"].is_null() { new_speed = FloatProperty::parse(&parsed["volume"]); }
-        if !parsed["song"].is_null() { new_song = StringProperty::parse(&parsed["song"]); }
+        if !parsed["song"].is_null() { new_song = StringProperty::parse(&parsed["song"]).map_or(None, |v| Some(v)); }
         if !parsed["set_defaults"].is_null() { set_defaults = BoolProperty::parse(&parsed["set_defaults"]).expect("failed to parse set_defaults"); }
 
         Ok(Box::new(Self {
@@ -450,7 +454,7 @@ impl PrintAction {
             }));
         } else if parsed["message"].is_object() {
             let parsed = StringProperty::parse(&parsed["message"]);
-            if let Some(message) = parsed {
+            if let Ok(message) = parsed {
                 return Ok(Box::new(Self {
                     message
                 }))
@@ -464,5 +468,72 @@ impl PrintAction {
 impl Action for PrintAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         println!("{}", self.message.get(Some(player), Some(world)).unwrap());
+    }
+}
+
+pub enum AnimationFrameTarget {
+    This,
+    Other(IntProperty)
+}
+
+pub struct SetAnimationFrameAction {
+    pub frame: IntProperty,
+    pub target: AnimationFrameTarget
+}
+
+impl SetAnimationFrameAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let frame = IntProperty::parse(&json["val"]);
+        let target = if json["target"].is_string() {
+            match json["target"].as_str().unwrap() {
+                "self" | "this" => Some(AnimationFrameTarget::This),
+                _ => None
+            }
+        } else {
+            if let Some(prop) = IntProperty::parse(&json["target"]) {
+                Some(AnimationFrameTarget::Other(prop))
+            } else {
+                None
+            }
+        };
+
+        if !frame.is_some() { return Err(String::from("Error parsing frame for set_animation_frame action frame")); }
+        if !target.is_some() { return Err(String::from("Error parsing set_animation_frame action target")); }
+        Ok(Box::new(Self {
+                            frame: frame.unwrap(),
+                            target: target.unwrap()
+                        }))
+    }
+}
+
+// TODO: on calling this action, the entities list has an entity removed from it and using
+// id is completely invalid so use special context or somethign to fix itplease
+impl Action for SetAnimationFrameAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if let Some(frame) = self.frame.get(Some(player), Some(world)) {
+            let target = match &self.target {
+                AnimationFrameTarget::This => {
+                    if !world.special_context.entity_context.entity_call {
+                        eprintln!("Warning: attemped set_animation_frame action on `this` without a valid caller");
+                        None
+                    } else {
+                        let id = world.special_context.entity_context.id;
+                        dbg!(id);
+                        world.entities.as_mut().unwrap().get_mut(id as usize)
+                    }
+                },
+                AnimationFrameTarget::Other(id) => {
+                    if let Some(id) = id.get(Some(player), Some(world)) {
+                        world.entities.as_mut().unwrap().get_mut(id as usize)
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            if let Some(entity) = target {
+                entity.animator = Some(Animator::new(crate::ai::AnimationFrameData::SingleFrame(frame as u32), entity.tileset, 0))
+            }
+        }
     }
 }

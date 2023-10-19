@@ -146,7 +146,8 @@ pub struct Entity {
     pub ai: Option<Box::<dyn Ai>>,
     pub animator: Option<Animator>,
     pub movement: Option<EntityMovementInfo>,
-    pub interaction: Option<(Interaction, Direction)>
+    pub interaction: Option<(Interaction, Direction)>,
+    //pub script: Option<>
 }
 
 // TODO looping movement for entities

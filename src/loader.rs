@@ -158,7 +158,7 @@ impl<'a> World<'a> {
                                                         }
                                                     }
                                                     entity.x = i as i32 * 16;
-                                                    entity.y = j as i32 * 16 - 16;
+                                                    entity.y = j as i32 * 16;
                                                     entity.tileset = tile.tileset_index() as u32;
                                                     entity.id = tile.id();
                                                     entity.draw = true;

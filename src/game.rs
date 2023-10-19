@@ -96,7 +96,7 @@ impl Condition {
                 if !json["lhs"].is_object() || !json["rhs"].is_object() { return None; }
                 let lhs_parsed = StringProperty::parse(&json["lhs"]);
                 let rhs_parsed = StringProperty::parse(&json["rhs"]);
-                if lhs_parsed.is_some() && rhs_parsed.is_some() {
+                if lhs_parsed.is_ok() && rhs_parsed.is_ok() {
                     return Some(Condition::StringEquals(lhs_parsed.unwrap(), rhs_parsed.unwrap()))
                 }
                 return None;
@@ -120,6 +120,31 @@ impl Condition {
                 return None;
             }
             _ => return None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum EntityPropertyType {
+    X,
+    Y,
+    ID
+}
+
+impl EntityPropertyType {
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        let kind = if json.is_string() {
+            json.as_str().unwrap()
+        } else {
+            if !json["type"].is_string() { return None; }
+            json["type"].as_str().unwrap()
+        };
+
+        match kind {
+            "x" => Some(EntityPropertyType::X),
+            "y" => Some(EntityPropertyType::Y),
+            "id" => Some(EntityPropertyType::ID),
+            _ => None
         }
     }
 }
@@ -200,8 +225,8 @@ impl LevelPropertyType {
 
 #[derive(Clone)]
 pub enum FlagPropertyType {
-    Global(String),
-    Local(String)
+    Global(Box<StringProperty>),
+    Local(Box<StringProperty>)
 }
 
 #[derive(Clone)]
@@ -419,6 +444,7 @@ impl FloatProperty {
 #[derive(Clone)]
 pub enum IntProperty {
     Int(i32),
+    Entity(EntityPropertyType),
     Player(PlayerPropertyType),
     Flag(FlagPropertyType),
     Level(LevelPropertyType),
@@ -432,6 +458,20 @@ impl IntProperty {
     pub fn get(&self, player: Option<&Player>, world: Option<&World>) -> Option<i32> {
         match self {
             IntProperty::Int(i) => return Some(*i),
+            IntProperty::Entity(prop) => {
+                if let Some(world) = world {
+                    if world.special_context.entity_context.entity_call {
+                        match prop {
+                            EntityPropertyType::ID => return Some(world.special_context.entity_context.id),
+                            EntityPropertyType::X => return Some(world.special_context.entity_context.x),
+                            EntityPropertyType::Y => return Some(world.special_context.entity_context.y),
+                            _ => return None
+                        }
+                    }
+                }
+
+                return None
+            },
             IntProperty::Player(prop) => {
                 if let Some(p) = player {  
                     match prop {
@@ -447,8 +487,8 @@ impl IntProperty {
             IntProperty::Flag(flag) => {
                 if let Some(w) = world {
                     match flag {
-                        FlagPropertyType::Global(f) => return Some(*w.global_flags.get(f).unwrap_or(&0)),
-                        FlagPropertyType::Local(f) => return Some(*w.flags.get(f).unwrap_or(&0))
+                        FlagPropertyType::Global(f) => return Some(*w.global_flags.get(f.get(player, world).unwrap().as_str()).unwrap_or(&0)),
+                        FlagPropertyType::Local(f) => return Some(*w.flags.get(f.get(player, world).unwrap().as_str()).unwrap_or(&0))
                     }
                 } else {
                     return None;
@@ -520,18 +560,29 @@ impl IntProperty {
         match json["type"].as_str().unwrap() {
             "int" => return Some(IntProperty::Int(json["val"].as_i32().unwrap())),
             "player" => return Some(IntProperty::Player(PlayerPropertyType::parse(&json["property"]).unwrap())),
+            "entity" => return Some(IntProperty::Entity(EntityPropertyType::parse(&json["property"]).unwrap())),
             "level" => return Some(IntProperty::Level(LevelPropertyType::parse(&json["property"]).unwrap())),
             "flag" => {
                 let mut global = false;
                 if json["global"].is_boolean() {
                     global = json["global"].as_bool().unwrap();
                 }
-                let parsed_flag = json["flag"].as_str();
-                if let Some(flag) = parsed_flag {
-                    if global {
-                        return Some(IntProperty::Flag(FlagPropertyType::Global(flag.to_string())))
+
+                let flag_name = if json["flag"].is_string() {
+                    let string = json["flag"].as_str();
+                    if let Some(s) = string {
+                        Some(StringProperty::String(s.to_string()))
                     } else {
-                        return Some(IntProperty::Flag(FlagPropertyType::Local(flag.to_string())))
+                        None
+                    }
+                } else {
+                    StringProperty::parse(&json["flag"]).map_or(None, |v| { Some(v) })
+                };
+                if let Some(flag) = flag_name {
+                    if global {
+                        return Some(IntProperty::Flag(FlagPropertyType::Global(Box::new(flag))))
+                    } else {
+                        return Some(IntProperty::Flag(FlagPropertyType::Local(Box::new(flag))))
                     }
                 }
                 return None
@@ -593,9 +644,11 @@ impl IntProperty {
     }
 }
 
+#[derive(Clone)]
 pub enum StringProperty {
     String(String),
-    FromInt(IntProperty)
+    FromInt(IntProperty),
+    Concatenate(Box<StringProperty>, Box<StringProperty>)
 }
 
 impl StringProperty {
@@ -608,19 +661,31 @@ impl StringProperty {
                 } else {
                     return None;
                 }
+            },
+            StringProperty::Concatenate(l, r) => {
+                let l = l.get(player, world);
+                let r = r.get(player, world);
+                if l.is_some() && r.is_some() {
+                    let mut left = l.unwrap();
+                    left.extend(r.unwrap().chars());
+                    return Some(left);
+                } else {
+                    return None;
+                }
             }
         }
     }
 
-    pub fn parse(json: &JsonValue) -> Option<Self> {
+    pub fn parse(json: &JsonValue) -> Result<Self, String> {
         if json.is_string() {
-            return Some(StringProperty::String(json.as_str().unwrap().to_string()));
+            return Ok(StringProperty::String(json.as_str().unwrap().to_string()));
         }
-        if !json["type"].is_string() { return None; }
+        if !json["type"].is_string() { return Err("no type for string property".to_string()); }
         match json["type"].as_str().unwrap() {
-            "string" => return Some(StringProperty::String(json["val"].as_str().unwrap().to_string())),
-            "from_int" => return Some(StringProperty::FromInt(IntProperty::parse(&json["val"]).unwrap())),
-            _ => return None
+            "string" => return Ok(StringProperty::String(json["val"].as_str().unwrap().to_string())),
+            "from_int" => return Ok(StringProperty::FromInt(IntProperty::parse(&json["val"]).unwrap())),
+            "concatenate" => return Ok(StringProperty::Concatenate(Box::new(StringProperty::parse(&json["lhs"]).unwrap()), Box::new(StringProperty::parse(&json["rhs"]).unwrap()))),
+            _ => return Err("unknown type for string property".to_string())
         }
     }
 }

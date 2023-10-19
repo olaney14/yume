@@ -1,0 +1,13 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 12,
+		"length": 3,
+		"speed": 10,
+		"repeat": "cycle",
+		"on_move": false
+	},
+	"height": "0",
+	"solid": false,
+	"walk_behind": false
+}
