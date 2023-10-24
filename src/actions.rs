@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use json::JsonValue;
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator};
+use crate::{player::Player, world::{World, QueuedEntityAction}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator, entity::Entity};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if !parsed["type"].is_string() { return Err("Invalid or no type".to_string()); }
@@ -518,7 +518,6 @@ impl Action for SetAnimationFrameAction {
                         None
                     } else {
                         let id = world.special_context.entity_context.id;
-                        dbg!(id);
                         world.entities.as_mut().unwrap().get_mut(id as usize)
                     }
                 },
@@ -531,9 +530,44 @@ impl Action for SetAnimationFrameAction {
                 }
             };
 
-            if let Some(entity) = target {
-                entity.animator = Some(Animator::new(crate::ai::AnimationFrameData::SingleFrame(frame as u32), entity.tileset, 0))
+            world.defer_entity_action(Box::new(move |entity: &mut Entity| {
+                entity.animator = Some(Animator::new(crate::ai::AnimationFrameData::SingleFrame(frame as u32), entity.tileset, 0));
+            }));
+        }
+    }
+}
+
+pub struct MultipleAction {
+    pub actions: Vec<Box<dyn Action>>
+}
+
+impl MultipleAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let mut actions = Vec::new();
+        if json.is_array() {
+            for action in json.members() {
+                actions.push(parse_action(action)?);
             }
+        } else if json["actions"].is_array() {
+            for action in json["actions"].members() {
+                actions.push(parse_action(action)?);
+            }
+        } else {
+            return Err(String::from("No actions list provided for `Multiple` action"));
+        }
+
+        Ok(Box::new(
+            Self {
+                actions
+            }
+        ))
+    }
+}
+
+impl Action for MultipleAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        for action in self.actions.iter() {
+            action.act(player, world);
         }
     }
 }

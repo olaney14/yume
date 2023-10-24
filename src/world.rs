@@ -386,7 +386,20 @@ impl<'a> World<'a> {
                 }
                 placeholder = Some(std::mem::replace(self.entities.as_mut().unwrap().get_mut(i).unwrap(), entity));
             }
+            for deferred_action in std::mem::take(&mut self.special_context.deferred_entity_actions).into_iter() {
+                if let Some(entity) = self.entities.as_mut().unwrap().get_mut(deferred_action.0) {
+                    (deferred_action.1)(entity);
+                } else {
+                    eprintln!("Warning: tried to use a deferred action on a `None`");
+                }
+            }
             self.special_context.entity_context.entity_call = false;
+        }
+    }
+
+    pub fn defer_entity_action(&mut self, action: Box<dyn Fn(&mut Entity)>) {
+        if self.special_context.entity_context.entity_call {
+            self.special_context.deferred_entity_actions.push((self.special_context.entity_context.id as usize, action));
         }
     }
 
@@ -855,7 +868,9 @@ pub struct SpecialContext {
 
     pub pending_load: Option<usize>,
 
-    pub entity_context: EntityContext
+    pub entity_context: EntityContext,
+
+    pub deferred_entity_actions: Vec<(usize, Box<dyn Fn(&mut Entity)>)>,
 }
 
 impl SpecialContext {
@@ -871,7 +886,8 @@ impl SpecialContext {
             pending_save: 0,
             write_save_to_pending: false,
             pending_load: None,
-            entity_context: EntityContext::new()
+            entity_context: EntityContext::new(),
+            deferred_entity_actions: Vec::new()
         }
     }
 }
