@@ -4,7 +4,7 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, audio::Song};
+use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, audio::Song, entity::VariableValue};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
@@ -18,14 +18,25 @@ pub fn ceil(n: i32, to: i32) -> i32 {
     (n as f32 / to as f32).ceil() as i32 * to
 }
 
+#[derive(Clone)]
 pub enum Condition {
     IntEquals(IntProperty, IntProperty),
     IntGreater(IntProperty, IntProperty),
     IntLess(IntProperty, IntProperty),
     StringEquals(StringProperty, StringProperty),
     EffectEquipped(Effect),
-    Negate(Box<Condition>)
+    Negate(Box<Condition>),
+    Bool(Box<BoolProperty>),
+    Variable(Box<StringProperty>)
 }
+
+// fn try_get_variable<'a>(world: &'a World, name: &String) -> Option<&'a VariableValue> {
+//     if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+//         return variables_list.borrow().get(name);
+//     }
+
+//     None
+// }
 
 impl Condition {
     pub fn evaluate(&self, player: Option<&Player>, world: Option<&World>) -> bool {
@@ -58,6 +69,30 @@ impl Condition {
             },
             Self::Negate(cond) => {
                 return !cond.evaluate(player, world);
+            },
+            Self::Bool(bool) => {
+                bool.get(player, world).unwrap_or(false)
+            },
+            Self::Variable(name) => {
+                if let Some(world) = world {
+                    if let Some(name) = name.get(player, Some(world)) {
+                        if world.special_context.entity_context.entity_call {
+                            if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+                                if let Some(variable) = variables_list.borrow().get(&name) {
+                                    if variable.is_bool() {
+                                        return variable.as_bool(Some(world), player).unwrap_or(false);
+                                    }
+                                } else {
+                                    eprintln!("Warning: Variable {} not found", &name);
+                                }
+                            }
+                        } else {
+                            eprintln!("Warning: Variable get called outside of entity context (as condition)");
+                        }
+                    }
+                }
+
+                return false;
             }
         }
     }
@@ -115,6 +150,24 @@ impl Condition {
 
                 if let Some(condition) = parsed_condition {
                     return Some(Condition::Negate(Box::new(condition)));
+                }
+
+                return None;
+            },
+            "bool" => {
+                if json["val"].is_null() { return None; }
+                
+                if let Some(bool) = BoolProperty::parse(&json["val"]) {
+                    return Some(Self::Bool(Box::new(bool)));
+                }
+
+                return None;
+            },
+            "variable" | "var" => {
+                if json["name"].is_null() { return None; }
+
+                if let Ok(name) = StringProperty::parse(&json["name"]) {
+                    return Some(Self::Variable(Box::new(name)));
                 }
 
                 return None;
@@ -237,7 +290,9 @@ pub enum BoolProperty {
     And(Box<BoolProperty>, Box<BoolProperty>),
     Or(Box<BoolProperty>, Box<BoolProperty>),
     Not(Box<BoolProperty>),
-    Xor(Box<BoolProperty>, Box<BoolProperty>)
+    Xor(Box<BoolProperty>, Box<BoolProperty>),
+    FromCondition(Box<Condition>),
+    Variable(Box<StringProperty>)
 }
 
 impl BoolProperty {
@@ -284,6 +339,28 @@ impl BoolProperty {
                 if arg.is_some() {
                     return Some(!arg.unwrap())
                 }   return None;
+            },
+            BoolProperty::Variable(name) => {
+                if let Some(world) = world {
+                    if let Some(name) = name.get(player, Some(world)) {
+                        if world.special_context.entity_context.entity_call {
+                            if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+                                if let Some(variable) = variables_list.borrow().get(&name) {
+                                    if variable.is_bool() {
+                                        return variable.as_bool(Some(world), player);
+                                    }
+                                }
+                            }
+                        } else {
+                            eprintln!("Warning: Variable get called outside of entity context");
+                        }
+                    }
+                }
+
+                return None;
+            },
+            BoolProperty::FromCondition(condition) => {
+                return Some(condition.evaluate(player, world));
             }
         }
         
@@ -331,6 +408,24 @@ impl BoolProperty {
                     return Some(BoolProperty::Not(Box::new(val.unwrap())));
                 } return None;
             },
+            "variable" | "var" => {
+                if !json["name"].is_null() {
+                    if let Ok(name) = StringProperty::parse(&json["name"]) {
+                        return Some(Self::Variable(Box::new(name)));
+                    }
+                }
+
+                return None;
+            },
+            "condition" | "from_condition" | "conditional" => {
+                if !json["condition"].is_null() {
+                    if let Some(cond) = Condition::parse(&json["condition"]) {
+                        return Some(Self::FromCondition(Box::new(cond)));
+                    }
+                }
+
+                return None;
+            }
             _ => return None,
         }
     }
@@ -344,7 +439,8 @@ pub enum FloatProperty {
     Add(Box<FloatProperty>, Box<FloatProperty>),
     Sub(Box<FloatProperty>, Box<FloatProperty>),
     Mul(Box<FloatProperty>, Box<FloatProperty>),
-    Div(Box<FloatProperty>, Box<FloatProperty>)
+    Div(Box<FloatProperty>, Box<FloatProperty>),
+    Variable(Box<StringProperty>)
 }
 
 // IntProperty::Add(a, b) => {
@@ -398,6 +494,25 @@ impl FloatProperty {
                 let (lhs, rhs) = (a.get(player, world), b.get(player, world));
                 if lhs.is_some() && rhs.is_some() { return Some(lhs.unwrap() / rhs.unwrap()); }
                 return None;
+            },
+            FloatProperty::Variable(name) => {
+                if let Some(world) = world {
+                    if let Some(name) = name.get(player, Some(world)) {
+                        if world.special_context.entity_context.entity_call {
+                            if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+                                if let Some(variable) = variables_list.borrow().get(&name) {
+                                    if variable.is_float() {
+                                        return variable.as_f32(Some(world), player);
+                                    }
+                                }
+                            }
+                        } else {
+                            eprintln!("Warning: Variable get called outside of entity context");
+                        }
+                    }
+                }
+
+                return None;
             }
         }
     }
@@ -436,6 +551,15 @@ impl FloatProperty {
                 if left.is_some() && right.is_some() { return Some(FloatProperty::Div(Box::new(left.unwrap()), Box::new(right.unwrap()))); }
                 return None;
             },
+            "variable" | "var" => {
+                if !json["name"].is_null() {
+                    if let Ok(name) = StringProperty::parse(&json["name"]) {
+                        return Some(Self::Variable(Box::new(name)));
+                    }
+                }
+
+                return None;
+            }
             _ => return None,
         }
     }
@@ -451,7 +575,8 @@ pub enum IntProperty {
     Add(Box<IntProperty>, Box<IntProperty>),
     Sub(Box<IntProperty>, Box<IntProperty>),
     Mul(Box<IntProperty>, Box<IntProperty>),
-    Div(Box<IntProperty>, Box<IntProperty>)
+    Div(Box<IntProperty>, Box<IntProperty>),
+    Variable(Box<StringProperty>)
 }
 
 impl IntProperty {
@@ -548,6 +673,25 @@ impl IntProperty {
 
                 return None;
             },
+            IntProperty::Variable(name) => {
+                if let Some(world) = world {
+                    if let Some(name) = name.get(player, Some(world)) {
+                        if world.special_context.entity_context.entity_call {
+                            if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+                                if let Some(variable) = variables_list.borrow().get(&name) {
+                                    if variable.is_int() {
+                                        return variable.as_i32(Some(world), player);
+                                    }
+                                }
+                            }
+                        } else {
+                            eprintln!("Warning: Variable get called outside of entity context");
+                        }
+                    }
+                }
+
+                return None;
+            }
         }
     }
 
@@ -638,6 +782,17 @@ impl IntProperty {
                 }
 
                 return None;
+            },
+            "variable" | "var" => {
+                if json["name"].is_null() {
+                    return None;
+                }
+
+                if let Ok(name) = StringProperty::parse(&json["name"]) {
+                    return Some(IntProperty::Variable(Box::new(name)));
+                }
+
+                return None;
             }
             _ => return None
         }
@@ -648,7 +803,8 @@ impl IntProperty {
 pub enum StringProperty {
     String(String),
     FromInt(IntProperty),
-    Concatenate(Box<StringProperty>, Box<StringProperty>)
+    Concatenate(Box<StringProperty>, Box<StringProperty>),
+    Variable(Box<StringProperty>),
 }
 
 impl StringProperty {
@@ -672,6 +828,27 @@ impl StringProperty {
                 } else {
                     return None;
                 }
+            },
+            StringProperty::Variable(name) => {
+                if let Some(world) = world {
+                    if let Some(name) = name.get(player, Some(world)) {
+                        if world.special_context.entity_context.entity_call {
+                            if let Some(variables_list) = &world.special_context.entity_context.entity_variables {
+                                if let Some(variable) = variables_list.borrow().get(&name) {
+                                    if variable.is_string() {
+                                        return variable.as_string(Some(world), player);
+                                    }
+                                } else {
+                                    eprintln!("Warning: variable not found: {}", &name);
+                                }
+                            }
+                        } else {
+                            eprintln!("Warning: Variable get called outside of entity context");
+                        }
+                    }
+                }
+
+                return None;
             }
         }
     }
@@ -685,6 +862,17 @@ impl StringProperty {
             "string" => return Ok(StringProperty::String(json["val"].as_str().unwrap().to_string())),
             "from_int" => return Ok(StringProperty::FromInt(IntProperty::parse(&json["val"]).unwrap())),
             "concatenate" => return Ok(StringProperty::Concatenate(Box::new(StringProperty::parse(&json["lhs"]).unwrap()), Box::new(StringProperty::parse(&json["rhs"]).unwrap()))),
+            "variable" | "var" => {
+                if !json["name"].is_null() {
+                    if let Ok(name) = StringProperty::parse(&json["name"]) {
+                        return Ok(StringProperty::Variable(Box::new(name)));
+                    } else {
+                        return Err("Could not parse name field of string variable get".to_string());
+                    }
+                }
+
+                return Err("No name specified for variable get".to_string());
+            }
             _ => return Err("unknown type for string property".to_string())
         }
     }

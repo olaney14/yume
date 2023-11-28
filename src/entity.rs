@@ -1,6 +1,8 @@
+use std::{collections::HashMap, rc::Rc, cell::RefCell};
+
 use sdl2::rect::Rect;
 
-use crate::{game::Direction, world::{Interaction, World}, ai::{Ai, Animator, AnimationFrameData}, player::{self, Player}, actions::Action};
+use crate::{game::{Direction, IntProperty, FloatProperty, BoolProperty, StringProperty}, world::{Interaction, World}, ai::{Ai, Animator, AnimationFrameData}, player::{self, Player}, actions::Action};
 
 pub struct TriggeredAction {
     pub trigger: Trigger,
@@ -132,6 +134,76 @@ pub struct EntityMovementInfo {
     pub direction: Direction,
 }
 
+#[derive(Clone)]
+pub enum VariableValue {
+    Int(IntProperty),
+    LitInt(i32),
+    Float(FloatProperty),
+    LitFloat(f32),
+    Bool(BoolProperty),
+    LitBool(bool),
+    String(StringProperty),
+    LitString(String)
+}
+
+impl VariableValue {
+    pub fn is_int(&self) -> bool {
+        matches!(self, Self::Int(..) | Self::LitInt(..))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, Self::Float(..) | Self::LitFloat(..))
+    }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Self::Bool(..) | Self::LitBool(..))
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self, Self::String(..) | Self::LitString(..))
+    }
+
+    pub fn as_i32(&self, world: Option<&World>, player: Option<&Player>) -> Option<i32> {
+        match self {
+            Self::Int(prop) => {
+                return prop.get(player, world);
+            },
+            Self::LitInt(i) => return Some(*i),
+            _ => return None
+        }
+    }
+
+    pub fn as_f32(&self, world: Option<&World>, player: Option<&Player>) -> Option<f32> {
+        match self {
+            Self::Float(prop) => {
+                return prop.get(player, world);
+            },
+            Self::LitFloat(f) => return Some(*f),
+            _ => return None
+        }
+    }
+
+    pub fn as_bool(&self, world: Option<&World>, player: Option<&Player>) -> Option<bool> {
+        match self {
+            Self::Bool(prop) => {
+                return prop.get(player, world);
+            },
+            Self::LitBool(b) => return Some(*b),
+            _ => return None
+        }
+    }
+
+    pub fn as_string(&self, world: Option<&World>, player: Option<&Player>) -> Option<String> {
+        match self {
+            Self::String(prop) => {
+                return prop.get(player, world);
+            },
+            Self::LitString(s) => return Some(s.clone()),
+            _ => return None
+        }
+    }
+}
+
 pub struct Entity {
     pub id: u32,
     pub tileset: u32,
@@ -147,6 +219,7 @@ pub struct Entity {
     pub animator: Option<Animator>,
     pub movement: Option<EntityMovementInfo>,
     pub interaction: Option<(Interaction, Direction)>,
+    pub variables: Rc<RefCell<HashMap<String, VariableValue>>>,
     //pub script: Option<>
 }
 
@@ -168,7 +241,8 @@ impl Entity {
             movement: None,
             x: 0,
             y: 0,
-            interaction: None
+            interaction: None,
+            variables: Rc::new(RefCell::new(HashMap::new()))
         }
     }
 
@@ -183,6 +257,14 @@ impl Entity {
 
         return self.height;
     }
+
+    pub fn set_variable(&mut self, name: String, value: VariableValue) {
+        self.variables.borrow_mut().insert(name, value);
+    }
+
+    // pub fn get_variable(&mut self, name: &str) -> Option<&VariableValue> {
+    //     self.variables.borrow().get(name)
+    // }
 
     pub fn walk(&mut self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
         if let Some(movement) = &self.movement {

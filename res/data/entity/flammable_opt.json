@@ -1,0 +1,184 @@
+{
+	"comment": "this script was begun before variables existed and finished after they were implemented, so code is strange",
+    "actions": [
+        {
+            "trigger": "onload",
+            "action": [
+			{
+				"comment": "VARIABLE burning_flag (string): name of this entity's burning flag",
+				"type": "set_variable",
+				"var_type": "string",
+				"name": "burning_flag",
+				"val": {
+					"type": "concatenate",
+					"lhs": "burning",
+					"rhs": {
+						"type": "from_int",
+						"val": {
+							"type": "entity",
+							"property": "id"
+						}
+					}
+				}
+			},
+			{
+				"comment": "VARIABLE burning (bool, live): value of burning flag",
+				"type": "set_variable",
+				"var_type": "bool",
+				"name": "burning",
+				"store": false,
+				"val": {
+					"type": "condition",
+					"condition": {
+						"type": "int_equals",
+						"lhs": {
+							"type": "flag",
+							"flag": {
+								"type": "var",
+								"name": "burning_flag"
+							}
+						},
+						"rhs": 1
+					}
+				}
+			},
+			{
+				"comment": "VARIABLE burn_frame_flag (string): name of this entity's burn animation frame flag",
+				"type": "set_variable",
+				"var_type": "string",
+				"name": "burn_frame_flag",
+				"val": {
+					"type": "concatenate",
+					"lhs": "burn_frame",
+					"rhs": {
+						"type": "from_int",
+						"val": {
+							"type": "entity",
+							"property": "id"
+						}
+					}
+				}
+			},
+			
+			{
+                "type": "set_flag",
+                "flag": {
+                    "type": "concatenate",
+                    "lhs": "burn_frame",
+                    "rhs": {
+                        "type": "from_int",
+                        "val": {
+                            "type": "entity",
+                            "property": "id"
+                        }
+                    }
+                },
+                "val": "$burn_frame_start"
+            }]
+        },
+        {
+            "trigger": {
+                "type": "use"
+            },
+            "action": {
+                "type": "conditional",
+                "condition": {
+                    "type": "effect_equipped",
+                    "effect": "fire"
+                },
+                "action": {
+                    "type": "set_flag",
+                    "flag": {
+                        "type": "var",
+						"name": "burning_flag"
+                    },
+                    "val": 1
+                }
+            }
+        },
+        {
+            "trigger": {
+                "type": "tick",
+                "freq": 5
+            },
+            "action": [
+                {
+                    "type": "conditional",
+                    "condition": {
+                        "type": "var",
+						"name": "burning"
+                    },
+                    "action": {
+                        "type": "set_flag",
+                        "flag": {
+                            "type": "var",
+							"name": "burn_frame_flag"
+                        },
+                        "val": {
+                            "type": "add",
+                            "lhs": {
+                                "type": "flag",
+                                "flag": {
+                                    "type": "var",
+									"name": "burn_frame_flag"
+                                }
+                            },
+                            "rhs": 1
+                        }
+                    }
+                },
+				{
+                    "type": "conditional",
+                    "condition": {
+                        "type": "int_equals",
+                        "lhs": {
+                            "type": "flag",
+                            "flag": {
+                                "type": "var",
+								"name": "burn_frame_flag"
+                            }
+                        },
+                        "rhs": {
+                            "type": "add",
+                            "lhs": "$burn_frame_start",
+                            "rhs": "$burn_frames"
+                        }
+                    },
+                    "action": {
+                        "type": "set_flag",
+                        "flag": {
+                            "type": "concatenate",
+                            "lhs": "burn_frame",
+                            "rhs": {
+                                "type": "from_int",
+                                "val": {
+                                    "type": "entity",
+                                    "property": "id"
+                                }
+                            }
+                        },
+                        "val": "$burn_frame_start"
+                    }
+                },
+                {
+                    "type": "conditional",
+                    "condition": {
+                        "type": "var",
+						"name": "burning"
+                    },
+                    "action": {
+                        "type": "set_animation_frame",
+                        "target": "self",
+                        "val": {
+                            "type": "flag",
+                            "flag": {
+                                "type": "var",
+								"name": "burn_frame_flag"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

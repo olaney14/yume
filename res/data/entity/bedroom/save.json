@@ -22,8 +22,9 @@
 		},
 		"action": {
 			"type": "change_song",
-			"volume": 0.5,
-			"song": "res/audio/music/travel.ogg"
+			"volume": 0.3,
+			"speed": 0.7,
+			"song": "res/audio/music/chaconne.ogg"
 		}
 	}],
 	"draw": false,

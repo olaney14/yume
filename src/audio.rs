@@ -116,6 +116,7 @@ pub struct Song {
     pub speed: f32,
     pub volume: f32, 
     pub dirty: bool,
+    pub reload: bool,
     pub source: Option<Repeat<Decoder<BufReader<File>>>>,
     pub playing: bool,
     pub path: PathBuf,
@@ -136,7 +137,8 @@ impl Song {
             dirty: true,
             playing: false,
             default_speed: 1.0,
-            default_volume: 1.0
+            default_volume: 1.0,
+            reload: false
         }
     }
 
@@ -155,8 +157,16 @@ impl Song {
     }
 
     /// This method only needs to be called if `dirty` is true but you do you
-    pub fn update(&self, sink: &Sink) {
+    pub fn update(&mut self, sink: &Sink) {
         sink.set_speed(self.speed);
         sink.set_volume(self.volume);
+
+        if self.reload {
+            sink.clear();
+            sink.append(self.source.take().unwrap());
+            self.playing = true;
+            self.reload = false;
+            sink.play();
+        }
     }
 }

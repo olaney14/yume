@@ -2,9 +2,13 @@ use std::path::PathBuf;
 
 use json::JsonValue;
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator, entity::Entity};
+use crate::{player::Player, world::{World, QueuedEntityAction, self}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator, entity::{Entity, VariableValue}};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+    if parsed.is_array() {
+        return MultipleAction::parse(parsed);
+    }
+
     if !parsed["type"].is_string() { return Err("Invalid or no type".to_string()); }
 
     match parsed["type"].as_str().unwrap() {
@@ -40,7 +44,13 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         },
         "set_animation_frame" => {
             return SetAnimationFrameAction::parse(parsed);
-        }
+        },
+        "multiple" => {
+            return MultipleAction::parse(parsed);
+        },
+        "set_variable" | "set_var" => {
+            return SetVariableAction::parse(parsed);
+        },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -404,7 +414,7 @@ impl ChangeSongAction {
         let mut set_defaults = BoolProperty::Bool(false);
 
         if !parsed["volume"].is_null() { new_volume = FloatProperty::parse(&parsed["volume"]); }
-        if !parsed["speed"].is_null() { new_speed = FloatProperty::parse(&parsed["volume"]); }
+        if !parsed["speed"].is_null() { new_speed = FloatProperty::parse(&parsed["speed"]); }
         if !parsed["song"].is_null() { new_song = StringProperty::parse(&parsed["song"]).map_or(None, |v| Some(v)); }
         if !parsed["set_defaults"].is_null() { set_defaults = BoolProperty::parse(&parsed["set_defaults"]).expect("failed to parse set_defaults"); }
 
@@ -422,6 +432,7 @@ impl Action for ChangeSongAction {
         if let Some(path) = &self.new_song {
             world.song = Some(Song::new(PathBuf::from(path.get(Some(player), Some(world)).expect("Error in getting song path"))));
             world.song.as_mut().unwrap().dirty = true;
+            world.song.as_mut().unwrap().reload = true;
         }
         let mut current_song_opt = world.song.take();
         if let Some(current_song) = &mut current_song_opt {
@@ -568,6 +579,164 @@ impl Action for MultipleAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         for action in self.actions.iter() {
             action.act(player, world);
+        }
+    }
+}
+
+enum AnyProperty {
+    Int(IntProperty),
+    Float(FloatProperty),
+    Bool(BoolProperty),
+    String(StringProperty)
+}
+
+impl AnyProperty {
+    fn to_variable_value(&self, store: bool, world: Option<&World>, player: Option<&Player>) -> VariableValue {
+        match self {
+            Self::Int(i) => {
+                if store {
+                    VariableValue::LitInt(i.get(player, world).unwrap())
+                } else {
+                    VariableValue::Int(i.clone())
+                }
+            },
+            Self::Float(f) => {
+                if store {
+                    VariableValue::LitFloat(f.get(player, world).unwrap())
+                } else {
+                    VariableValue::Float(f.clone())
+                }
+            },
+            Self::Bool(b) => {
+                if store {
+                    VariableValue::LitBool(b.get(player, world).unwrap())
+                } else {
+                    VariableValue::Bool(b.clone())
+                }
+            },
+            Self::String(s) => {
+                if store {
+                    VariableValue::LitString(s.get(player, world).unwrap())
+                } else {
+                    VariableValue::String(s.clone())
+                }
+            }
+        }
+    }
+}
+
+pub struct SetVariableAction {
+    pub variable: StringProperty,
+    value: AnyProperty,
+    pub store: bool
+}
+
+impl SetVariableAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let store = json["store"].as_bool().unwrap_or(true);
+        if !json["var_type"].is_string() { return Err("No variable type specified".to_string()); }
+        let kind = json["var_type"].as_str().unwrap();
+        if json["val"].is_null() { return Err("No variable value specified".to_string()); }
+        if json["name"].is_null() { return Err("No variable name specified".to_string()); }
+        let name = StringProperty::parse(&json["name"]).unwrap();
+
+        let mut value = None;
+        match kind {
+            "int" => {
+                value = IntProperty::parse(&json["val"]).map(|p| AnyProperty::Int(p));
+            },
+            "float" => {
+                value = FloatProperty::parse(&json["val"]).map(|p| AnyProperty::Float(p));
+            },
+            "bool" | "boolean" => {
+                value = BoolProperty::parse(&json["val"]).map(|p| AnyProperty::Bool(p));
+            },
+            "string" => {
+                value = StringProperty::parse(&json["val"]).map(|p| AnyProperty::String(p)).ok();
+            },
+            _ => value = None
+        };
+
+        if let Some(value) = value {
+            return Ok(Box::new(Self {
+                                        store,
+                                        value,
+                                        variable: name
+                                    }));
+        }
+
+        return Err("Error in set variable action parsing, invalid value?".to_string());
+    }
+}
+
+impl Action for SetVariableAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if world.special_context.entity_context.entity_call {
+            let name = self.variable.get(Some(player), Some(world)).unwrap();
+            let variable_value = self.value.to_variable_value(self.store, Some(world), Some(player));
+            world.defer_entity_action(Box::new(move |entity| {
+                // i dont like this clone call
+                entity.set_variable(name.clone(), variable_value.clone());
+            }));
+        } else {
+            eprintln!("Set variable called outside of entity context");
+        }
+    }
+}
+
+enum RemoveEntityTarget {
+    This,
+    Other(Box<IntProperty>)
+}
+
+pub struct RemoveEntityAction {
+    target: RemoveEntityTarget
+}
+
+impl RemoveEntityAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        if json["target"].is_null() { return Err("Error parsing RemoveEntityAction: no target specified".to_string()); }
+        let mut target = None;
+        if json["target"].is_string() {
+            match json["target"].as_str().unwrap() {
+                "self" | "this" => target = Some(RemoveEntityTarget::This),
+                _ => ()
+            }
+        } else {
+            if let Some(id) = IntProperty::parse(&json["target"]) {
+                target = Some(RemoveEntityTarget::Other(Box::new(id)));
+            }
+        }
+
+        if let Some(target) = target {
+            return Ok(Box::new(Self {
+                target
+            }));
+        }
+
+        Err("Error parsing RemoveEntityAction".to_string())
+    }
+}
+
+impl Action for RemoveEntityAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        match &self.target {
+            RemoveEntityTarget::Other(id) => {
+                if let Some(id) = id.get(Some(player), Some(world)) {
+                    if id >= 0 {
+                        world.special_context.entity_removal_queue.push(id as usize);
+                    }
+                }
+                
+            },
+            RemoveEntityTarget::This => {
+                if world.special_context.entity_context.entity_call { 
+                    let id_self = world.special_context.entity_context.id;
+                    world.special_context.entity_removal_queue.push(id_self as usize);
+                } else {
+                    eprintln!("Warning: RemoveEntityTarget::This used outside of entity call");
+                }
+            }
         }
     }
 }

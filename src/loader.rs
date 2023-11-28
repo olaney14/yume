@@ -1,4 +1,4 @@
-use std::{path::PathBuf, u8, collections::HashMap, fs, io::Read, ffi::OsString};
+use std::{path::PathBuf, u8, collections::HashMap, fs, io::Read, ffi::OsString, rc::Rc, cell::RefCell};
 
 use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
@@ -261,7 +261,8 @@ impl<'a> World<'a> {
                                     ai: None,
                                     animator: None,
                                     movement: None,
-                                    interaction: None
+                                    interaction: None,
+                                    variables: Rc::new(RefCell::new(HashMap::new()))
                                 };
 
                                 // justification for clone call - i need to mutate the properties and this shouldnt be called more than like 100 times
@@ -317,10 +318,10 @@ impl<'a> World<'a> {
                                                 let mut trigger = None;
                                                 let mut action = None;
 
-                                                if cur_action["trigger"].is_object() {
+                                                if cur_action["trigger"].is_object() || cur_action["trigger"].is_string() {
                                                     trigger = Some(parse_trigger(&mut cur_action["trigger"]).expect("failed to parse trigger"));
                                                 }
-                                                if cur_action["action"].is_object() {
+                                                if cur_action["action"].is_object() || cur_action["action"].is_array() {
                                                     action = Some(actions::parse_action(&cur_action["action"]).expect("failed to parse action"));
                                                 }
 

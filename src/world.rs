@@ -1,9 +1,9 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::{path::PathBuf, collections::HashMap, rc::Rc, cell::RefCell};
 
 use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 
-use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::Player, game::{RenderState, QueuedLoad, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger}, texture, effect::Effect, actions::Action};
+use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::Player, game::{RenderState, QueuedLoad, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger, VariableValue}, texture, effect::Effect, actions::Action};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -339,12 +339,13 @@ impl<'a> World<'a> {
 
             self.special_context.entity_context.entity_call = true;
             for (i, j) in act_entities.iter() {
+                let entity = self.entities.as_mut().unwrap().remove(*i);
                 self.special_context.action_id = *j;
                 self.special_context.entity_id = *i;
                 self.special_context.entity_context.id = *i as i32;
-                self.special_context.entity_context.x = self.entities.as_ref().unwrap().get(*i).unwrap().x;
-                self.special_context.entity_context.y = self.entities.as_ref().unwrap().get(*i).unwrap().y;
-                let entity = self.entities.as_mut().unwrap().remove(*i);
+                self.special_context.entity_context.x = entity.x;
+                self.special_context.entity_context.y = entity.y;
+                self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                 entity.actions.get(*j).unwrap().action.act(player, self);
                 self.entities.as_mut().unwrap().insert(*i, entity);
             }
@@ -368,6 +369,7 @@ impl<'a> World<'a> {
                 self.special_context.entity_context.id = action.entity_id as i32;
                 self.special_context.entity_context.x = entity.x;
                 self.special_context.entity_context.y = entity.y;
+                self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                 entity.actions.get(action.action_id).unwrap().action.act(player, self);
                 self.special_context.delayed_run = false;
                 self.entities.as_mut().unwrap().insert(action.entity_id, entity);
@@ -380,6 +382,7 @@ impl<'a> World<'a> {
                         self.special_context.entity_context.id = i as i32;
                         self.special_context.entity_context.x = entity.x;
                         self.special_context.entity_context.y = entity.y;
+                        self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                         action.action.act(player, self);
                     }
                     action.run_on_next_loop = false;
@@ -394,6 +397,10 @@ impl<'a> World<'a> {
                 }
             }
             self.special_context.entity_context.entity_call = false;
+
+            if let Some(id) = self.special_context.entity_removal_queue.pop() {
+                self.entities.as_mut().unwrap().remove(id);
+            }
         }
     }
 
@@ -871,6 +878,8 @@ pub struct SpecialContext {
     pub entity_context: EntityContext,
 
     pub deferred_entity_actions: Vec<(usize, Box<dyn Fn(&mut Entity)>)>,
+
+    pub entity_removal_queue: Vec<usize>,
 }
 
 impl SpecialContext {
@@ -887,7 +896,8 @@ impl SpecialContext {
             write_save_to_pending: false,
             pending_load: None,
             entity_context: EntityContext::new(),
-            deferred_entity_actions: Vec::new()
+            deferred_entity_actions: Vec::new(),
+            entity_removal_queue: Vec::new()
         }
     }
 }
@@ -896,7 +906,8 @@ pub struct EntityContext {
     pub entity_call: bool,
     pub id: i32,
     pub x: i32,
-    pub y: i32
+    pub y: i32,
+    pub entity_variables: Option<Rc<RefCell<HashMap<String, VariableValue>>>>
 }
 
 impl EntityContext {
@@ -905,7 +916,8 @@ impl EntityContext {
             entity_call: false,
             id: 0,
             x: 0,
-            y: 0
+            y: 0,
+            entity_variables: None
         }
     }
 }
