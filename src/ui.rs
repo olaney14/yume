@@ -75,7 +75,7 @@ pub struct MenuState {
 impl MenuState {
     pub fn new() -> Self {
         Self {
-            close_on_x: true,
+            close_on_x: false,
             current_menu: MenuType::Home,
             button_id: 0,
             selection_flash: true,
@@ -104,6 +104,14 @@ impl MenuState {
                     self.current_menu = MenuType::SaveLoad(true);
                     self.close_on_x = true;
                     self.button_id = world.special_context.pending_save as i32;
+                },
+                MenuType::SaveLoad(save) => {
+                    if !save {
+                        self.current_menu = MenuType::MainMenu;
+                        self.close_on_x = false;
+                        self.button_id = 1;
+                        sfx.play_ex("menu_blip_negative", 1.0, 0.5);
+                    }
                 }
                 _ => ()
             }
@@ -177,6 +185,7 @@ impl MenuState {
                             self.button_id = 2;
 
                             self.menu_should_close = true;
+                            self.close_on_x = false;
                             //world.paused = false;
 
                             world.queued_load = Some(QueuedLoad {
@@ -434,7 +443,7 @@ impl<'a> Ui<'a> {
                 self.clear = false;
                 sfx.play("menu_blip_negative");
 
-            } else if !self.open && !player.moving {
+            } else if !self.open && !player.moving && world.transition.is_none() {
                 //sink.pause();
                 self.menu_state.current_menu = MenuType::Home;
                 sink.set_volume(sink.volume() / 5.0);

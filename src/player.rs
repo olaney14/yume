@@ -115,14 +115,19 @@ pub const MOVE_TIMER_MAX: i32 = 16;
 
 pub struct ExtraTextures<'a> {
     pub fire: Texture<'a>,
+    pub other: Texture<'a>,
     pub fire_frame: u32,
     pub fire_timer: u32
 }
 
 impl<'a> ExtraTextures<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
-        let fire = Texture::from_file(&PathBuf::from("res/textures/player/fire_sheet.png"), creator).expect("could not load \"res/textures/fire_sheet.png\"");
-        Self { fire, fire_frame: 0, fire_timer: 5 }
+        let fire = Texture::from_file(&PathBuf::from("res/textures/player/fire_sheet.png"), creator).expect("could not load \"res/textures/player/fire_sheet.png\"");
+        let other = Texture::from_file(&PathBuf::from("res/textures/player/other.png"), creator).expect("could not load \"res/textures/player/other.png\"");
+        Self { 
+            fire, fire_frame: 0, fire_timer: 5,
+            other
+        }
     }
 
     pub fn animate(&mut self) {

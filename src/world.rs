@@ -51,6 +51,8 @@ pub struct World<'a> {
     pub side_actions: [(bool, Option<Box<dyn Action>>); 4],
     pub paused: bool,
     pub interactions: Vec<Interaction>,
+
+    /// This is some if a transition is currently happening
     pub transition: Option<Transition>,
     pub looping: bool,
     pub render_texture: Option<Texture<'a>>,
