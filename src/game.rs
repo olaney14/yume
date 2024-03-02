@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr, path::PathBuf, f32::consts::PI};
 
+use gl::RG;
 use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
@@ -207,7 +208,9 @@ pub enum PlayerPropertyType {
     X,
     Y,
     Height,
-    Dreaming
+    Dreaming,
+    Layer,
+    CheckWalkable
 }
 
 impl PlayerPropertyType {
@@ -225,6 +228,8 @@ impl PlayerPropertyType {
             "y" => Some(PlayerPropertyType::Y),
             "height" => Some(PlayerPropertyType::Height),
             "dreaming" => Some(PlayerPropertyType::Dreaming),
+            "layer" => Some(PlayerPropertyType::Layer),
+            "check_walkable" => Some(PlayerPropertyType::CheckWalkable),
             _ => None
         }
     }
@@ -1064,6 +1069,7 @@ impl RenderState {
 #[derive(Clone)]
 pub enum TransitionType {
     Fade,
+    FadeToColor(u32, u32, u32),
     MusicOnly,
     Spotlight,
     FadeScreenshot,
@@ -1090,6 +1096,7 @@ impl TransitionType {
 
         match kind {
             "fade" => Some(Self::Fade),
+            "fade_to_color" => Some(Self::FadeToColor(0, 0, 0)),
             "music_only" => Some(Self::MusicOnly),
             "spotlight" => Some(Self::Spotlight),
             "spin" => Some(Self::Spin),
@@ -1199,6 +1206,15 @@ impl Transition {
                         return Some(
                             Self::new(TransitionType::GridCycle, speed, 0, music, hold)
                         );
+                    },
+                    TransitionType::FadeToColor(..) => {
+                        let r = json["r"].as_u32().expect("no `r` value for fade to color transition");
+                        let g = json["g"].as_u32().expect("no `g` value for fade to color transition");
+                        let b = json["b"].as_u32().expect("no `b` value for fade to color transition");
+
+                        return Some(
+                            Self::new(TransitionType::FadeToColor(r, g, b), speed, 0, music, hold)
+                        )
                     }
                     _ => return Some(Self::new(parsed_type, speed, 0, music, hold))
                 }
@@ -1225,6 +1241,12 @@ impl Transition {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, alpha));
                 canvas.fill_rect(None).unwrap();
             },
+            TransitionType::FadeToColor(r, g, b) => {
+                let alpha = (255.0 * (self.progress as f32 / 100.0)).clamp(0.0, 255.0) as u8;
+                canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+                canvas.set_draw_color(Color::RGBA(r.clamp(0, 255) as u8, g.clamp(0, 255) as u8, b.clamp(0, 255) as u8, alpha));
+                canvas.fill_rect(None).unwrap();
+            }
             TransitionType::MusicOnly => (),
             TransitionType::Spotlight => {
                 let alpha = (255.0 * (self.progress as f32 / 50.0)).clamp(0.0, 255.0) as u8;

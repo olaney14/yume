@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="27">
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="28">
  <properties>
   <property name="defaultPos" value="22,14"/>
   <property name="music" value="res/audio/music/boylestem.mp3"/>
@@ -16,6 +16,7 @@
  <tileset firstgid="131" source="entity/nexus_doors.tsx"/>
  <tileset firstgid="149" source="testing/animated_tile_test.tsx"/>
  <tileset firstgid="153" source="tilesets/sticks.tsx"/>
+ <tileset firstgid="173" source="hospital.tsx"/>
  <imagelayer id="4" name="bg" visible="0">
   <image source="../textures/image/neon_space_mountain.png" width="512" height="512"/>
   <properties>
@@ -435,6 +436,11 @@
     <property name="file" value="res/data/entity/flammable_opt.json"/>
    </properties>
   </object>
+  <object id="27" gid="267" x="368" y="336" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/seat/seat.json"/>
+   </properties>
+  </object>
  </objectgroup>
  <layer id="3" name="Above" width="32" height="32">
   <properties>
@@ -460,7 +466,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,256,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

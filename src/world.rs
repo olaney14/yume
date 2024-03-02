@@ -23,7 +23,8 @@ impl Interaction {
 pub struct QueuedEntityAction {
     pub delay: i32,
     pub entity_id: usize,
-    pub action_id: usize
+    pub action_id: usize,
+    pub multiple_action_id: Option<usize>
 }
 
 // pub enum Flag {
@@ -362,11 +363,13 @@ impl<'a> World<'a> {
                 }
             }
 
+            //self.special_context.multiple_action_index = None;
             if let Some(delayed_action) = action_opt {
                 let action = self.queued_entity_actions.remove(delayed_action);
                 let entity = self.entities.as_mut().unwrap().remove(action.entity_id);
                 self.special_context.entity_id = action.entity_id;
                 self.special_context.action_id = action.action_id;
+                self.special_context.multiple_action_index = action.multiple_action_id;
                 self.special_context.delayed_run = true;
                 self.special_context.entity_context.id = action.entity_id as i32;
                 self.special_context.entity_context.x = entity.x;
@@ -379,11 +382,13 @@ impl<'a> World<'a> {
 
             for i in 0..self.entities.as_ref().unwrap().len() {
                 let mut entity = std::mem::replace(self.entities.as_mut().unwrap().get_mut(i).unwrap(), placeholder.take().unwrap());
-                for action in entity.actions.iter_mut() {
+                for (j, action) in entity.actions.iter_mut().enumerate() {
                     if action.run_on_next_loop {
                         self.special_context.entity_context.id = i as i32;
                         self.special_context.entity_context.x = entity.x;
                         self.special_context.entity_context.y = entity.y;
+                        self.special_context.entity_id = i;
+                        self.special_context.action_id = j;
                         self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                         action.action.act(player, self);
                     }
@@ -882,6 +887,8 @@ pub struct SpecialContext {
     pub deferred_entity_actions: Vec<(usize, Box<dyn Fn(&mut Entity)>)>,
 
     pub entity_removal_queue: Vec<usize>,
+
+    pub multiple_action_index: Option<usize>,
 }
 
 impl SpecialContext {
@@ -899,7 +906,8 @@ impl SpecialContext {
             pending_load: None,
             entity_context: EntityContext::new(),
             deferred_entity_actions: Vec::new(),
-            entity_removal_queue: Vec::new()
+            entity_removal_queue: Vec::new(),
+            multiple_action_index: None
         }
     }
 }

@@ -35,6 +35,8 @@ pub const DEBUG: bool = true;
 pub const MAIN_MENU_MUSIC: &str = "res/audio/music/travel.ogg";
 pub const MAIN_MENU_MUSIC_SPEED: f32 = 0.25;
 pub const MAIN_MENU_MUSIC_VOLUME: f32 = 0.5;
+pub const MAIN_MENU_THEME: &str = "res/textures/ui/themes/system.png";
+pub const MAIN_MENU_FONT: &str = "res/textures/ui/fonts/menu.png";
 
 fn find_sdl_gl_driver() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
@@ -75,7 +77,7 @@ fn main() {
     // TODO uhhhhhhh
     // so rust thinks that the reference in line ?? is still being used here
     // idk how to fix that
-    let mut ui = Ui::new(&PathBuf::from("res/textures/ui/themes/menu.png"), Some("res/textures/ui/fonts/menu.png"), &texture_creator);
+    let mut ui = Ui::new(&PathBuf::from(MAIN_MENU_THEME), Some(MAIN_MENU_FONT), &texture_creator);
     ui.init(&mut sfx);
 
     //let mut save_info = SaveInfo::create_new().expect("baha");
@@ -147,7 +149,7 @@ fn main() {
         }
         canvas.fill_rect(Rect::new(0, 0, 640, 480)).unwrap();
 
-        debug.update(&input, &mut world);
+        debug.update(&input, &mut world, &mut player);
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
 
         if world.special_context.write_save_to_pending {
@@ -162,6 +164,7 @@ fn main() {
                 let save_data: SaveData = serde_cbor::from_reader(&file).expect("failed to read save data. data may be corrupted");
                 player = save_data.get_player(&texture_creator);
             }
+            world.special_context.pending_load = None;
 
             world.queued_load = Some(QueuedLoad {
                 map: String::from(START_MAP),
@@ -309,6 +312,8 @@ fn main() {
                 ui.clear = false;
                 ui.open = false;
             }
+
+            player.on_level_transition();
         }
 
         if ui.menu_state.should_quit {

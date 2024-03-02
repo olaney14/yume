@@ -1,0 +1,10 @@
+{
+	"actions": [{
+		"trigger": "onload",
+		"action": {
+			"type": "set_variable",
+			"
+		}
+	}],
+	
+}

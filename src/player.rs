@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{texture::Texture, game::{Direction, Input, RenderState}, world::World, effect::Effect, audio::SoundEffectBank, tiles::SpecialTile};
+use crate::{audio::SoundEffectBank, effect::Effect, game::{Direction, Input, RenderState}, player, texture::Texture, tiles::SpecialTile, world::World};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
 
@@ -18,6 +18,7 @@ pub struct Player<'a> {
     pub speed: u32,
     pub move_timer: i32,
     pub animation_info: AnimationInfo,
+    pub animation_override_controller: AnimationOverrideController,
     pub last_direction: Option<Direction>,
     pub layer: i32,
     pub draw_over: bool,
@@ -26,6 +27,7 @@ pub struct Player<'a> {
     pub unlocked_effects: Vec<Effect>,
     pub current_effect: Option<Effect>,
     pub frozen_time: u32,
+    pub disable_player_input_time: u32,
     pub effect_textures: HashMap<Effect, Texture<'a>>,
     pub extra_textures: ExtraTextures<'a>,
     pub effect_just_changed: bool,
@@ -33,12 +35,52 @@ pub struct Player<'a> {
     pub stats: Statistics,
     pub save_slot: u32,
     pub dreaming: bool,
+    pub disable_player_input: bool,
+    pub last_effect: Option<Effect>,
+    pub reset_layer_on_stop: Option<i32>,
+    pub exit_bed_direction: Option<Direction>,
+    pub no_snap_on_stop: bool,
+    pub check_walkable_on_next_frame: bool
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Statistics {
     pub steps: u64,
     pub times_slept: u32
+}
+
+pub struct AnimationOverrideController {
+    pub active: bool,
+    pub texture: PlayerTextureSheet,
+    pub frame_pos: (u32, u32),
+    pub sit_animation: bool,
+    pub lay_down_animation: bool,
+    pub draw_offset: (i32, i32)
+}
+
+impl AnimationOverrideController {
+    pub fn do_sit(&mut self) {
+        self.sit_animation = true;
+        self.frame_pos = (0, 0);
+        self.texture = PlayerTextureSheet::Other;
+    }
+
+    pub fn do_lay_down(&mut self) {
+        self.lay_down_animation = true;
+        self.frame_pos = (16, 32);
+        self.texture = PlayerTextureSheet::Player;
+    }
+
+    pub fn new() -> Self {
+        Self {
+            active: false,
+            frame_pos: (0, 0),
+            sit_animation: false,
+            lay_down_animation: false,
+            texture: PlayerTextureSheet::Player,
+            draw_offset: (0, 0)
+        }
+    }
 }
 
 pub struct AnimationInfo {
@@ -113,6 +155,13 @@ impl Statistics {
 
 pub const MOVE_TIMER_MAX: i32 = 16;
 
+pub enum PlayerTextureSheet {
+    Player,
+    Effect,
+    Fire,
+    Other
+}
+
 pub struct ExtraTextures<'a> {
     pub fire: Texture<'a>,
     pub other: Texture<'a>,
@@ -150,6 +199,13 @@ impl<'a> ExtraTextures<'a> {
     }
 }
 
+// enum MovementIgnoreParams {
+//     None,
+//     IgnoreWorld,
+//     IgnoreFrozen,
+//     IgnoreAll
+// }
+
 impl<'a> Player<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
         let mut player = Self {
@@ -161,6 +217,7 @@ impl<'a> Player<'a> {
             speed: 1,
             move_timer: 0,
             animation_info: AnimationInfo::new(),
+            animation_override_controller: AnimationOverrideController::new(),
             last_direction: None,
             layer: 0,
             draw_over: false,
@@ -176,7 +233,14 @@ impl<'a> Player<'a> {
             stats: Statistics::new(),
             money: 0,
             save_slot: 0,
-            dreaming: false
+            dreaming: false,
+            disable_player_input: false,
+            last_effect: None,
+            reset_layer_on_stop: None,
+            disable_player_input_time: 0,
+            exit_bed_direction: None,
+            no_snap_on_stop: false,
+            check_walkable_on_next_frame: false
         };
 
         player.load_effect_textures(creator);
@@ -188,6 +252,19 @@ impl<'a> Player<'a> {
         self.effect_textures.insert(Effect::Glasses, Texture::from_file(&PathBuf::from("res/textures/player/glasses.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Speed, Texture::from_file(&PathBuf::from("res/textures/player/running_shoes.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Fire, Texture::from_file(&PathBuf::from("res/textures/player/fire.png"), creator).unwrap());
+    }
+
+    pub fn stash_last_effect(&mut self) {
+        self.last_effect = self.current_effect.clone();
+    }
+
+    pub fn enable_last_effect(&mut self) {
+        match &self.last_effect {
+            Some(e) => {
+                self.apply_effect(e.clone());
+            },
+            None => self.remove_effect(),
+        }
     }
 
     pub fn set_x(&mut self, x: i32) {
@@ -205,6 +282,67 @@ impl<'a> Player<'a> {
         self.set_y(y);
     }
 
+    pub fn get_override_texture(&self) -> Option<&Texture> {
+        if !self.animation_override_controller.active {
+            return None;
+        }
+        match self.animation_override_controller.texture {
+            PlayerTextureSheet::Effect => Some(&self.effects_texture),
+            PlayerTextureSheet::Fire => Some(&self.extra_textures.fire),
+            PlayerTextureSheet::Other => Some(&self.extra_textures.other),
+            PlayerTextureSheet::Player => Some(&self.texture)
+        }
+    }
+
+    pub fn do_sit(&mut self, world: &mut World) {
+        self.disable_player_input = true;
+        self.stash_last_effect();
+        self.remove_effect();
+        self.disable_player_input_time = 0;
+        self.animation_override_controller.do_sit();
+        //self.move_player(Direction::Up, world, true, true, MovementIgnoreParams::IgnoreAll, sfx);
+        self.force_move_player(Direction::Up, world);
+        //self.draw_over = true;
+        self.layer += 1;
+    }
+
+    pub fn do_lay_down(&mut self, world: &mut World) {
+        self.disable_player_input = true;
+        self.stash_last_effect();
+        self.remove_effect();
+        self.disable_player_input_time = 0;
+        self.animation_override_controller.do_lay_down();
+        self.force_move_player_custom(self.facing, world, MOVE_TIMER_MAX + 8);
+        self.exit_bed_direction = Some(self.facing.flipped());
+        self.no_snap_on_stop = true;
+    }
+
+    /// Can move the player in sub-tile increments, you should enable Player::no_snap_on_stop
+    pub fn force_move_player_custom(&mut self, direction: Direction, world: &mut World, distance: i32) {
+        self.force_move_player(direction, world);
+        self.move_timer = distance;
+    }
+
+    pub fn force_move_player(&mut self, direction: Direction, world: &mut World) {
+        self.moving = true;
+        //dbg!("force move");
+        self.move_timer = MOVE_TIMER_MAX;
+        self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
+        self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
+        world.special_context.play_sounds.push((
+            "step".to_string(),
+            1.0, 0.25
+        ));
+
+        self.facing = direction;
+        self.animation_info.frame_row = match direction {
+            Direction::Down => 1,
+            Direction::Left => 2,
+            Direction::Right => 0,
+            Direction::Up => 3
+        };
+    }
+
     pub fn move_player(&mut self, direction: Direction, world: &mut World, force: bool, just_pressed: bool, sfx: &mut SoundEffectBank) {
         if !self.moving || force {
             if self.on_stairs(world) {
@@ -214,6 +352,7 @@ impl<'a> Player<'a> {
                     let target = (pos.0 as i32 + direction.x(), pos.1 as i32 + diag);
                     if !(target.0 < 0 || target.1 < 0 || target.0 >= world.width as i32 || target.1 >= world.height as i32) && !world.get_collision_at_tile(target.0 as u32, target.1 as u32, self.layer) {
                         self.moving = true;
+                        //dbg!("stairs move");
                         self.move_timer = MOVE_TIMER_MAX;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = (self.occupied_tile.0 as i32 + diag) as u32;
@@ -238,6 +377,7 @@ impl<'a> Player<'a> {
 
             if self.can_move_in_direction(direction, world) && !self.frozen {
                 self.moving = true;
+                //dbg!("normal move");
                 self.move_timer = MOVE_TIMER_MAX;
                 self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                 self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
@@ -312,6 +452,7 @@ impl<'a> Player<'a> {
 
                     if moved {
                         self.moving = true;
+                        //dbg!("looping move");
                         self.move_timer = MOVE_TIMER_MAX;
                         self.draw_over = true;
                         let new_pos = self.get_standing_tile();
@@ -342,6 +483,9 @@ impl<'a> Player<'a> {
 
     pub fn movement_check(&mut self, input: &Input, world: &mut World, force: bool, sfx: &mut SoundEffectBank) -> bool {
         use Keycode::*;
+        if self.disable_player_input {
+            return false;
+        }
 
         let directions_pressed: Vec<Direction> = [Up, Down, Left, Right]
             .iter()
@@ -413,7 +557,7 @@ impl<'a> Player<'a> {
     pub fn apply_effect(&mut self, effect: Effect) {
         effect.apply(self);
         self.current_effect = Some(effect);
-        self.frozen_time = 32;
+        self.disable_player_input_time = 16;
         self.animation_info.effect_switch_animation = 8;
         self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
         self.effect_just_changed = true;
@@ -423,7 +567,7 @@ impl<'a> Player<'a> {
         if self.current_effect.is_some() {
             let effect = self.current_effect.take().unwrap();
             effect.remove(self);
-            self.frozen_time = 32;
+            self.disable_player_input_time = 16;
             self.animation_info.effect_switch_animation = 8;
             self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
             self.effect_just_changed = true;
@@ -438,6 +582,26 @@ impl<'a> Player<'a> {
 
     pub fn has_effect(&self, effect: &Effect) -> bool {
         return self.unlocked_effects.contains(effect);
+    }
+    
+    pub fn on_level_transition(&mut self) {
+        if self.animation_override_controller.lay_down_animation {
+            self.animation_override_controller.lay_down_animation = false;
+            self.animation_override_controller.active = false;
+            //self.facing = Direction::Down;
+            self.look_in_direction(Direction::Down);
+            self.disable_player_input = false;
+        }
+    }
+
+    pub fn look_in_direction(&mut self, direction: Direction) {
+        self.facing = direction;
+        self.animation_info.frame_row = match direction {
+            Direction::Down => 1,
+            Direction::Left => 2,
+            Direction::Right => 0,
+            Direction::Up => 3
+        }
     }
 
     pub fn update(&mut self, input: &Input, world: &mut World, sfx: &mut SoundEffectBank) {
@@ -459,16 +623,42 @@ impl<'a> Player<'a> {
             }
         }
 
+        if self.disable_player_input_time > 0 {
+            self.disable_player_input = true;
+            self.disable_player_input_time -= 1;
+            if self.disable_player_input_time == 0 {
+                self.disable_player_input = false;
+            }
+        }
+
         self.extra_textures.animate();
         self.animation_info.animate_effects();
 
-        if self.moving {
+        if self.animation_override_controller.sit_animation || self.animation_override_controller.lay_down_animation {
+            if !self.moving && !self.animation_override_controller.active {
+                self.animation_override_controller.active = true;
+            }
+        }
 
+        if self.moving {
             self.x += self.facing.x() * self.speed as i32;
             self.y += self.facing.y() * self.speed as i32;
             self.y += self.diag_move * self.speed as i32;
             self.move_timer -= self.speed as i32;
             self.animation_info.animate_walk();
+            if self.check_walkable_on_next_frame {
+                if !self.can_move_in_direction(self.facing, &world) {
+                    self.move_timer = 0;
+                    self.moving = false;
+                    self.x = (self.x as f32 / 16.0).round() as i32 * 16;
+                    self.y = (self.y as f32 / 16.0).round() as i32 * 16;
+                    self.moving = false;
+                    self.move_timer = 0;
+                    self.draw_over = false;
+                    self.diag_move = 0;
+                }
+                self.check_walkable_on_next_frame = false;
+            }
 
             // if self.animation_info.do_step {
             //     sfx.play_ex(&self.get_step_sound(world), 1.0, 0.5);
@@ -483,13 +673,21 @@ impl<'a> Player<'a> {
                 self.draw_over = false;
                 self.diag_move = 0;
             } else if self.move_timer <= 0 {
-                self.x = (self.x as f32 / 16.0).round() as i32 * 16;
-                self.y = (self.y as f32 / 16.0).round() as i32 * 16;
+                if !self.no_snap_on_stop {
+                    self.x = (self.x as f32 / 16.0).round() as i32 * 16;
+                    self.y = (self.y as f32 / 16.0).round() as i32 * 16;
+                }
+
                 self.moving = false;
                 self.move_timer = 0;
                 self.draw_over = false;
                 self.diag_move = 0;
                 world.player_walk(self.x / 16, (self.y / 16) + 1);
+
+                if let Some(reset_layer) = self.reset_layer_on_stop {
+                    self.layer = reset_layer;
+                }
+                self.reset_layer_on_stop = None;
                 if !self.movement_check(input, world, true, sfx) {
                     self.animation_info.stop();
                 }
@@ -499,8 +697,23 @@ impl<'a> Player<'a> {
             if input.get_just_pressed(Keycode::Z) {
                 let pos = self.get_standing_tile();
                 world.interactions.push(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));
+                if self.animation_override_controller.sit_animation {
+                    self.disable_player_input = false;
+                    self.animation_override_controller.sit_animation = false;
+                    self.animation_override_controller.active = false;
+                    self.force_move_player(Direction::Down, world);
+                    self.enable_last_effect();
+                    self.reset_layer_on_stop = Some(self.layer - 1);
+                } else if self.animation_override_controller.lay_down_animation {
+                    self.disable_player_input = false;
+                    self.animation_override_controller.lay_down_animation = false;
+                    self.animation_override_controller.active = false;
+                    self.force_move_player(self.exit_bed_direction.unwrap_or(Direction::Left), world);
+                    self.enable_last_effect();
+                    //self.reset_layer_on_stop = Some(self.layer - 1);
+                }
             }
-        }
+        } 
     }
 
     pub fn get_standing_tile(&self) -> (u32, u32) {
@@ -571,16 +784,22 @@ impl<'a> Player<'a> {
         }
 
         self.pre_draw(canvas, (x, y), state);
-        if self.current_effect.is_some() {
-
-            if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
-                canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
+        if !self.animation_override_controller.active {
+            if self.current_effect.is_some() {
+                if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
+                    canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
+                } else {
+                    canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
+                }
+                
             } else {
                 canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
             }
-            
         } else {
-            canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
+            let override_source = self.animation_override_controller.frame_pos;
+            if let Some(texture) = self.get_override_texture() {
+                canvas.copy(&texture.texture, Rect::new(override_source.0 as i32, override_source.1 as i32, 16, 32), Rect::new(x, y, 16, 32)).unwrap();
+            }
         }
         self.post_draw(canvas, (x, y), state);
 

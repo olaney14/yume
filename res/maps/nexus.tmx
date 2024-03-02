@@ -73,9 +73,9 @@
     <property name="solid" type="bool" value="true"/>
     <property name="start_frame" type="int" value="6"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="forest.tmx"/>
-    <property name="warp_x" type="int" value="22"/>
-    <property name="warp_y" type="int" value="20"/>
+    <property name="warp_map" value="forest/forest3.tmx"/>
+    <property name="warp_x" type="int" value="85"/>
+    <property name="warp_y" type="int" value="64"/>
    </properties>
   </object>
   <object id="6" gid="36" x="304" y="96" width="16" height="16">

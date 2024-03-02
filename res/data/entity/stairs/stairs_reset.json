@@ -1,0 +1,15 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": [{
+			"type": "set",
+			"in": "player",
+			"val": "layer",
+			"to": 0
+		}]
+	}],
+	"solid": false,
+	"walk_behind": false
+}

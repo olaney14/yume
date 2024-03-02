@@ -51,6 +51,12 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "set_variable" | "set_var" => {
             return SetVariableAction::parse(parsed);
         },
+        "sit" => {
+            return SitAction::parse(parsed);
+        },
+        "lay_down" => {
+            return LayDownAction::parse(parsed);
+        }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -148,8 +154,10 @@ impl Action for DelayedAction {
             world.queued_entity_actions.push(QueuedEntityAction {
                 delay: self.delay as i32,
                 action_id: world.special_context.action_id,
-                entity_id: world.special_context.entity_id
-            })
+                entity_id: world.special_context.entity_id,
+                multiple_action_id: world.special_context.multiple_action_index
+            });
+            //world.special_context.multiple_action_index = None;
         }
     }
 }
@@ -268,7 +276,7 @@ pub struct ConditionalAction {
 impl ConditionalAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         if !parsed["condition"].is_object() { return Err("No condition specified for conditional action".to_string()); }
-        if !parsed["action"].is_object() { return Err("No action specified for conditional action".to_string()); }
+        if !parsed["action"].is_object() && !parsed["action"].is_array() { return Err("No action specified for conditional action".to_string()); }
         let parsed_action = parse_action(&parsed["action"]);
         let parsed_condition = Condition::parse(&parsed["condition"]);
         if parsed_action.is_ok() && parsed_condition.is_some() {
@@ -377,7 +385,9 @@ impl Action for SetPropertyAction {
                     PlayerPropertyType::Height => { player.layer = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     PlayerPropertyType::X => { player.set_x(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) },
                     PlayerPropertyType::Y => { player.set_y(IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap()) },
-                    PlayerPropertyType::Dreaming => { player.dreaming = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() }
+                    PlayerPropertyType::Dreaming => { player.dreaming = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    PlayerPropertyType::Layer => { player.layer = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    PlayerPropertyType::CheckWalkable => { player.check_walkable_on_next_frame = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() }
                 }
             },
             PropertyLocation::World(prop) => {
@@ -577,8 +587,15 @@ impl MultipleAction {
 
 impl Action for MultipleAction {
     fn act(&self, player: &mut Player, world: &mut World) {
-        for action in self.actions.iter() {
-            action.act(player, world);
+        if let Some(index) = world.special_context.multiple_action_index {
+            self.actions[index].act(player, world);
+            world.special_context.multiple_action_index = None;
+        } else {
+            for (i, action) in self.actions.iter().enumerate() {
+                world.special_context.multiple_action_index = Some(i);
+                action.act(player, world);
+                world.special_context.multiple_action_index = None;
+            }
         }
     }
 }
@@ -738,5 +755,33 @@ impl Action for RemoveEntityAction {
                 }
             }
         }
+    }
+}
+
+pub struct SitAction {}
+
+impl SitAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        Ok(Box::new(Self {}))
+    }
+}
+
+impl Action for SitAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        player.do_sit(world);
+    }
+}
+
+pub struct LayDownAction {}
+
+impl LayDownAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        Ok(Box::new(Self {}))
+    }
+}
+
+impl Action for LayDownAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        player.do_lay_down(world);
     }
 }

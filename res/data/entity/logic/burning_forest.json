@@ -1,0 +1,92 @@
+{
+	"actions": [{
+		"comment": "************** Burn on switch - immediate",
+		
+		"trigger": {
+			"type": "switch"
+		},
+		"action": {
+			"type": "conditional",
+			"condition": {
+				"type": "effect_equipped",
+				"effect": "fire"
+			},
+			"action": [{
+				"type": "warp",
+				"map": "ash_forest.tmx",
+				"pos": {
+					"x": {
+						"type": "player",
+						"property": "x"
+					},
+					"y": {
+						"type": "player",
+						"property": "y"
+					}
+				},
+				"transition": {
+					"type": "fade_to_color",
+					"r": 255,
+					"g": 255,
+					"b": 255,
+					"music": false,
+					"speed": 16
+				}
+			},
+			{
+				"type": "play",
+				"sound": "extinguish",
+				"volume": 1.0,
+				"speed": 0.6
+			}]
+		}
+	},
+	{
+		"comment": "*********** Burn on load - wait 32 frames before",
+		
+		"trigger": {
+			"type": "onload"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "conditional",
+				"condition": {
+					"type": "effect_equipped",
+					"effect": "fire"
+				},
+				"action": [{
+					"type": "warp",
+					"map": "ash_forest.tmx",
+					"pos": {
+						"x": {
+							"type": "player",
+							"property": "x"
+						},
+						"y": {
+							"type": "player",
+							"property": "y"
+						}
+					},
+					"transition": {
+						"type": "fade_to_color",
+						"r": 255,
+						"g": 255,
+						"b": 255,
+						"music": false,
+						"speed": 16
+					}
+				},
+				{
+					"type": "play",
+					"sound": "extinguish",
+					"volume": 1.0,
+					"speed": 0.6
+				}]
+			},
+			"delay": 32
+		}
+	}],
+	"draw": false,
+	"solid": false
+}

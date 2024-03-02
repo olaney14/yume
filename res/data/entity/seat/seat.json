@@ -1,0 +1,14 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "sit"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

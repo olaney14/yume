@@ -94,7 +94,7 @@ pub struct Debug<'a> {
 }
 
 impl<'a> Debug<'a> {
-    pub fn update(&mut self, input: &Input, world: &mut World) {
+    pub fn update(&mut self, input: &Input, world: &mut World, player: &mut Player) {
         
         // F3 + M - Load map
         if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::M) {
@@ -105,6 +105,7 @@ impl<'a> Debug<'a> {
                     .set_directory("res/maps/")
                     .pick_file()
             }));
+            player.dreaming = true;
         }
 
         // F3 + D - warp to dev map

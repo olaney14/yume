@@ -365,6 +365,10 @@ impl<'a> World<'a> {
                         if let Some(prop) = layer.properties.get("mismatch") { if let PropertyValue::BoolValue(b) = prop { if *b { world_image_layer.timer_x /= 2; } } }
                         if let Some(prop) = layer.properties.get("parallax_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_x = *i; } };
                         if let Some(prop) = layer.properties.get("parallax_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_y = *i; } };
+                        if let Some(prop) = layer.properties.get("height") { if let PropertyValue::IntValue(i) = prop { world_image_layer.height = *i; } };
+                        if world_image_layer.height > world.layer_max {
+                            world.layer_max = world_image_layer.height;
+                        }
                         world.image_layers.push(world_image_layer);
                     }
                 }

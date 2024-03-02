@@ -97,9 +97,9 @@
   <object id="3" gid="4" x="560" y="288" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/teleport_maze/teleporter.json"/>
-    <property name="warp_map" value="forest.tmx"/>
-    <property name="warp_x" type="int" value="46"/>
-    <property name="warp_y" type="int" value="27"/>
+    <property name="warp_map" value="forest/forest3.tmx"/>
+    <property name="warp_x" type="int" value="41"/>
+    <property name="warp_y" type="int" value="65"/>
    </properties>
   </object>
   <object id="4" gid="4" x="224" y="272" width="16" height="16">

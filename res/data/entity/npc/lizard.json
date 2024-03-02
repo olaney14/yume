@@ -1,0 +1,19 @@
+{
+	"actions": [{
+		"trigger": "use",
+		"action": [{
+			"type": "set_animation_frame",
+			"target": "self",
+			"val": "$look_frame"
+		},
+		{
+			"type": "delayed",
+			"action": {
+				"type": "set_animation_frame",
+				"target": "self",
+				"val": "$default_frame"
+			},
+			"delay": 64
+		}]
+	}]
+}

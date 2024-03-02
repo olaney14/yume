@@ -3,7 +3,10 @@
 		"trigger": {
 			"type": "use"
 		},
-		"action": {
+		"action": [{
+			"type": "lay_down"
+		},
+		{
 			"type": "delayed",
 			"action": {
 				"type": "warp",
@@ -18,16 +21,8 @@
 					"hold": 64
 				}
 			},
-			"delay": 16
-		}
-	},
-	{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "freeze"
-		}
+			"delay": 64
+		}]
 	},
 	{
 		"trigger": {

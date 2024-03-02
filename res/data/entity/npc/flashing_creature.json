@@ -4,26 +4,23 @@
 			"type": "use"
 		},
 		"action": {
-			"type": "warp",
-			"map": "blue_ghost_world.tmx",
-			"pos": {
-				"x": 5,
-				"y": 5
-			},
-			"transition": "fade"
+			"type": "play",
+			"sound": "click",
+			"volume": 2.0
 		}
 	}],
 	"ai": {
 		"type": "wander",
-		"frequency": 50,
-		"delay": 150
+		"frequency": 5,
+		"delay": 50
 	},
 	"animation": {
 		"type": "sequence",
-		"start": 0,
+		"start": "$start",
 		"length": 4,
 		"speed": 10,
-		"repeat": "loop"
+		"repeat": "loop",
+		"on_move": true
 	},
 	"height": "0",
 	"solid": true,
