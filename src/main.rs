@@ -81,7 +81,8 @@ fn main() {
     ui.init(&mut sfx);
 
     //let mut save_info = SaveInfo::create_new().expect("baha");
-    let mut save_info = SaveInfo::read().expect("failed to read or open save data");
+    //let mut save_info = SaveInfo::read().expect("failed to read or open save data");
+    let mut save_info = SaveInfo::read_or_create_new().expect("failed to read or create save data, the .saves file may be missing or corrupted");
 
     let mut player = Player::new(&texture_creator);
     //player.unlocked_effects.push(effect::Effect::Speed);

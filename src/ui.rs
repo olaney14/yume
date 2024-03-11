@@ -17,6 +17,8 @@ const MENU_FRAME_BOTTOM_RIGHT: u32 = 14;
 const MENU_SELECTION_BORDER_LEFT: u32 = 3;
 const MENU_SELECTION_BORDER_RIGHT: u32 = 4;
 const MENU_SELECTION_HIGHLIGHT: u32 = 9;
+const MENU_ARROW_RIGHT: u32 = 10;
+const MENU_ARROW_LEFT: u32 = 11;
 const MENU_BUTTON_PADDING_VERT: u32 = 2;
 const MENU_BUTTON_PADDING_HORIZ: u32 = 2;
 
@@ -70,6 +72,7 @@ pub struct MenuState {
     pub switch_to_main: bool,
     pub menu_should_close: bool,
     pub menu_screenshot: bool,
+    pub page_index: i32
 }
 
 impl MenuState {
@@ -83,7 +86,8 @@ impl MenuState {
             should_quit: false,
             menu_should_close: false,
             menu_screenshot: false,
-            switch_to_main: false
+            switch_to_main: false,
+            page_index: 0
         }
     }
 
@@ -239,12 +243,12 @@ impl MenuState {
                 MenuType::SaveLoad(b) => {
                     if b {
                         // this shouldn't fail because button_id can only be negative in the scrolling functions
-                        world.special_context.pending_save = self.button_id as usize;
+                        world.special_context.pending_save = (self.button_id + self.page_index * 3) as usize;
                         self.current_menu = MenuType::SaveConfirm;
                         self.close_on_x = false;
                         self.button_id = 0;
                     } else {
-                        world.special_context.pending_load = Some(self.button_id as usize);
+                        world.special_context.pending_load = Some((self.button_id + self.page_index * 3) as usize);
                         world.special_context.new_game = true;
                         world.paused = false;
                         self.menu_should_close = true;
@@ -332,22 +336,47 @@ impl MenuState {
                 }
             },
             MenuType::SaveLoad(b) => {
-                let button_max = save_info.files.len() as i32;
                 if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
                 if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
-                if b {
-                    if self.button_id >= button_max + 1 {
+                if input.get_just_pressed(Keycode::Right) { self.page_index += 1; }
+                if input.get_just_pressed(Keycode::Left) { self.page_index -= 1; }
+
+                //let button_max = save_info.files.len() as i32;
+                //let button_max_load = ((save_info.files.len() - 1) % 3) as i32;
+                let button_max_load = (save_info.files.len() as i32 - (3 * self.page_index)).min(3);
+                let page_max_load = (save_info.files.len() as i32 - 1).max(0) / 3;
+                //let button_max_save = button_max_load + 1;
+                let button_max_save = (save_info.files.len() as i32 - (3 * self.page_index) + 1).min(3);
+                // if self.page_index != 0 {
+                //     button_max_save = (1 + button_max_save).min(3);
+                // }
+                let page_max_save = (save_info.files.len() / 3) as i32;
+        
+                if b { // Save
+                    if self.button_id >= button_max_save {
                         self.button_id = 0;
                     }
                     if self.button_id < 0 {
-                        self.button_id = button_max;
+                        self.button_id = (button_max_save - 1).max(0);
                     }
-                } else {
-                    if self.button_id >= button_max {
+                    if self.page_index < 0 {
+                        self.page_index = page_max_save;
+                    }
+                    if self.page_index > page_max_save {
+                        self.page_index = 0;
+                    }
+                } else { // Load
+                    if self.button_id >= button_max_load {
                         self.button_id = 0;
                     }
                     if self.button_id < 0 {
-                        self.button_id = button_max - 1;
+                        self.button_id = (button_max_load - 1).max(0);
+                    }
+                    if self.page_index < 0 {
+                        self.page_index = page_max_load;
+                    }
+                    if self.page_index > page_max_load {
+                        self.page_index = 0;
                     }
                 }
             },
@@ -582,29 +611,46 @@ impl<'a> Ui<'a> {
                     self.theme.draw_frame(canvas, 0, 0, state.screen_extents.0 / 16, 2);
                     self.theme.font.draw_string(canvas, if b { "Save Game" } else { "Load Game" }, (14, 9));
                     let mut y = 32;
-                    for (id, entry) in save_info.files.iter() {
-                        self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
-                        let slot_message = String::from("Slot ") + &(id + 1).to_string();
-                        let effects_message = entry.effects.to_string() + if entry.effects == 1 { " Effect" } else { " Effects" };
-                        self.theme.draw_button(canvas, 14, y as i32 + 9, 48, &slot_message, self.menu_state.button_id == *id as i32, self.menu_state.selection_flash);
-                        self.theme.font.draw_string(canvas, "Haigotsuki", (14, y as i32 + 9 + 16));
-                        self.theme.font.draw_string(canvas, &effects_message, (14, y as i32 + 9 + 32));
-                        canvas.copy(
-                            &self.player_preview_texture.texture, 
-                            None, 
-                            Rect::new(
-                                100, y as i32 + 8, 48, 48
-                            )
-                        ).unwrap();
 
-                        y += 64;
+                    let drawn_files = save_info.files.len() as i32 + if b { 1 } else { 0 };
+                    let buttons_on_page = (drawn_files - (self.menu_state.page_index * 3)).min(3);
+                    let selected_button = (self.menu_state.page_index * 3) + self.menu_state.button_id;
+
+                    let page_left = self.menu_state.page_index > 0;
+                    let page_right = self.menu_state.page_index < ((drawn_files - 1) / 3);
+
+                    for i in 0..buttons_on_page {
+                        let id = (i + (self.menu_state.page_index * 3)) as u32;
+                        if b && id >= save_info.files.len() as u32 { // New file
+                            let slot_message = String::from("Slot ") + &(save_info.files.len() + 1).to_string();
+                            self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
+                            self.theme.draw_button(canvas, 14 + 8, y as i32 + 9, 48, &slot_message, selected_button == save_info.files.len() as i32, self.menu_state.selection_flash);
+                            self.theme.font.draw_string(canvas, "New Save", (14 + 8, y as i32 + 9 + 16));
+                        } else { // Overwrite
+                            let entry = save_info.files.get(&id).unwrap();
+
+                            self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
+                            let slot_message = String::from("Slot ") + &(id + 1).to_string();
+                            let effects_message = entry.effects.to_string() + if entry.effects == 1 { " Effect" } else { " Effects" };
+                            self.theme.draw_button(canvas, 14 + 8, y as i32 + 9, 48, &slot_message, selected_button == id as i32, self.menu_state.selection_flash);
+                            self.theme.font.draw_string(canvas, "Wasutsuki", (14 + 8, y as i32 + 9 + 16));
+                            self.theme.font.draw_string(canvas, &effects_message, (14 + 8, y as i32 + 9 + 32));
+                            canvas.copy(
+                                &self.player_preview_texture.texture,
+                                None,
+                                Rect::new(
+                                    100, y as i32 + 8, 48, 48
+                                )
+                            ).unwrap();
+                            y += 64;
+                        }
                     }
 
-                    if b {
-                        let slot_message = String::from("Slot ") + &(save_info.files.len() + 1).to_string();
-                        self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
-                        self.theme.draw_button(canvas, 14, y as i32 + 9, 48, &slot_message, self.menu_state.button_id == save_info.files.len() as i32, self.menu_state.selection_flash);
-                        self.theme.font.draw_string(canvas, "New Save", (14, y as i32 + 9 + 16));
+                    if page_left && self.menu_state.selection_flash {
+                        self.theme.draw_element(canvas, 4, 32 + 64 + 24, MENU_ARROW_LEFT);
+                    }
+                    if page_right && self.menu_state.selection_flash {
+                        self.theme.draw_element(canvas, state.screen_extents.0 as i32 - (4 + 16), 32 + 64 + 24, MENU_ARROW_RIGHT);
                     }
                 },
                 MenuType::Special => {
@@ -701,6 +747,10 @@ impl<'a> MenuSet<'a> {
         }
 
         self.font.draw_string(canvas, text, (x + 4, y + 3));
+    }
+
+    pub fn draw_element<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: i32, y: i32, tile: u32) {
+        self.tileset.draw_tile(canvas, tile, (x, y));
     }
 
     pub fn draw_button_strikethrough<T: RenderTarget>(&self, canvas: &mut Canvas<T>, x: i32, y: i32, w: i32, text: &str, selected: bool, flash: bool) {

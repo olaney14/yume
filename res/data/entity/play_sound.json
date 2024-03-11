@@ -1,0 +1,15 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "play",
+			"sound": "$sound",
+			"volume": "$volume"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

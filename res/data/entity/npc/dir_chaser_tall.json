@@ -1,0 +1,48 @@
+{
+	"ai": {
+		"type": "chaser",
+		"speed": 1,
+		"detection_radius": 100
+	},
+	"animation": {
+		"type": "directional",
+		"up": 3,
+		"down": 1,
+		"left": 2,
+		"right": 0,
+		"frames": 3,
+		"speed": 4,
+		"repeat": "cycle",
+		"on_move": true
+	},
+	"collider": {
+		"x": 0,
+		"y": 16,
+		"w": 16,
+		"h": 16
+	},
+	"actions": [{
+		"trigger": "bump",
+		"action": [{
+			"type": "warp",
+			"map": "$warp_map",
+			"pos": {
+				"x": "$warp_x",
+				"y": "$warp_y"
+			},
+			"transition": { 
+				"type": "pixelate",
+				"music": true,
+				"speed": 2,
+				"hold": 16
+			}
+		},
+		{
+			"type": "play",
+			"sound": "shriek"
+		}]
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": true
+}

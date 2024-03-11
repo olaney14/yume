@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use json::JsonValue;
 
-use crate::{player::Player, world::{World, QueuedEntityAction, self}, game::{WarpPos, Transition, IntProperty, QueuedLoad, Condition, PropertyLocation, PlayerPropertyType, LevelPropertyType, BoolProperty, StringProperty, FloatProperty}, effect::Effect, audio::Song, ai::Animator, entity::{Entity, VariableValue}};
+use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, Transition, WarpPos}, player::Player, world::{self, QueuedEntityAction, World}};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if parsed.is_array() {
@@ -360,6 +360,9 @@ impl SetPropertyAction {
             },
             "world" => {
                 location = Some(PropertyLocation::World(LevelPropertyType::parse(&parsed["val"]).unwrap()));
+            },
+            "entity" => {
+                location = Some(PropertyLocation::Entity(EntityPropertyType::parse(&parsed["val"]).unwrap()))
             }
             _ => return Err("invalid target for set action".to_string())
         }
@@ -403,6 +406,13 @@ impl Action for SetPropertyAction {
                     LevelPropertyType::BackgroundR => { world.background_color.r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
                     LevelPropertyType::Paused => { world.paused = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     LevelPropertyType::SpecialSaveGame => { world.special_context.save_game = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                }
+            },
+            PropertyLocation::Entity(prop) => {
+                if world.special_context.entity_context.entity_call {
+                    world.special_context.entity_context.set_properties.push((prop.clone(), self.val.clone()));
+                } else {
+                    eprintln!("Warning: SetPropertyAction called on entity from outside entity call context");
                 }
             }
         }

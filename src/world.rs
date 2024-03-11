@@ -1,9 +1,10 @@
 use std::{path::PathBuf, collections::HashMap, rc::Rc, cell::RefCell};
 
+use json::JsonValue;
 use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 
-use crate::{tiles::{Tilemap, Tileset, Tile, SpecialTile}, player::Player, game::{RenderState, QueuedLoad, Transition, self, TransitionTextures}, audio::{Song, SoundEffectBank}, entity::{Entity, Trigger, VariableValue}, texture, effect::Effect, actions::Action};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, IntProperty, QueuedLoad, RenderState, Transition, TransitionTextures}, player::{self, Player}, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}};
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -342,7 +343,7 @@ impl<'a> World<'a> {
 
             self.special_context.entity_context.entity_call = true;
             for (i, j) in act_entities.iter() {
-                let entity = self.entities.as_mut().unwrap().remove(*i);
+                let mut entity = self.entities.as_mut().unwrap().remove(*i);
                 self.special_context.action_id = *j;
                 self.special_context.entity_id = *i;
                 self.special_context.entity_context.id = *i as i32;
@@ -350,6 +351,7 @@ impl<'a> World<'a> {
                 self.special_context.entity_context.y = entity.y;
                 self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                 entity.actions.get(*j).unwrap().action.act(player, self);
+                self.apply_set_entity_properties(&mut entity, player);
                 self.entities.as_mut().unwrap().insert(*i, entity);
             }
 
@@ -366,7 +368,7 @@ impl<'a> World<'a> {
             //self.special_context.multiple_action_index = None;
             if let Some(delayed_action) = action_opt {
                 let action = self.queued_entity_actions.remove(delayed_action);
-                let entity = self.entities.as_mut().unwrap().remove(action.entity_id);
+                let mut entity = self.entities.as_mut().unwrap().remove(action.entity_id);
                 self.special_context.entity_id = action.entity_id;
                 self.special_context.action_id = action.action_id;
                 self.special_context.multiple_action_index = action.multiple_action_id;
@@ -377,6 +379,7 @@ impl<'a> World<'a> {
                 self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
                 entity.actions.get(action.action_id).unwrap().action.act(player, self);
                 self.special_context.delayed_run = false;
+                self.apply_set_entity_properties(&mut entity, player);
                 self.entities.as_mut().unwrap().insert(action.entity_id, entity);
             }
 
@@ -394,6 +397,8 @@ impl<'a> World<'a> {
                     }
                     action.run_on_next_loop = false;
                 }
+                // TODO this might be a problem if some set actions depend on others
+                self.apply_set_entity_properties(&mut entity, player);
                 placeholder = Some(std::mem::replace(self.entities.as_mut().unwrap().get_mut(i).unwrap(), entity));
             }
             for deferred_action in std::mem::take(&mut self.special_context.deferred_entity_actions).into_iter() {
@@ -407,6 +412,23 @@ impl<'a> World<'a> {
 
             if let Some(id) = self.special_context.entity_removal_queue.pop() {
                 self.entities.as_mut().unwrap().remove(id);
+            }
+        }
+    }
+
+    pub fn apply_set_entity_properties(&mut self, entity: &mut Entity, player: &Player) {
+        let mut properties = vec![];
+        // TODO: i think this flips the order and might be a problem later on
+        while !self.special_context.entity_context.set_properties.is_empty() {
+            properties.push(self.special_context.entity_context.set_properties.remove(0));
+        }
+
+        for (prop, val) in properties {
+            match prop {
+                EntityPropertyType::ID => { eprintln!("no") },
+                EntityPropertyType::Draw => { entity.draw = BoolProperty::parse(&val).unwrap().get(Some(player), Some(self)).unwrap() },
+                EntityPropertyType::X => { entity.x = IntProperty::parse(&val).unwrap().get(Some(player), Some(self)).unwrap() },
+                EntityPropertyType::Y => { entity.y = IntProperty::parse(&val).unwrap().get(Some(player), Some(self)).unwrap() },
             }
         }
     }
@@ -917,7 +939,8 @@ pub struct EntityContext {
     pub id: i32,
     pub x: i32,
     pub y: i32,
-    pub entity_variables: Option<Rc<RefCell<HashMap<String, VariableValue>>>>
+    pub entity_variables: Option<Rc<RefCell<HashMap<String, VariableValue>>>>,
+    pub set_properties: Vec<(EntityPropertyType, JsonValue)>
 }
 
 impl EntityContext {
@@ -927,7 +950,8 @@ impl EntityContext {
             id: 0,
             x: 0,
             y: 0,
-            entity_variables: None
+            entity_variables: None,
+            set_properties: vec![]
         }
     }
 }

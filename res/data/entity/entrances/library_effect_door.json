@@ -1,0 +1,84 @@
+{
+	"ai": {
+		"type": "animate_on_interact",
+		"frames": 1,
+		"use": true,
+		"side": "bottom"
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 5,
+		"length": 2,
+		"speed": 4,
+		"manual": true
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "conditional",
+			"condition": {
+				"type": "effect_equipped",
+				"effect": "glasses"
+			},
+			"action": [{
+				"type": "delayed",
+				"action": {
+					"type": "warp",
+					"map": "$warp_map",
+					"pos": {
+						"x": "$warp_x",
+						"y": "$warp_y"
+					},
+					"transition": { 
+						"type": "fade",
+						"music": false
+					}
+				},
+				"delay": 32
+			},
+			{
+				"type": "freeze"
+			}]
+		}
+	},
+	{
+		"trigger": {
+			"type": ["onload", "switch"]
+		},
+		"action": [{
+			"type": "conditional",
+			"condition": {
+				"type": "effect_equipped",
+				"effect": "glasses"
+			},
+			"action": {
+				"type": "set",
+				"in": "entity",
+				"val": "draw",
+				"to": true
+			}
+		},
+		{
+			"type": "conditional",
+			"condition": {
+				"type": "negate",
+				"condition": {
+					"type": "effect_equipped",
+					"effect": "glasses"
+				}
+			},
+			"action": {
+				"type": "set",
+				"in": "entity",
+				"val": "draw",
+				"to": false
+			}
+		}]
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

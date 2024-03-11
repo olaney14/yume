@@ -1,4 +1,4 @@
-use std::{path::PathBuf, fs::File, error::Error, collections::{HashMap, BTreeMap}};
+use std::{collections::{BTreeMap, HashMap}, error::Error, fs::File, path::{Path, PathBuf}};
 
 use sdl2::render::TextureCreator;
 use serde_derive::{Serialize, Deserialize};
@@ -119,6 +119,15 @@ impl SaveInfo {
         let mut write = File::create("saves/.saves")?;
         serde_cbor::to_writer(&mut write, &save_data)?;
         Ok(save_data)
+    }
+
+    pub fn read_or_create_new() -> Result<Self, Box<dyn Error>> {
+        let saves_path = Path::new("saves/.saves");
+        if saves_path.exists() {
+            return SaveInfo::read();
+        } else {
+            return SaveInfo::create_new();
+        }
     }
 
     pub fn write(&self) -> Result<(), Box<dyn Error>> {

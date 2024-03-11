@@ -258,10 +258,11 @@ impl<'a> Player<'a> {
         self.last_effect = self.current_effect.clone();
     }
 
-    pub fn enable_last_effect(&mut self) {
+    pub fn enable_last_effect(&mut self) -> bool {
         match &self.last_effect {
             Some(e) => {
                 self.apply_effect(e.clone());
+                return true;
             },
             None => self.remove_effect(),
         }
@@ -297,7 +298,9 @@ impl<'a> Player<'a> {
     pub fn do_sit(&mut self, world: &mut World) {
         self.disable_player_input = true;
         self.stash_last_effect();
-        self.remove_effect();
+        if self.remove_effect() {
+            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 1.0));
+        }
         self.disable_player_input_time = 0;
         self.animation_override_controller.do_sit();
         //self.move_player(Direction::Up, world, true, true, MovementIgnoreParams::IgnoreAll, sfx);
@@ -309,7 +312,9 @@ impl<'a> Player<'a> {
     pub fn do_lay_down(&mut self, world: &mut World) {
         self.disable_player_input = true;
         self.stash_last_effect();
-        self.remove_effect();
+        if self.remove_effect() {
+            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 1.0));
+        }
         self.disable_player_input_time = 0;
         self.animation_override_controller.do_lay_down();
         self.force_move_player_custom(self.facing, world, MOVE_TIMER_MAX + 8);
@@ -563,7 +568,7 @@ impl<'a> Player<'a> {
         self.effect_just_changed = true;
     }
 
-    pub fn remove_effect(&mut self) {
+    pub fn remove_effect(&mut self) -> bool {
         if self.current_effect.is_some() {
             let effect = self.current_effect.take().unwrap();
             effect.remove(self);
@@ -571,7 +576,9 @@ impl<'a> Player<'a> {
             self.animation_info.effect_switch_animation = 8;
             self.animation_info.effect_switch_animation_timer = SWITCH_EFFECT_ANIMATION_SPEED;
             self.effect_just_changed = true;
+            return true;
         }
+        false
     }
 
     pub fn give_effect(&mut self, effect: Effect) {
@@ -702,15 +709,18 @@ impl<'a> Player<'a> {
                     self.animation_override_controller.sit_animation = false;
                     self.animation_override_controller.active = false;
                     self.force_move_player(Direction::Down, world);
-                    self.enable_last_effect();
+                    if self.enable_last_effect() {
+                        sfx.play("effect");
+                    }
                     self.reset_layer_on_stop = Some(self.layer - 1);
                 } else if self.animation_override_controller.lay_down_animation {
                     self.disable_player_input = false;
                     self.animation_override_controller.lay_down_animation = false;
                     self.animation_override_controller.active = false;
                     self.force_move_player(self.exit_bed_direction.unwrap_or(Direction::Left), world);
-                    self.enable_last_effect();
-                    //self.reset_layer_on_stop = Some(self.layer - 1);
+                    if self.enable_last_effect() {
+                        sfx.play("effect");
+                    }
                 }
             }
         } 

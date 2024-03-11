@@ -5,7 +5,7 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}, pixels::Color, rect::Rect};
 
-use crate::{player::Player, world::{World, QueuedEntityAction}, effect::Effect, texture::Texture, audio::Song, entity::VariableValue};
+use crate::{audio::Song, effect::Effect, entity::{Entity, VariableValue}, player::Player, texture::Texture, world::{QueuedEntityAction, World}};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
@@ -182,7 +182,8 @@ impl Condition {
 pub enum EntityPropertyType {
     X,
     Y,
-    ID
+    ID,
+    Draw
 }
 
 impl EntityPropertyType {
@@ -198,6 +199,7 @@ impl EntityPropertyType {
             "x" => Some(EntityPropertyType::X),
             "y" => Some(EntityPropertyType::Y),
             "id" => Some(EntityPropertyType::ID),
+            "draw" => Some(EntityPropertyType::Draw),
             _ => None
         }
     }
@@ -1427,5 +1429,6 @@ pub struct QueuedLoad {
 
 pub enum PropertyLocation {
     Player(PlayerPropertyType),
-    World(LevelPropertyType)
+    World(LevelPropertyType),
+    Entity(EntityPropertyType)
 }

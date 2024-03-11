@@ -26,8 +26,10 @@
 					"x": "$door_warp_x",
 					"y": "$door_warp_y"
 				},
-				"transition": "fade",
-				"transition_music": false
+				"transition": { 
+					"type": "fade",
+					"music": false
+				}
 			},
 			"delay": 32
 		}
