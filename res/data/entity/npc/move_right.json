@@ -1,7 +1,7 @@
 {
 	"ai": {
 		"type": "move_straight",
-		"direction": "left"
+		"direction": "up"
 	},
 	"animation": {
 		"type": "sequence",

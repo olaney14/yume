@@ -609,7 +609,6 @@ impl<'a> Player<'a> {
         }
     }
     
-    // TODO: very slow speeds with delay between move
     /// Speed, delay
     pub fn speed(&self) -> (u32, u32) {
         if self.speed_mod == 0 {

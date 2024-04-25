@@ -1,6 +1,7 @@
 {
 	"ai": {
 		"type": "chaser",
+		"pathfinder": "walk_towards",
 		"speed": 2,
 		"detection_radius": 100
 	},

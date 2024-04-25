@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="3">
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="3">
  <properties>
   <property name="clamp_camera" type="bool" value="true"/>
   <property name="default_pos" value="3,56"/>
-  <property name="music" value="res/audio/music/warder.ogg"/>
-  <property name="music_speed" type="float" value="0.75"/>
-  <property name="music_volume" type="float" value="1"/>
   <property name="tint" value="0,0,0,127"/>
  </properties>
  <tileset firstgid="1" source="../tilesets/lab.tsx"/>

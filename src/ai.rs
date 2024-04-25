@@ -1,8 +1,8 @@
-use std::{collections::VecDeque, str::FromStr};
+use std::{collections::VecDeque, ops::Rem, str::FromStr, task::Poll, time::Instant};
 
 use json::JsonValue;
 
-use crate::{entity::Entity, world::{World, Interaction}, game::Direction, player::Player};
+use crate::{entity::Entity, game::Direction, player::Player, world::{self, Interaction, World}};
 
 pub enum AnimationAdvancementType {
     Cycle(i32),
@@ -172,9 +172,32 @@ impl Ai for MoveStraight {
     }
 }
 
+pub enum PathfinderType {
+    AStar,
+    WalkTowards
+}
+
+impl PathfinderType {
+    pub fn parse(input: &str) -> Option<Self> {
+        match input.to_lowercase().as_str() {
+            "astar" | "a_star" | "a*" => return Some(Self::AStar),
+            "walk_towards" | "walktowards" => return Some(Self::WalkTowards),
+            _ => return None
+        }
+    }
+
+    pub fn initialize(&self, world: &World) -> Pathfinder {
+        match self {
+            Self::AStar => return Pathfinder::a_star(world),
+            Self::WalkTowards => return Pathfinder::walk_towards()
+        }
+    }
+}
+
 pub struct Chaser {
     pub speed: u32,
-    pub pathfinder: Option<AStarPathfinder>,
+    pub pathfinder_type: PathfinderType,
+    pub pathfinder: Option<Pathfinder>,
     pub following_path: bool,
     pub init: bool,
     pub path_max: u32,
@@ -206,7 +229,7 @@ impl Ai for Chaser {
 
         if !self.init {
             self.init = true;
-            self.pathfinder = Some(AStarPathfinder::new(world));
+            self.pathfinder = Some(self.pathfinder_type.initialize(world));
             entity.init_movement();
             entity.movement.as_mut().unwrap().speed = self.speed;
             self.player_last_pos = player_pos;
@@ -217,28 +240,48 @@ impl Ai for Chaser {
                 self.needs_recalculation = true;
             }
         }
-        
-        if player_in_range && self.needs_recalculation && !entity.movement.as_ref().unwrap().moving {
-            self.needs_recalculation = false;
-            let mut pathfinder = self.pathfinder.take().unwrap();
-            if pathfinder.pathfind_to(entity.collision_x() as u32 / 16, entity.collision_y() as u32 / 16, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list).is_ok() {
-                self.following_path = true;
-            } else {
-                self.needs_recalculation = false;
-            }
-            self.pathfinder = Some(pathfinder);
-        }
 
-        if player_in_range && self.following_path && !entity.movement.as_ref().unwrap().moving {
-            if let Some(direction) = self.pathfinder.as_ref().unwrap().get_step() {
-                let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
-                if entity.walk(direction, world, player, entity_list) {
-                    self.pathfinder.as_mut().unwrap().advance_step();
+        // Update calculated pathfinder
+        if self.pathfinder.as_ref().unwrap().is_calculated() {
+            if player_in_range && self.needs_recalculation && !entity.movement.as_ref().unwrap().moving {
+                self.needs_recalculation = false;
+                let mut pathfinder_container = self.pathfinder.take().unwrap();
+                let mut pathfinder = pathfinder_container.get_calculated().unwrap();
+                let x = (entity.collision_x() / 16).rem_euclid(world.width as i32) as u32;
+                let y = (entity.collision_y() / 16).rem_euclid(world.height as i32) as u32;
+                if pathfinder.pathfind_to(x, y, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list).is_ok() {
+                    self.following_path = true;
+                } else {
+                    self.needs_recalculation = false;
                 }
-                if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
-                    world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                self.pathfinder = Some(pathfinder_container);
+            }
+
+            if player_in_range && self.following_path && !entity.movement.as_ref().unwrap().moving {
+                if let Some(direction) = self.pathfinder.as_mut().unwrap().get_calculated().as_ref().unwrap().get_step() {
+                    let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
+                    if entity.walk(direction, world, player, entity_list) {
+                        self.pathfinder.as_mut().unwrap().get_calculated().as_mut().unwrap().advance_step();
+                    }
+                    if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
+                        world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                    }
+                    self.last_walk_pos = walk_pos;
                 }
-                self.last_walk_pos = walk_pos;
+            }
+        } else { // Update polled pathfinder
+            if !entity.movement.as_ref().unwrap().moving {
+                let x = (entity.collision_x() / 16).rem_euclid(world.width as i32) as u32;
+                let y = (entity.collision_y() / 16).rem_euclid(world.height as i32) as u32;
+                if let Some(direction) = self.pathfinder.as_mut().unwrap().get_polled().as_mut().unwrap()
+                    .poll(x, y, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list) {
+                    let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
+                    entity.walk(direction, world, player, entity_list);
+                    if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
+                        world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                    }
+                    self.last_walk_pos = walk_pos;
+                }
             }
         }
     }
@@ -333,9 +376,11 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
             let speed = parsed["speed"].as_u32().unwrap_or(1);
             let path_max = parsed["path_max"].as_u32().unwrap_or(ASTAR_MAX_STEPS);
             let detection_radius = parsed["detection_radius"].as_u32().unwrap_or(16);
+            let pathfinder = parsed["pathfinder"].as_str().unwrap_or("walk_towards");
             return Ok(Box::new(
                 Chaser {
                     speed,
+                    pathfinder_type: PathfinderType::parse(pathfinder).expect("Invalid pathfinder type"),
                     pathfinder: None,
                     following_path: false,
                     init: false,
@@ -448,7 +493,6 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
             if !parsed["frames"].is_number() { return Err("No frames length specified for directional sequence"); }
             let frames = parsed["frames"].as_u32().unwrap();
             let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
-            //let idle = parsed["idle"].as_u32().unwrap_or(down * frames + (frames / 2));
 
             return Ok(
                 Animator {
@@ -474,31 +518,216 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
     }
 }
 
+pub enum Pathfinder {
+    Calculated(Box<dyn CalculatedPathfinder>),
+    Polled(Box<dyn PolledPathfinder>)
+}
+
+impl Pathfinder {
+    pub fn a_star(world: &World) -> Self {
+        Self::Calculated(Box::new(
+            AStarPathfinder::new(world)
+        ))
+    }
+
+    pub fn walk_towards() -> Self {
+        Self::Polled(Box::new(
+            WalkTowardsPathfinder {}
+        ))
+    }
+
+    pub fn is_polled(&self) -> bool {
+        matches!(self, Self::Polled(..))
+    }
+
+    pub fn is_calculated(&self) -> bool {
+        matches!(self, Self::Calculated(..))
+    }
+
+    pub fn get_polled(&mut self) -> Option<&mut Box<dyn PolledPathfinder>> {
+        match self {
+            Self::Polled(p) => return Some(p),
+            _ => return None
+        }
+    }
+
+    pub fn get_calculated(&mut self) -> Option<&mut Box<dyn CalculatedPathfinder>> {
+        match self {
+            Self::Calculated(c) => return Some(c),
+            _ => return None
+        }
+    }
+}
+
+pub trait CalculatedPathfinder {
+    fn pathfind_to(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, _player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Result<(), ()>;
+    fn get_step(&self) -> Option<Direction>;
+    fn advance_step(&mut self) -> Option<Direction>;
+}
+
+pub trait PolledPathfinder {
+    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction>;
+}
+
 pub fn manhattan_dist(x0: u32, y0: u32, x1: u32, y1: u32) -> u32 {
     x0.abs_diff(x1) + y0.abs_diff(y1)
+}
+
+pub fn manhattan_looped_dist(x0: u32, y0: u32, x1: u32, y1: u32, width: u32, height: u32) -> u32 {
+    let xbase0 = (x0 as i32 - x1 as i32).rem_euclid(width as i32) as u32;
+    let ybase0 = (y0 as i32 - y1 as i32).rem_euclid(height as i32) as u32;
+    let xbase1 = (x1 as i32 - x0 as i32).rem_euclid(width as i32) as u32;
+    let ybase1 = (y1 as i32 - y0 as i32).rem_euclid(height as i32) as u32;
+
+    return manhattan_dist(x0, y0, x1, y1)
+        .min(manhattan_dist(0, 0, xbase0, ybase0))
+        .min(manhattan_dist(0, 0, xbase1, ybase1));
 }
 
 const ASTAR_MAX_STEPS: u32 = 10000;
 
 pub struct AStarPathfinder {
     // g, h costs
-    costs: Vec<PathfinderTile>,
+    costs: Vec<AStarPathfinderTile>,
     pub cur_path: VecDeque<Direction>
 }
 
 #[derive(Debug)]
-struct PathfinderTile {
+struct AStarPathfinderTile {
     pub g_cost: u32,
     pub h_cost: u32,
     pub direction: Option<Direction>,
     pub checked: bool
 }
 
+impl CalculatedPathfinder for AStarPathfinder {
+    fn get_step(&self) -> Option<Direction> {
+        self.cur_path.front().copied()
+    }
+
+    fn advance_step(&mut self) -> Option<Direction> {
+        self.cur_path.pop_front()
+    }
+
+    // TODO: !!!!! you can limit the radius of search to the entity's search radius
+    // TODO: the thingy still sometimes "hesitates" at looping boundaries but it kinda works now
+    fn pathfind_to(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, _player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Result<(), ()> {
+        self.clear();
+        let mut i = 0;
+        let mut x = x0;
+        let mut y = y0;
+        if x1 < 0 || y1 < 0 || x1 >= world.width as i32 || y1 >= world.height as i32 {
+            return Err(());
+        }
+
+        while i < ASTAR_MAX_STEPS {
+            use Direction::*;
+
+            //let mut time = Instant::now();
+            for dir in [Up, Down, Left, Right].into_iter() {
+                let mut check_x = x as i32 + dir.x();
+                let mut check_y = y as i32 + dir.y();
+
+                if world.looping {
+                    if world.loop_horizontal() && (check_x < 0 || check_x >= world.width as i32) {
+                        check_x = check_x.rem_euclid(world.width as i32);
+                    }
+
+                    if world.loop_vertical() && (check_y < 0 || check_y >= world.height as i32) {
+                        check_y = check_y.rem_euclid(world.height as i32);
+                    }
+                }
+
+                if check_x == x1 as i32 && check_y == y1 as i32 {
+                    self.costs[(check_y * world.width as i32 + check_x) as usize].direction = Some(dir.flipped());
+                    if self.calc_path(x0, y0, x1 as u32, y1 as u32, world) {
+                        return Ok(());
+                    } else {
+                        return Err(());
+                    }
+                }
+
+                // if the coordinate is either out of bounds or blocked, either do nothing or keep the value
+                if !world.looping {
+                    if check_x < 0 || check_y < 0 || check_x >= world.width as i32 || check_y >= world.height as i32 {
+                        continue;
+                    }
+                }
+
+                if world.collide_entity_at_tile_with_list(check_x as u32, check_y as u32, None, height, entity_list) {
+                    continue;
+                }
+
+                let index = (check_y * world.width as i32 + check_x) as usize;
+                let last_g = self.costs[index].g_cost;
+                let last_h = self.costs[index].h_cost;
+                let new_g = if world.looping { 
+                    manhattan_looped_dist(x0, y0, check_x as u32, check_y as u32, world.width, world.height)
+                } else {
+                    manhattan_dist(x0, y0, check_x as u32, check_y as u32)
+                };
+                let new_h = if world.looping { 
+                    manhattan_looped_dist(x1 as u32, y1 as u32, check_x as u32, check_y as u32, world.width, world.height)
+                } else {
+                    manhattan_dist(x1 as u32, y1 as u32, check_x as u32, check_y as u32)
+                };
+                if new_g < last_g {
+                    self.costs[index].g_cost = new_g;
+                    self.costs[index].direction = Some(dir.flipped());
+                }
+                if new_h < last_h {
+                    self.costs[index].h_cost = new_h;
+                }
+            }
+
+            //println!("Check time: {:?}", Instant::now() - time);
+            //time = Instant::now();
+            let min = self.costs.iter().enumerate().min_by(|(_, a), (_, b)| {
+                let f0 = a.g_cost + a.h_cost;
+                let f1 = b.g_cost + b.h_cost;
+    
+                if a.checked && !b.checked {
+                    return std::cmp::Ordering::Greater;
+                } else if !a.checked && b.checked {
+                    return std::cmp::Ordering::Less;
+                }
+
+                let cmp = f0.cmp(&f1);
+                match cmp {
+                    std::cmp::Ordering::Equal => return a.h_cost.cmp(&b.h_cost),
+                    _ => return cmp
+                }
+            });
+            //println!("Find min time: {:?}", Instant::now() - time);
+            //time = Instant::now();
+            if let Some((index, _)) = min {
+                if self.costs[index].checked || self.costs[index].direction == None {
+                    // Break if we've repeated a check (this means there is nothing new to check)
+                    eprintln!("bye bye! with {} loops", i);
+                    return Err(());
+                }
+                self.costs[(y * world.width + x) as usize].checked = true;
+                x = index as u32 % world.width;
+                y = index as u32 / world.width;
+            } else {
+                eprintln!("No min?");
+                break;
+            }
+            //println!("Final check time: {:?}", Instant::now() - time);
+
+            i += 1;
+        }
+
+        println!("Overrun");
+        Err(())
+    }
+}
+
 impl AStarPathfinder {
     pub fn new(world: &World) -> Self {
         let mut costs = Vec::with_capacity((world.width * world.height) as usize);
         for _ in 0..world.height * world.width {
-            costs.push(PathfinderTile {
+            costs.push(AStarPathfinderTile {
                 checked: false,
                 direction: None,
                 g_cost: u32::MAX / 2 - 1,
@@ -533,8 +762,17 @@ impl AStarPathfinder {
             let direction = self.costs[(y * world.width + x) as usize].direction;
             if let Some(dir) = direction {
                 steps.push(dir.flipped());
-                x = (x as i32 + dir.x()) as u32;
-                y = (y as i32 + dir.y()) as u32;
+                if world.loop_horizontal() {
+                    x = (x as i32 + dir.x()).rem_euclid(world.width as i32) as u32;
+                } else {
+                    x = (x as i32 + dir.x()) as u32;
+                }
+
+                if world.loop_vertical() {
+                    y = (y as i32 + dir.y()).rem_euclid(world.height as i32) as u32;
+                } else {
+                    y = (y as i32 + dir.y()) as u32;
+                }
             } else {
                 return false;
             }
@@ -543,93 +781,86 @@ impl AStarPathfinder {
         self.cur_path = steps.into();
         return true;
     }
+}
 
-    pub fn get_step(&self) -> Option<Direction> {
-        self.cur_path.front().copied()
-    }
+// pub fn manhattan_dist(x0: u32, y0: u32, x1: u32, y1: u32) -> u32 {
+//     x0.abs_diff(x1) + y0.abs_diff(y1)
+// }
 
-    pub fn advance_step(&mut self) -> Option<Direction> {
-        self.cur_path.pop_front()
-    }
+// pub fn manhattan_looped_dist(x0: u32, y0: u32, x1: u32, y1: u32, width: u32, height: u32) -> u32 {
+//     let xbase0 = (x0 as i32 - x1 as i32).rem_euclid(width as i32) as u32;
+//     let ybase0 = (y0 as i32 - y1 as i32).rem_euclid(height as i32) as u32;
+//     let xbase1 = (x1 as i32 - x0 as i32).rem_euclid(width as i32) as u32;
+//     let ybase1 = (y1 as i32 - y0 as i32).rem_euclid(height as i32) as u32;
 
-    pub fn pathfind_to(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, _player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Result<(), ()> {
-        self.clear();
-        let mut i = 0;
-        let mut x = x0;
-        let mut y = y0;
-        if x1 < 0 || y1 < 0 || x1 >= world.width as i32 || y1 >= world.height as i32 {
-            return Err(());
-        }
-        while i < ASTAR_MAX_STEPS {
-            use Direction::*;
-            for dir in [Up, Down, Left, Right].into_iter() {
-                let check_x = x as i32 + dir.x();
-                let check_y = y as i32 + dir.y();
+//     return manhattan_dist(x0, y0, x1, y1)
+//         .min(manhattan_dist(0, 0, xbase0, ybase0))
+//         .min(manhattan_dist(0, 0, xbase1, ybase1));
+// }
 
-                if check_x == x1 as i32 && check_y == y1 as i32 {
-                    self.costs[(check_y * world.width as i32 + check_x) as usize].direction = Some(dir.flipped());
-                    if self.calc_path(x0, y0, x1 as u32, y1 as u32, world) {
-                        return Ok(());
-                    } else {
-                        return Err(());
-                    }
-                }
+pub fn looped_x_distance(x0: u32, x1: u32, width: u32) -> u32 {
+    let xbase0 = (x0 as i32 - x1 as i32).rem_euclid(width as i32) as u32;
+    let xbase1 = (x1 as i32 - x0 as i32).rem_euclid(width as i32) as u32;
 
-                // if the coordinate is either out of bounds or blocked, either do nothing or keep the value
-                if check_x < 0 || check_y < 0 || check_x >= world.width as i32 || check_y >= world.height as i32
-                || world.collide_entity_at_tile_with_list(check_x as u32, check_y as u32, None, height, entity_list) {
-                    continue;
-                }
+    x0.abs_diff(x1).min(xbase0).min(xbase1)
+}
 
-                let index = (check_y * world.width as i32 + check_x) as usize;
-                let last_g = self.costs[index].g_cost;
-                let last_h = self.costs[index].h_cost;
-                let new_g = manhattan_dist(x0, y0, check_x as u32, check_y as u32);
-                let new_h = manhattan_dist(x1 as u32, y1 as u32, check_x as u32, check_y as u32);
-                if new_g < last_g {
-                    self.costs[index].g_cost = new_g;
-                    self.costs[index].direction = Some(dir.flipped());
-                }  
-                if new_h < last_h {
-                    self.costs[index].h_cost = new_h;
-                }
-            }
+pub fn looped_y_distance(y0: u32, y1: u32, height: u32) -> u32 {
+    let ybase0 = (y0 as i32 - y1 as i32).rem_euclid(height as i32) as u32;
+    let ybase1 = (y1 as i32 - y0 as i32).rem_euclid(height as i32) as u32;
 
-            let min = self.costs.iter().enumerate().min_by(|(_, a), (_, b)| {
-                let f0 = a.g_cost + a.h_cost;
-                let f1 = b.g_cost + b.h_cost;
-    
-                if a.checked && !b.checked {
-                    return std::cmp::Ordering::Greater;
-                } else if !a.checked && b.checked {
-                    return std::cmp::Ordering::Less;
-                }
+    y0.abs_diff(y1).min(ybase0).min(ybase1)
+}
 
-                let cmp = f0.cmp(&f1);
-                match cmp {
-                    std::cmp::Ordering::Equal => return a.h_cost.cmp(&b.h_cost),
-                    _ => return cmp
-                }
-            });
-    
-            if let Some((index, _)) = min {
-                if self.costs[index].checked || self.costs[index].direction == None {
-                    // TODO: this is questionable and might break something
-                    // but the lag reduction makes the game playable
-                    return Err(()); 
-                }
-                self.costs[(y * world.width + x) as usize].checked = true;
-                x = index as u32 % world.width;
-                y = index as u32 / world.width;
-            } else {
-                eprintln!("No min?");
-                break;
-            }
+pub struct WalkTowardsPathfinder;
 
-            i += 1;
+impl PolledPathfinder for WalkTowardsPathfinder {
+    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+        let diff_x = looped_x_distance(x0, x1 as u32, world.width);
+        let diff_y = looped_y_distance(y0, y1 as u32, world.height);
+
+        let mut suggested_direction;
+
+        // this is RIDICULOUS
+        // HOW does this work
+        if diff_x > diff_y {
+            if diff_x == 0 { return None; }
+            let mut direction;
+            if (x1 - x0 as i32) > 0 { direction = Direction::Right; }
+            else { direction = Direction::Left; }
+            if diff_x != x1.abs_diff(x0 as i32) { direction = direction.flipped() }
+            suggested_direction = direction;
+            //return Some(direction);
+        } else {
+            if diff_y == 0 { return None; }
+            let mut direction;
+            if (y1 - y0 as i32) > 0 { direction = Direction::Down; }
+            else { direction = Direction::Up; }
+            if diff_y != y1.abs_diff(y0 as i32) { direction = direction.flipped() }
+            suggested_direction = direction;
+            //return Some(direction);
         }
 
-        println!("Overrun");
-        Err(())
+        // TODO there might be some problems with checking across loop boundaries
+        let check_x = ((x0 as i32) + suggested_direction.x()).rem_euclid(world.width as i32);
+        let check_y = ((y0 as i32) + suggested_direction.y()).rem_euclid(world.height as i32);
+        if world.collide_entity_at_tile_with_list(check_x as u32, check_y as u32, None, height, entity_list) {
+            match suggested_direction {
+                Direction::Left | Direction::Right => {
+                    if diff_y == 0 { return None; }
+                    if (y1 - y0 as i32) > 0 { suggested_direction = Direction::Up }
+                    else { suggested_direction = Direction::Down }
+                    if y1.abs_diff(y0 as i32) != diff_x { suggested_direction = suggested_direction.flipped() }
+                },
+                _ => {
+                    if diff_x == 0 { return None; }
+                    if (x1 - x0 as i32) > 0 { suggested_direction = Direction::Right }
+                    else { suggested_direction = Direction::Left }
+                    if x1.abs_diff(x0 as i32) != diff_x { suggested_direction = suggested_direction.flipped() } 
+                }
+            }
+        }
+        
+        return Some(suggested_direction);
     }
 }

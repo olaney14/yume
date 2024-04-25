@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="33">
+ <properties>
+  <property name="looping" type="bool" value="true"/>
+ </properties>
+ <tileset firstgid="1" source="../entity/entity_pink.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="32" height="32">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="entities">
+  <object id="1" gid="5" x="432" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="2" gid="5" x="400" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="3" gid="5" x="368" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="4" gid="5" x="336" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="5" gid="5" x="304" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="6" gid="5" x="272" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="7" gid="5" x="240" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="8" gid="5" x="208" y="96" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="9" gid="5" x="432" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="10" gid="5" x="400" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="11" gid="5" x="368" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="12" gid="5" x="336" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="13" gid="5" x="304" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="14" gid="5" x="272" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="15" gid="5" x="240" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="16" gid="5" x="208" y="144" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="17" gid="5" x="432" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="18" gid="5" x="400" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="19" gid="5" x="368" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="20" gid="5" x="336" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="21" gid="5" x="304" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="22" gid="5" x="272" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="23" gid="5" x="240" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="24" gid="5" x="208" y="192" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="25" gid="5" x="432" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="26" gid="5" x="400" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="27" gid="5" x="368" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="28" gid="5" x="336" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="29" gid="5" x="304" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="30" gid="5" x="272" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="31" gid="5" x="240" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+  <object id="32" gid="5" x="208" y="240" width="16" height="32">
+   <properties>
+    <property name="chaser_speed" type="int" value="2"/>
+    <property name="file" value="res/data/entity/dir_chaser_tall.json"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>
