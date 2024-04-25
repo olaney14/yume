@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, str::FromStr};
 
 use json::JsonValue;
 
@@ -149,6 +149,10 @@ pub struct Wander {
     pub timer: i32,
 }
 
+pub struct MoveStraight {
+    pub direction: Direction,
+}
+
 impl Ai for Wander {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         self.timer = (self.timer - 1).max(0);
@@ -159,6 +163,12 @@ impl Ai for Wander {
                 self.timer = self.delay;
             }
         }
+    }
+}
+
+impl Ai for MoveStraight {
+    fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
+        entity.walk(self.direction, world, player, entity_list);
     }
 }
 
@@ -296,6 +306,10 @@ impl Ai for AnimateOnInteract {
     }
 }
 
+// YOU WERE MAKING ENTITY LOOP WALK
+// AND LIKE THE MOVE STRAIGHT AI TYPE
+// YOU WERE GONNA TEST IT!!!!!!!!!!
+
 pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
     if !parsed["type"].is_string() { return Err("No ai type"); }
     
@@ -308,6 +322,12 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                             delay,
                             timer: delay
                         }));
+        },
+        "move_straight" => {
+            let direction = Direction::from_str(parsed["direction"].as_str().expect("Direction must be a string")).expect("Invalid direction");
+            return Ok(Box::new(MoveStraight {
+                direction
+            }));
         },
         "chaser" => {
             let speed = parsed["speed"].as_u32().unwrap_or(1);

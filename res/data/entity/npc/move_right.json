@@ -1,0 +1,16 @@
+{
+	"ai": {
+		"type": "move_straight",
+		"direction": "left"
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 0,
+		"length": 4,
+		"speed": 10,
+		"repeat": "loop"
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": true
+}

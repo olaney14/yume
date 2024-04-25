@@ -1,9 +1,9 @@
-use std::{path::PathBuf, collections::HashMap, time::{Duration, Instant}};
+use std::{path::PathBuf, collections::HashMap};
 
 use rodio::Sink;
 use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{tiles::Tileset, texture::Texture, game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType}, effect::Effect, player::{Player, self}, audio::SoundEffectBank, world::World, save::SaveInfo};
+use crate::{audio::SoundEffectBank, effect::Effect, game::{Input, IntProperty, LevelPropertyType, QueuedLoad, RenderState, WarpPos}, player::Player, save::SaveInfo, texture::Texture, tiles::Tileset, transitions::{Transition, TransitionType}, world::World};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -436,11 +436,11 @@ impl<'a> Ui<'a> {
         self.effect_get_timer = 128;
     }
 
-    pub fn init(&self, sfx: &mut SoundEffectBank) {
-        sfx.load(&String::from("menu_blip_affirmative"), SFX_VOLUME, 1.0);
-        sfx.load(&String::from("menu_blip_negative"), SFX_VOLUME, 1.0);
-        sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
-    }
+    // pub fn init(&self, sfx: &mut SoundEffectBank) {
+    //     sfx.load(&String::from("menu_blip_affirmative"), SFX_VOLUME, 1.0);
+    //     sfx.load(&String::from("menu_blip_negative"), SFX_VOLUME, 1.0);
+    //     sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
+    // }
 
     pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sink: &Sink, sfx: &mut SoundEffectBank) {
         if world.special_context.save_game {

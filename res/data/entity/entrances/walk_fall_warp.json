@@ -1,0 +1,35 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "warp",
+				"map": "$warp_map",
+				"pos": {
+					"x": "$warp_x",
+					"y": "$warp_y"
+				},
+				"transition": {
+					"type": "player_fall",
+					"speed": 2,
+					"hold": 32
+				}
+			},
+			"delay": 16
+		}
+	},
+	{
+		"trigger": {
+			"type": "walk"
+		},
+		"action": {
+			"type": "freeze"
+		}
+	}],
+	"height": "0",
+	"solid": false,
+	"walk_behind": false
+}

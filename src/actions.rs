@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use json::JsonValue;
 
-use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, Transition, WarpPos}, player::Player, world::{self, QueuedEntityAction, World}};
+use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, WarpPos}, player::Player, transitions::Transition, world::{QueuedEntityAction, World}};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if parsed.is_array() {
@@ -56,7 +56,10 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         },
         "lay_down" => {
             return LayDownAction::parse(parsed);
-        }
+        },
+        "remove" => {
+            return RemoveEntityAction::parse(parsed);
+        } 
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -352,7 +355,7 @@ impl SetPropertyAction {
             return Err("no value for set action".to_string());
         }
 
-        let mut location = None;
+        let location;
         
         match parsed["in"].as_str().unwrap() {
             "player" => {
@@ -667,7 +670,7 @@ impl SetVariableAction {
         if json["name"].is_null() { return Err("No variable name specified".to_string()); }
         let name = StringProperty::parse(&json["name"]).unwrap();
 
-        let mut value = None;
+        let value;
         match kind {
             "int" => {
                 value = IntProperty::parse(&json["val"]).map(|p| AnyProperty::Int(p));
@@ -771,7 +774,7 @@ impl Action for RemoveEntityAction {
 pub struct SitAction {}
 
 impl SitAction {
-    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+    pub fn parse(_: &JsonValue) -> Result<Box<dyn Action>, String> {
         Ok(Box::new(Self {}))
     }
 }
@@ -785,7 +788,7 @@ impl Action for SitAction {
 pub struct LayDownAction {}
 
 impl LayDownAction {
-    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+    pub fn parse(_: &JsonValue) -> Result<Box<dyn Action>, String> {
         Ok(Box::new(Self {}))
     }
 }

@@ -1,15 +1,16 @@
 extern crate json;
 
-use std::{path::{PathBuf, Path}, sync::Arc, collections::HashMap, fs::{File, OpenOptions}, time::Instant};
+use std::{path::PathBuf, sync::Arc, collections::HashMap, fs::File};
 
 use audio::{SoundEffectBank, Song};
 use debug::{Debug, ProfileInfo};
-use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType, Transition, TransitionType};
+use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyType};
 use player::Player;
 use rodio::{OutputStream, Sink};
-use save::{SaveInfo, SaveData, SaveSlot};
+use save::{SaveInfo, SaveData};
 use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color, video::FullscreenType, rect::Rect};
 use texture::Texture;
+use transitions::{Transition, TransitionType};
 use ui::{Ui, MenuType, Font};
 use world::World;
 
@@ -26,6 +27,7 @@ mod loader;
 mod player;
 mod save;
 mod tiles;
+mod transitions;
 mod texture;
 mod ui;
 mod world;
@@ -78,7 +80,7 @@ fn main() {
     // so rust thinks that the reference in line ?? is still being used here
     // idk how to fix that
     let mut ui = Ui::new(&PathBuf::from(MAIN_MENU_THEME), Some(MAIN_MENU_FONT), &texture_creator);
-    ui.init(&mut sfx);
+    //ui.init(&mut sfx);
 
     //let mut save_info = SaveInfo::create_new().expect("baha");
     //let mut save_info = SaveInfo::read().expect("failed to read or open save data");
@@ -164,8 +166,11 @@ fn main() {
                 let file = File::open(&PathBuf::from("saves/".to_string() + &load.to_string() + ".save")).expect("failed to open save file");
                 let save_data: SaveData = serde_cbor::from_reader(&file).expect("failed to read save data. data may be corrupted");
                 player = save_data.get_player(&texture_creator);
+            } else {
+                player = Player::new(&texture_creator);
             }
             world.special_context.pending_load = None;
+            
 
             world.queued_load = Some(QueuedLoad {
                 map: String::from(START_MAP),
@@ -175,7 +180,6 @@ fn main() {
             world.special_context.new_game = false;
             world.paused = false;
         }
-
 
         if !ui.open {
             if !world.paused {
@@ -223,7 +227,7 @@ fn main() {
 
         // Exclude transitions from screenshots 
         if !ui.clear {
-            world.draw_transitions(&mut canvas, &render_state);
+            world.draw_transitions(&mut canvas, &player, &render_state);
         }
 
         ui.draw(&player, &mut canvas, &save_info, &render_state);
@@ -259,7 +263,7 @@ fn main() {
             let transition = world.transition.clone();
             let map = world.queued_load.as_ref().unwrap().map.clone();
             let name = PathBuf::from(map.clone()).file_stem().map(|f| f.to_str().unwrap_or("error").to_string());
-            let default = world.default_pos.clone();
+            //let default = world.default_pos.clone();
             player.moving = false;
             player.move_timer = 0;
             let warp_pos = world.queued_load.as_ref().unwrap().pos.clone();
@@ -331,10 +335,9 @@ fn main() {
 
 fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) {
     render_state.offset = (-player.x + (render_state.screen_extents.0 as i32 / 2) - 8, -player.y + (render_state.screen_extents.1 as i32 / 2) - 16);
-    if world.clamp_camera {
-        render_state.clamp.0 = false;
-        render_state.clamp.1 = false;
 
+    if world.clamp_horizontal() {
+        render_state.clamp.0 = false;
         if world.width * 16 < render_state.screen_extents.0 {
             render_state.clamp.0 = true;
             render_state.offset.0 = ((render_state.screen_extents.0 / 2) - ((world.width * 16) / 2)) as i32;
@@ -349,7 +352,11 @@ fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) 
                 render_state.clamp.0 = true;
             }
         }
-        
+    }
+
+    if world.clamp_vertical() {
+        render_state.clamp.1 = false;
+
         if world.height * 16 < render_state.screen_extents.1 {
             render_state.clamp.1 = true;
             render_state.offset.1 = ((render_state.screen_extents.1 / 2) - ((world.height * 16) / 2)) as i32;

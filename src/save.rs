@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, HashMap}, error::Error, fs::File, path::{Path, PathBuf}};
+use std::{collections::BTreeMap, error::Error, fs::File, path::{Path, PathBuf}};
 
 use sdl2::render::TextureCreator;
 use serde_derive::{Serialize, Deserialize};

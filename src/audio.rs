@@ -66,16 +66,16 @@ impl SoundEffectBank {
         }
     }
 
-    #[deprecated]
-    pub fn load(&mut self, name: &String, volume: f32, speed: f32) {
-        if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
-            let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
+    // #[deprecated]
+    // pub fn load(&mut self, name: &String, volume: f32, speed: f32) {
+    //     if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
+    //         let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
 
-            self.sound_effects.insert(name.clone(), SoundEffect { speed, volume, source });
-        } else {
-            eprintln!("Could not load sound effect {}", name);
-        }
-    }
+    //         self.sound_effects.insert(name.clone(), SoundEffect { speed, volume, source });
+    //     } else {
+    //         eprintln!("Could not load sound effect {}", name);
+    //     }
+    // }
 }
 
 pub struct SoundEffect {

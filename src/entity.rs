@@ -302,6 +302,41 @@ impl Entity {
             movement.direction = direction;
             self.movement = Some(movement);
             return true;
+        } else {
+            // taken straight from Player::move_player()
+            let pos = self.get_standing_tile();
+            let target_pos = (pos.0 as i32 + direction.x(), pos.1 as i32 + direction.y());
+            if world.looping &&
+            (target_pos.0 < 0 || target_pos.1 < 0 || target_pos.0 >= world.width as i32 || target_pos.1 >= world.height as i32) {
+                let mut moved = false;
+
+                //dbg!(world.loop_vertical());
+                //dbg!(target_pos.1 >= world.height as i32);
+                //dbg!(self.x, 0);
+
+                if world.loop_horizontal() && target_pos.0 < 0 && !world.get_unbounded_collision_at_tile_with_list(world.width as i32 - 1, (self.y / 16) + 1, Some(player), self.height, entity_list) { // left
+                    self.x = world.width as i32 * 16 - (self.collider.w - 16).max(0);
+                    moved = true;
+                } else if world.loop_horizontal() && target_pos.0 >= world.width as i32 && !world.get_unbounded_collision_at_tile_with_list(0, (self.y / 16) + 1, Some(player), self.height, entity_list) { // right
+                    self.x = -16 - (self.collider.w - 16).max(0);
+                    moved = true;
+                } else if world.loop_vertical() && target_pos.1 < 0 && !world.get_unbounded_collision_at_tile_with_list(self.x / 16, world.height as i32 - 1, Some(player), self.height, entity_list) { // up
+                    self.y = world.height as i32 * 16 - (self.collider.h - 16).max(0);
+                    moved = true;
+                } else if world.loop_vertical() && target_pos.1 >= world.height as i32 && !world.get_unbounded_collision_at_tile_with_list(self.x / 16, 0, Some(player), self.height, entity_list) { // down 
+                    self.y = -16 - (self.collider.h - 16).max(0);
+                    moved = true;
+                }
+
+                if moved {
+                    let mut movement = self.movement.take().unwrap();
+                    movement.moving = true;
+                    movement.move_timer = player::MOVE_TIMER_MAX;
+                    movement.direction = direction;
+                    self.movement = Some(movement);
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -390,9 +425,10 @@ impl Entity {
             return false;
         }
 
-        if target_tile == player.occupied_tile {
-            return false;
-        }
+        // TODO maybe you should fix this . you are very naughty
+        // if target_tile == player.occupied_tile {
+        //     return false;
+        // }
 
         return !world.collide_entity(target_rect, player, self.height, entity_list);
     }
@@ -400,8 +436,8 @@ impl Entity {
     /// TODO: Account for collider offset
     pub fn get_standing_tile(&self) -> (u32, u32) {
         (
-            (self.x / 16).max(0) as u32,
-            ((self.y / 16) + 1).max(0) as u32
+            (self.x / 16 + (self.collider.x / 16)).max(0) as u32,
+            (self.y / 16 + (self.collider.y / 16)).max(0) as u32
         )
     }
 }

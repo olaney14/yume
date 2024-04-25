@@ -1,10 +1,14 @@
 use std::{path::PathBuf, collections::HashMap, rc::Rc, cell::RefCell};
 
 use json::JsonValue;
+use rand::Rng;
 use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 
-use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, IntProperty, QueuedLoad, RenderState, Transition, TransitionTextures}, player::{self, Player}, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, IntProperty, QueuedLoad, RenderState}, player::Player, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
+
+const RAINDROPS_LIFETIME: u32 = 10;
+const RAINDROPS_PER_CYCLE: usize = 3;
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -28,12 +32,6 @@ pub struct QueuedEntityAction {
     pub multiple_action_id: Option<usize>
 }
 
-// pub enum Flag {
-//     Int(i32),
-//     String(String)
-// }
-
-
 pub struct World<'a> {
     pub layers: Vec<Layer>,
     pub image_layers: Vec<ImageLayer<'a>>,
@@ -46,6 +44,7 @@ pub struct World<'a> {
     pub height: u32,
     pub background_color: sdl2::pixels::Color,
     pub clamp_camera: bool,
+    pub clamp_camera_axes: Option<Axis>,
     pub queued_load: Option<QueuedLoad>,
     pub queued_entity_actions: Vec<QueuedEntityAction>,
 
@@ -57,6 +56,7 @@ pub struct World<'a> {
     /// This is some if a transition is currently happening
     pub transition: Option<Transition>,
     pub looping: bool,
+    pub looping_axes: Option<Axis>,
     pub render_texture: Option<Texture<'a>>,
     pub song: Option<Song>,
     pub tint: Option<Color>,
@@ -69,6 +69,28 @@ pub struct World<'a> {
     pub transitions: TransitionTextures<'a>,
     pub transition_context: TransitionContext<'a>,
     pub timer: u64,
+    pub draw_player: bool,
+    pub raindrops: RaindropsInfo
+}
+
+pub enum Axis {
+    All,
+    Horizontal,
+    Vertical
+}
+
+impl Axis {
+    pub fn parse(from: &str) -> Option<Self> {
+        match from.to_lowercase().as_ref() {
+            "all" => return Some(Self::All),
+            "horizontal" | "horiz" | "x" => return Some(Self::Horizontal),
+            "vertical" | "vert" | "y" => return Some(Self::Vertical),
+            _ => {
+                eprintln!("Warning: Invalid axis type `{}`", from);
+                return None;
+            }
+        }
+    }
 }
 
 impl<'a> World<'a> {
@@ -83,12 +105,14 @@ impl<'a> World<'a> {
             height: 0,
             background_color: sdl2::pixels::Color::RGBA(0, 0, 0, 255),
             clamp_camera: false,
+            clamp_camera_axes: None,
             queued_load: None,
             side_actions: [(false, None), (false, None), (false, None), (false, None)],
             paused: false,
             interactions: Vec::new(),
             transition: None,
             looping: false,
+            looping_axes: None,
             render_texture: None,
             song: None,
             tint: None,
@@ -101,7 +125,9 @@ impl<'a> World<'a> {
             global_flags: HashMap::new(),
             transitions: TransitionTextures::new(creator).unwrap(),
             transition_context: TransitionContext::new(creator, state),
-            timer: 0
+            timer: 0,
+            draw_player: true,
+            raindrops: RaindropsInfo::new()
         }
     }
 
@@ -120,12 +146,14 @@ impl<'a> World<'a> {
             height: 0,
             background_color: sdl2::pixels::Color::RGBA(0, 0, 0, 255),
             clamp_camera: false,
+            clamp_camera_axes: None,
             queued_load: None,
             side_actions: [(false, None), (false, None), (false, None), (false, None)],
             paused: false,
             interactions: Vec::new(),
             transition: None,
             looping: false,
+            looping_axes: None,
             render_texture: None,
             song: None,
             tint: None,
@@ -141,8 +169,27 @@ impl<'a> World<'a> {
                 screenshot: old.transition_context.screenshot.take(),
                 take_screenshot: true
             },
-            timer: 0
+            timer: 0,
+            draw_player: true,
+            raindrops: RaindropsInfo::new()
         }
+    }
+
+    pub fn can_rain_on_tile(&self, x: u32, y: u32) -> bool {
+        for layer in self.layers.iter() {
+            if x < layer.map.width && y < layer.map.height {
+                if let Some(special) = layer.map.get_special(x, y) {
+                    match special {
+                        SpecialTile::NoRain => {
+                            return false;
+                        },
+                        _ => ()
+                    }
+                }
+            }
+        }
+
+        true
     }
 
     pub fn get_special_in_layer(&self, height: i32, x: u32, y: u32) -> Vec<&SpecialTile> {
@@ -194,6 +241,22 @@ impl<'a> World<'a> {
         }
     }
 
+    pub fn loop_horizontal(&self) -> bool {
+        self.looping && matches!(self.looping_axes, Some(Axis::Horizontal | Axis::All) | None)
+    }
+
+    pub fn loop_vertical(&self) -> bool {
+        self.looping && matches!(self.looping_axes, Some(Axis::All | Axis::Vertical) | None)
+    }
+
+    pub fn clamp_horizontal(&self) -> bool {
+        self.clamp_camera && matches!(self.clamp_camera_axes, Some(Axis::All | Axis::Horizontal) | None)
+    }
+
+    pub fn clamp_vertical(&self) -> bool {
+        self.clamp_camera && matches!(self.clamp_camera_axes, Some(Axis::All | Axis::Vertical) | None)
+    }
+
     pub fn add_entity(&mut self, entity: Entity) {
         self.entities.as_mut().unwrap().push(entity);
     }
@@ -236,6 +299,7 @@ impl<'a> World<'a> {
                     } else if transition.progress <= -1 {
                         self.paused = false;
                         self.transition = None;
+                        self.draw_player = true;
                         if let Some(song) = &mut self.song {
                             song.volume = song.default_volume;
                             song.speed = song.default_speed;
@@ -464,7 +528,7 @@ impl<'a> World<'a> {
                 }
             }
 
-            if player.layer == height {
+            if player.layer == height && self.draw_player {
                 player.draw(canvas, state);
             }
         }
@@ -475,11 +539,48 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
+        self.post_draw(canvas, player, state);
+
         // if self.transition.is_some() {
         //     let mut transition = self.transition.take().unwrap();
         //     transition.draw(canvas, self);
         //     self.transition = Some(transition);
         // }
+    }
+
+    pub fn post_draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+        if self.raindrops.enabled {
+            let mut rng = rand::thread_rng();
+            for _ in 0..RAINDROPS_PER_CYCLE {
+                let x = rng.gen_range(0..state.screen_extents.0) as i32 - state.offset.0;
+                let y = rng.gen_range(0..state.screen_extents.1) as i32 - state.offset.1;
+
+                //let special = self.get_special_in_layer(height, x, y)
+                let tile = ((x / 16).rem_euclid(self.width as i32) as u32, (y / 16).rem_euclid(self.height as i32) as u32);
+                if self.can_rain_on_tile(tile.0, tile.1) {
+                    self.raindrops.raindrops.push(Raindrop {
+                        lifetime: RAINDROPS_LIFETIME,
+                        x, y
+                    });
+                }
+            }
+
+            for raindrop in self.raindrops.raindrops.iter_mut() {
+                raindrop.lifetime -= 1;
+                if raindrop.lifetime == 0 {
+                    continue;
+                }
+
+                // TODO: create transparent raindrop textures and fade them out
+                canvas.copy(
+                    &self.transitions.raindrop.texture,
+                    None,
+                    Some(Rect::new(raindrop.x + state.offset.0, raindrop.y + state.offset.1, 4, 4))
+                ).unwrap();
+            }
+
+            self.raindrops.raindrops.retain(|r| r.lifetime > 0);
+        }
     }
 
     pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
@@ -507,7 +608,7 @@ impl<'a> World<'a> {
                 }
             }
 
-            if player.layer == height {
+            if player.layer == height && self.draw_player {
                 player.draw(canvas, state);
             }
         }
@@ -517,12 +618,14 @@ impl<'a> World<'a> {
             canvas.set_draw_color(tint);
             canvas.fill_rect(None).unwrap();
         }
+
+        self.post_draw(canvas, player, state);
     }
 
-    pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
+    pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
         if self.transition.is_some() {
             let mut transition = self.transition.take().unwrap();
-            transition.draw(canvas, self, state);
+            transition.draw(canvas, self, player, state);
             self.transition = Some(transition);
         }
     }
@@ -544,10 +647,28 @@ impl<'a> World<'a> {
         let orig_x = -state.offset.0 / 16;
         let orig_y = -state.offset.1 / 16;
         if looping {
-            self.draw_tile_layer_section_looping(canvas, layer, 
-                (orig_x - 1, orig_y - 1), 
-                (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
-            state);
+            match self.looping_axes {
+                Some(Axis::All) | None => {
+                    self.draw_tile_layer_section_looping(canvas, layer, 
+                        (orig_x - 1, orig_y - 1), 
+                        (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
+                    state);
+                },
+                Some(Axis::Horizontal) => {
+                    self.draw_tile_layer_section_looping_horiz(canvas, layer, 
+                        (orig_x - 1, orig_y - 1), 
+                        (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
+                    state);
+                },
+                Some(Axis::Vertical) => {
+                    self.draw_tile_layer_section_looping_vert(canvas, layer, 
+                        (orig_x - 1, orig_y - 1), 
+                        (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
+                    state);
+                },
+                _ => ()
+            }
+
         } else {
             self.draw_tile_layer_section(canvas, layer, 
                 (orig_x, orig_y), 
@@ -589,12 +710,80 @@ impl<'a> World<'a> {
         }
     }
 
-    // TODO: Don't draw entities out of the screen, use entity.collider
+    /// Looping will only happen on the horizontal axis
+    pub fn draw_tile_layer_section_looping_horiz<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer,
+        start: (i32, i32), end: (i32, i32), state: &RenderState) {
+        let start_y = start.1.max(0);
+        let end_y = end.1.min(self.height as i32);
+
+        for y in start_y..end_y {
+            for x in start.0..end.0 {
+                let draw_coord = (x.rem_euclid(self.width as i32), y);
+                let tile = layer.map.tiles[(draw_coord.1 * self.width as i32 + draw_coord.0) as usize];
+                if tile.tileset >= 0 && tile.id >= 0 {
+                    self.tilesets[tile.tileset as usize].draw_tile(canvas, tile.id as u32, 
+                        (x as i32 * 16 + state.offset.0, y as i32 * 16 + state.offset.1)
+                    );
+                }
+            }
+        }
+    }
+
+    /// Looping will only happen on the vertical axis
+    pub fn draw_tile_layer_section_looping_vert<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer,
+        start: (i32, i32), end: (i32, i32), state: &RenderState) {
+        let start_x = start.0.max(0);
+        let end_x = end.0.min(self.width as i32);
+
+        for y in start.1..end.1 {
+            for x in start_x..end_x {
+                let draw_coord = (x, y.rem_euclid(self.height as i32));
+                let tile = layer.map.tiles[(draw_coord.1 * self.width as i32 + draw_coord.0) as usize];
+                if tile.tileset >= 0 && tile.id >= 0 {
+                    self.tilesets[tile.tileset as usize].draw_tile(canvas, tile.id as u32, 
+                        (x as i32 * 16 + state.offset.0, y as i32 * 16 + state.offset.1)
+                    );
+                }
+            }
+        }
+    }
+
     pub fn draw_entity<T: RenderTarget>(&self, canvas: &mut Canvas<T>, entity: &Entity, looping: bool, state: &RenderState) {
         if looping {
-            let draw_pos = (entity.x + state.offset.0, entity.y + state.offset.1);
-            let draw_pos_euclid_mod = ((entity.x + state.offset.0).rem_euclid(self.width as i32 * 16), (entity.y + state.offset.1).rem_euclid(self.height as i32 * 16));
-            for position in [draw_pos, draw_pos_euclid_mod] {
+            let mut draw_positions;
+            match self.looping_axes {
+                Some(Axis::All) | None => {
+                    let draw_pos = (entity.x + state.offset.0, entity.y + state.offset.1);
+                    let draw_pos_rem = ((entity.x + state.offset.0).rem_euclid(self.width as i32 * 16), (entity.y + state.offset.1).rem_euclid(self.height as i32 * 16));
+                    let draw_pos_far_rem = (
+                        (entity.x + entity.collider.w + state.offset.0).rem_euclid(self.width as i32 * 16) - entity.collider.w,
+                        (entity.y + entity.collider.h + state.offset.1).rem_euclid(self.height as i32 * 16) - entity.collider.h
+                    );
+                    draw_positions = vec![draw_pos, draw_pos_rem, draw_pos_far_rem];
+                },
+                Some(Axis::Vertical) => {
+                    let draw_pos = (entity.x + state.offset.0, entity.y + state.offset.1);
+                    let draw_pos_rem = (entity.x + state.offset.0, (entity.y + state.offset.1).rem_euclid(self.height as i32 * 16));
+                    let draw_pos_far_rem = (
+                        entity.x + state.offset.0,
+                        (entity.y + entity.collider.h + state.offset.1).rem_euclid(self.height as i32 * 16) - entity.collider.h
+                    );
+                    draw_positions = vec![draw_pos, draw_pos_rem, draw_pos_far_rem];
+                },
+                Some(Axis::Horizontal) => {
+                    let draw_pos = (entity.x + state.offset.0, entity.y + state.offset.1);
+                    let draw_pos_rem = ((entity.x + state.offset.0).rem_euclid(self.width as i32 * 16), entity.y + state.offset.1);
+                    let draw_pos_far_rem = (
+                        (entity.x + entity.collider.w + state.offset.0).rem_euclid(self.width as i32 * 16) - entity.collider.w,
+                        entity.y + state.offset.1
+                    );
+                    draw_positions = vec![draw_pos, draw_pos_rem, draw_pos_far_rem];
+                }
+            }
+
+            draw_positions.sort();
+            draw_positions.dedup();
+            for position in draw_positions.into_iter() {
                 if let Some(animator) = &entity.animator {
                     self.tilesets[animator.tileset as usize].draw_tile_sized(canvas, animator.frame, position);
                 } else {
@@ -629,8 +818,8 @@ impl<'a> World<'a> {
 
     pub fn try_set_tile(&mut self, layer: &str, tileset: &str, tile: i32, x: u32, y: u32) -> Result<(), ()> {
         let try_tileset = self.get_tileset_by_name(tileset);
-        let index = (y * self.width + x) as usize;
-        let width = self.width;
+        //let index = (y * self.width + x) as usize;
+        //let width = self.width;
         if let Some(tileset) = try_tileset {
             if let Some(layer) = self.get_mut_layer_by_name(layer) {
                 layer.map.set_tile(x, y, Tile::new(tile, tileset)).unwrap();
@@ -682,6 +871,37 @@ impl<'a> World<'a> {
         if x >= 0 && y >= 0 {
             if self.get_tilemap_collision_at_tile(x as u32, y as u32, height) { return true; }
             if self.get_entity_collision_at_tile(x as u32, y as u32, height) { return true; }
+        }
+
+        return false;
+    }
+
+    // pub fn collide_entity_at_tile_with_list(&self, x: u32, y: u32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
+    //     if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
+    //     for entity in entity_list.iter().filter(|e| e.height == height) {
+    //         if entity.get_collision(Rect::new(x as i32 * 16, y as i32 * 16, 16, 16)) {
+    //             return true;
+    //         }
+    //     }
+    //     if let Some(player) = player_opt {
+    //         if Rect::new(x as i32 * 16, y as i32 * 16, 16, 16).has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) { return true; }
+    //     }
+
+    //     return false;
+    // }
+
+    pub fn get_unbounded_collision_at_tile_with_list(&self, x: i32, y: i32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
+        if x >= 0 && y >= 0 {
+            if self.get_tilemap_collision_at_tile(x as u32, y as u32, height) { return true; }
+            for entity in entity_list.iter().filter(|e| e.height == height) {
+                // TODO: THIS MIGHT BE A HUGE PROBLEM!!!!!!!!!!!!!!!!!!
+                if entity.get_collision(Rect::new(x as i32 * 16, y as i32 * 16, 16, 16)) {
+                    return true;
+                }
+            }
+            if let Some(player) = player_opt {
+                if Rect::new(x as i32 * 16, y as i32 * 16, 16, 16).has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) { return true; }
+            }
         }
 
         return false;
@@ -801,8 +1021,6 @@ impl<'a> ImageLayer<'a> {
         let h_i32 = self.image.height as i32;
         let left = game::offset_floor(-modified_offset.0, w_i32, self.x);
         let top = game::offset_floor(-modified_offset.1, h_i32, self.y);
-        //let repeat_x = game::ceil((-left) + state.screen_extents.0 as i32, w_i32) / w_i32;
-        //let repeat_y = game::ceil((-top) + state.screen_extents.1 as i32, h_i32) / h_i32;
         let repeat_x = (state.screen_extents.0 as i32 / w_i32) + 2;
         let repeat_y = (state.screen_extents.1 as i32 / h_i32) + 2;
 
@@ -814,8 +1032,7 @@ impl<'a> ImageLayer<'a> {
                     Rect::new(left + modified_offset.0 + (x * w_i32), top + modified_offset.1 + (y * h_i32), self.image.width, self.image.height)
                 ).unwrap();
             }
-        }
-        
+        }  
     }
 
     pub fn update(&mut self) {
@@ -911,6 +1128,26 @@ pub struct SpecialContext {
     pub entity_removal_queue: Vec<usize>,
 
     pub multiple_action_index: Option<usize>,
+}
+
+struct Raindrop {
+    lifetime: u32,
+    x: i32,
+    y: i32
+}
+
+pub struct RaindropsInfo {
+    raindrops: Vec<Raindrop>,
+    pub enabled: bool
+}
+
+impl RaindropsInfo {
+    pub fn new() -> Self {
+        Self {
+            raindrops: Vec::new(),
+            enabled: false
+        }
+    }
 }
 
 impl SpecialContext {

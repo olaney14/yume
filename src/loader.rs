@@ -4,7 +4,7 @@ use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{world::{World, Layer, ImageLayer}, tiles::{Tilemap, Tileset, Tile, SpecialTile}, texture::Texture, game::{self, RenderState}, audio::Song, entity::{Entity, parse_trigger, TriggeredAction}, ai::{self, parse_animator}, actions};
+use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> World<'a> {
@@ -28,11 +28,19 @@ impl<'a> World<'a> {
         if let Some(prop) = map.properties.get("clampCamera") {
             if let PropertyValue::BoolValue(clamp_camera) = prop {
                 world.clamp_camera = *clamp_camera;
+                world.clamp_camera_axes = Some(world::Axis::All);
             }
         }
         if let Some(prop) = map.properties.get("clamp_camera") {
             if let PropertyValue::BoolValue(clamp_camera) = prop {
                 world.clamp_camera = *clamp_camera;
+                world.clamp_camera_axes = Some(world::Axis::All);
+            }
+        }
+
+        if let Some(prop) = map.properties.get("clamp_camera_axis") {
+            if let PropertyValue::StringValue(axis) = prop {
+                world.clamp_camera_axes = world::Axis::parse(axis);
             }
         }
 
@@ -77,6 +85,12 @@ impl<'a> World<'a> {
             }
         }
 
+        if let Some(prop) = map.properties.get("looping_axis") {
+            if let PropertyValue::StringValue(axis) = prop {
+                world.looping_axes = world::Axis::parse(axis);
+            }
+        }
+        
         if let Some(prop) = map.properties.get("music") {
             if let PropertyValue::StringValue(song) = prop {
                 if old_world.is_some() && old_world.as_ref().unwrap().song.is_some() && old_world.as_ref().unwrap().song.as_ref().unwrap().path == PathBuf::from(song) {
@@ -124,6 +138,12 @@ impl<'a> World<'a> {
             }
         }
 
+        if let Some(prop) = map.properties.get("raindrops") {
+            if let PropertyValue::BoolValue(raindrops) = prop {
+                world.raindrops.enabled = *raindrops;
+            }
+        }
+
         assert!(!map.infinite(), "Infinite maps not supported");
         assert!(matches!(map.orientation, Orientation::Orthogonal), "Non-orthogonal orientations not supported");
 
@@ -144,6 +164,7 @@ impl<'a> World<'a> {
                         for j in 0..map.height {
                             for i in 0..map.width {
                                 let tile_opt = finite_tile_layer.get_tile(i as i32, j as i32);
+
                                 if let Some(tile) = tile_opt {
                                     if tile.get_tile().is_none() { continue; }
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("animation") {
@@ -204,6 +225,20 @@ impl<'a> World<'a> {
                                             if *stairs {
                                                 tilemap.set_special(i, j, SpecialTile::Stairs);
                                             }
+                                        }
+                                    }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("no_rain") {
+                                        if let PropertyValue::BoolValue(no_rain) = prop {
+                                            if *no_rain {
+                                                tilemap.set_special(i, j, SpecialTile::NoRain);
+                                            }
+                                        }
+                                    }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("speed_mod") {
+                                        if let PropertyValue::IntValue(speed_mod) = prop {
+                                            tilemap.set_special(i, j, SpecialTile::SpeedMod(*speed_mod));
                                         }
                                     }
                                 }
@@ -286,12 +321,11 @@ impl<'a> World<'a> {
                                             }
                                         },
                                         Err(e) => {
-                                            eprintln!("Error opening properties file: {}", e);
+                                            eprintln!("Error opening properties file `{}`: {}", properties_filename, e);
                                         }
                                     }
                                 }
                                 
-
                                 if let Some(prop) = properties.get("height") { if let PropertyValue::IntValue(height) = prop { entity.height = *height; } }
                                 if let Some(prop) = properties.get("solid") { if let PropertyValue::BoolValue(solid) = prop { entity.solid = *solid; } }
                                 if let Some(prop) = properties.get("draw") { if let PropertyValue::BoolValue(draw) = prop { entity.draw = *draw; } }

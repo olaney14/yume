@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use sdl2::{render::{Canvas, TextureCreator, RenderTarget}, rect::Rect};
 use crate::texture::Texture;
 
-
 #[derive(Debug)]
 pub struct Tileset<'a> {
     pub texture: Texture<'a>,
@@ -76,7 +75,9 @@ impl<'a> Tileset<'a> {
 #[derive(Clone)]
 pub enum SpecialTile {
     Stairs,
-    Step(String, f32)
+    Step(String, f32),
+    NoRain,
+    SpeedMod(i32)
 }
 
 pub struct Tilemap {
@@ -87,7 +88,7 @@ pub struct Tilemap {
     pub special: Vec<Option<SpecialTile>>
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Tile {
     pub id: i32,
     pub tileset: i32,
@@ -113,7 +114,6 @@ impl Tilemap {
             collision.push(false);
             special.push(None);
         }
-        
 
         Self {
             width,
@@ -128,7 +128,7 @@ impl Tilemap {
         if x >= self.width || y >= self.height {
             return Err(TileError::OutOfBounds(x, y));
         }
-
+        
         self.tiles[(y * self.width + x) as usize] = tile;
 
         Ok(())

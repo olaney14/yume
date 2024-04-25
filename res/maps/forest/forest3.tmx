@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="120" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="6">
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="120" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="8">
  <properties>
   <property name="default_pos" value="85,64"/>
   <property name="looping" type="bool" value="true"/>
@@ -10,12 +10,14 @@
  <tileset firstgid="193" source="../entity/lizard.tsx"/>
  <tileset firstgid="201" source="../teleport_maze.tsx"/>
  <tileset firstgid="243" source="../entity/misc_entities.tsx"/>
+ <tileset firstgid="263" source="../entity/nexus_doors.tsx"/>
+ <tileset firstgid="281" source="../tilesets/effects.tsx"/>
  <imagelayer id="6" name="Image">
   <image source="../../textures/image/stars.png" width="128" height="128"/>
   <properties>
    <property name="delay_x" type="int" value="8"/>
    <property name="delay_y" type="int" value="8"/>
-   <property name="height" type="int" value="-1"/>
+   <property name="height" type="int" value="0"/>
    <property name="looping" type="bool" value="true"/>
    <property name="parallax_x" type="int" value="2"/>
    <property name="parallax_y" type="int" value="2"/>
@@ -143,6 +145,29 @@
     <property name="door_warp_x" type="int" value="24"/>
     <property name="door_warp_y" type="int" value="2"/>
     <property name="file" value="res/data/entity/door.json"/>
+   </properties>
+  </object>
+  <object id="6" gid="269" x="1360" y="1040" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="start_frame" type="int" value="6"/>
+    <property name="walk_behind" type="bool" value="true"/>
+    <property name="warp_map" value="nexus.tmx"/>
+    <property name="warp_x" type="int" value="15"/>
+    <property name="warp_y" type="int" value="18"/>
+   </properties>
+  </object>
+  <object id="7" gid="282" x="1376" y="448" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/effect/give_shoes.json"/>
    </properties>
   </object>
  </objectgroup>

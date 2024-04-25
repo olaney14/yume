@@ -64,7 +64,6 @@ impl Effect {
         }
     }
 
-
     // TODO: What to do if speed is 1?
     pub fn remove(&self, player: &mut Player) {
         use Effect::*;

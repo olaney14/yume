@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard::Keycode};
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{audio::SoundEffectBank, effect::Effect, game::{Direction, Input, RenderState}, player, texture::Texture, tiles::SpecialTile, world::World};
+use crate::{audio::SoundEffectBank, effect::Effect, game::{Direction, Input, RenderState}, texture::Texture, tiles::SpecialTile, world::World};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
 
@@ -16,7 +16,9 @@ pub struct Player<'a> {
     pub diag_move: i32,
     pub moving: bool,
     pub speed: u32,
+    pub move_delay: u32,
     pub move_timer: i32,
+    pub move_delay_timer: i32,
     pub animation_info: AnimationInfo,
     pub animation_override_controller: AnimationOverrideController,
     pub last_direction: Option<Direction>,
@@ -40,7 +42,8 @@ pub struct Player<'a> {
     pub reset_layer_on_stop: Option<i32>,
     pub exit_bed_direction: Option<Direction>,
     pub no_snap_on_stop: bool,
-    pub check_walkable_on_next_frame: bool
+    pub check_walkable_on_next_frame: bool,
+    pub speed_mod: i32
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -215,6 +218,7 @@ impl<'a> Player<'a> {
             facing: Direction::Down,
             moving: false,
             speed: 1,
+            move_delay: 0,
             move_timer: 0,
             animation_info: AnimationInfo::new(),
             animation_override_controller: AnimationOverrideController::new(),
@@ -240,7 +244,9 @@ impl<'a> Player<'a> {
             disable_player_input_time: 0,
             exit_bed_direction: None,
             no_snap_on_stop: false,
-            check_walkable_on_next_frame: false
+            check_walkable_on_next_frame: false,
+            speed_mod: 0,
+            move_delay_timer: 0
         };
 
         player.load_effect_textures(creator);
@@ -330,7 +336,6 @@ impl<'a> Player<'a> {
 
     pub fn force_move_player(&mut self, direction: Direction, world: &mut World) {
         self.moving = true;
-        //dbg!("force move");
         self.move_timer = MOVE_TIMER_MAX;
         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
         self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
@@ -357,7 +362,6 @@ impl<'a> Player<'a> {
                     let target = (pos.0 as i32 + direction.x(), pos.1 as i32 + diag);
                     if !(target.0 < 0 || target.1 < 0 || target.0 >= world.width as i32 || target.1 >= world.height as i32) && !world.get_collision_at_tile(target.0 as u32, target.1 as u32, self.layer) {
                         self.moving = true;
-                        //dbg!("stairs move");
                         self.move_timer = MOVE_TIMER_MAX;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = (self.occupied_tile.0 as i32 + diag) as u32;
@@ -402,7 +406,7 @@ impl<'a> Player<'a> {
                 (target_pos.0 < 0 || target_pos.1 < 0 || target_pos.0 >= world.width as i32 || target_pos.1 >= world.height as i32) {
                     let mut moved = false;
 
-                    if target_pos.0 < 0 && !world.get_unbounded_collision_at_tile(world.width as i32 - 1, (self.y / 16) + 1, self.layer) { // left
+                    if world.loop_horizontal() && target_pos.0 < 0 && !world.get_unbounded_collision_at_tile(world.width as i32 - 1, (self.y / 16) + 1, self.layer) { // left
                         self.x = world.width as i32 * 16;
                         self.occupied_tile.0 = world.width - 1;
                         self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
@@ -417,7 +421,7 @@ impl<'a> Player<'a> {
                             }
                         }
                         moved = true;
-                    } else if target_pos.0 >= world.width as i32 && !world.get_unbounded_collision_at_tile(0, (self.y / 16) + 1, self.layer) { // right
+                    } else if world.loop_horizontal() && target_pos.0 >= world.width as i32 && !world.get_unbounded_collision_at_tile(0, (self.y / 16) + 1, self.layer) { // right
                         self.x = -16;
                         self.occupied_tile.0 = 0;
                         self.occupied_tile.1 = (self.occupied_tile.1 as i32 + direction.y()) as u32;
@@ -429,7 +433,7 @@ impl<'a> Player<'a> {
                             }
                         }
                         moved = true;
-                    } else if target_pos.1 < 0 && !world.get_unbounded_collision_at_tile(self.x / 16, world.height as i32 - 1, self.layer) { // up
+                    } else if world.loop_vertical() && target_pos.1 < 0 && !world.get_unbounded_collision_at_tile(self.x / 16, world.height as i32 - 1, self.layer) { // up
                         self.y = world.height as i32 * 16 - 16;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = world.height - 1;
@@ -441,7 +445,7 @@ impl<'a> Player<'a> {
                             }
                         }
                         moved = true;
-                    } else if target_pos.1 >= world.height as i32 && !world.get_unbounded_collision_at_tile(self.x / 16, 0, self.layer) { // down
+                    } else if world.loop_vertical() && target_pos.1 >= world.height as i32 && !world.get_unbounded_collision_at_tile(self.x / 16, 0, self.layer) { // down
                         self.y = -32;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = 0;
@@ -457,13 +461,17 @@ impl<'a> Player<'a> {
 
                     if moved {
                         self.moving = true;
-                        //dbg!("looping move");
                         self.move_timer = MOVE_TIMER_MAX;
                         self.draw_over = true;
                         let new_pos = self.get_standing_tile();
                         let (sound, volume) = self.get_step_sound(world, ((new_pos.0 as i32 + direction.x()) as u32, (new_pos.1 as i32 + direction.y()) as u32));
                         sfx.play_ex(&sound, 1.0, volume);
-
+                    } else {
+                        self.animation_info.frame = 1;
+                        let player_pos = self.get_standing_tile();
+                        if just_pressed || force {
+                            world.player_bump(player_pos.0 as i32 + direction.x(), player_pos.1 as i32 + direction.y());
+                        }
                     }
                 } else {
                     self.animation_info.frame = 1;
@@ -600,6 +608,44 @@ impl<'a> Player<'a> {
             self.disable_player_input = false;
         }
     }
+    
+    // TODO: very slow speeds with delay between move
+    /// Speed, delay
+    pub fn speed(&self) -> (u32, u32) {
+        if self.speed_mod == 0 {
+            return (self.speed, self.move_delay);
+        } else {
+            let mut speed = self.speed;
+            if self.speed_mod < 0 {
+                let mut delay = self.move_delay;
+                for i in 0..self.speed_mod.abs() {
+                    speed /= 2;
+                    if speed == 0 {
+                        delay = 1.max(delay * 2);
+                    }
+                }
+                if delay > 0 {
+                    speed = 1;
+                }
+                return (speed, delay);
+            } else {
+                let mut delay = self.move_delay;
+                for i in 0..self.speed_mod {
+                    speed *= 2;
+                    if self.speed == 0 { 
+                        delay /= 2;
+                        if delay == 0 && speed == 0 {
+                            speed = 1;
+                        }
+                    }
+                }
+                if delay > 0 {
+                    speed = 1;
+                }
+                return (speed, delay);
+            }
+        }
+    }
 
     pub fn look_in_direction(&mut self, direction: Direction) {
         self.facing = direction;
@@ -648,10 +694,17 @@ impl<'a> Player<'a> {
         }
 
         if self.moving {
-            self.x += self.facing.x() * self.speed as i32;
-            self.y += self.facing.y() * self.speed as i32;
-            self.y += self.diag_move * self.speed as i32;
-            self.move_timer -= self.speed as i32;
+            if self.move_delay_timer > 0 {
+                self.move_delay_timer -= 1;
+                // TODO: returning here may be a problem if anything is done in this function after the move check
+                return;
+            }
+            let (speed, delay) = self.speed();
+            self.x += self.facing.x() * speed as i32;
+            self.y += self.facing.y() * speed as i32;
+            self.y += self.diag_move * speed as i32;
+            self.move_delay_timer = delay as i32;
+            self.move_timer -= speed as i32;
             self.animation_info.animate_walk();
             if self.check_walkable_on_next_frame {
                 if !self.can_move_in_direction(self.facing, &world) {
@@ -689,7 +742,14 @@ impl<'a> Player<'a> {
                 self.move_timer = 0;
                 self.draw_over = false;
                 self.diag_move = 0;
-                world.player_walk(self.x / 16, (self.y / 16) + 1);
+                let tile = (self.x / 16, (self.y / 16) + 1);
+                world.player_walk(tile.0, tile.1);
+                self.speed_mod = 0;
+                for special in world.get_special_in_layer(self.layer, tile.0 as u32, tile.1 as u32).into_iter() {
+                    if let SpecialTile::SpeedMod(speed_mod) = special {
+                        self.speed_mod = *speed_mod;
+                    }
+                }
 
                 if let Some(reset_layer) = self.reset_layer_on_stop {
                     self.layer = reset_layer;
@@ -823,26 +883,26 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn draw_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, _state: &RenderState) {
-        let source = self.animation_info.get_frame_pos();
-        self.pre_draw(canvas, (self.x, self.y), _state);
-        if self.current_effect.is_some() {
-            if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
-                canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-            } else {
-                canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-            }
-        } else {
-            canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-        }
-        self.post_draw(canvas, (self.x, self.y), _state);
+    // pub fn draw_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, _state: &RenderState) {
+    //     let source = self.animation_info.get_frame_pos();
+    //     self.pre_draw(canvas, (self.x, self.y), _state);
+    //     if self.current_effect.is_some() {
+    //         if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
+    //             canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+    //         } else {
+    //             canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+    //         }
+    //     } else {
+    //         canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
+    //     }
+    //     self.post_draw(canvas, (self.x, self.y), _state);
 
-        if self.animation_info.effect_switch_animation > 0 {
-            let frame = 8 - self.animation_info.effect_switch_animation;
-            canvas.copy(&self.effects_texture.texture, 
-                Rect::new(48 * frame as i32, 0, 48, 48),
-                Rect::new(self.x - 24 + 8, self.y - 24 + 16, 48, 48) 
-            ).unwrap();
-        }
-    }
+    //     if self.animation_info.effect_switch_animation > 0 {
+    //         let frame = 8 - self.animation_info.effect_switch_animation;
+    //         canvas.copy(&self.effects_texture.texture, 
+    //             Rect::new(48 * frame as i32, 0, 48, 48),
+    //             Rect::new(self.x - 24 + 8, self.y - 24 + 16, 48, 48) 
+    //         ).unwrap();
+    //     }
+    // }
 }

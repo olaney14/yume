@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="28">
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="28">
  <properties>
   <property name="defaultPos" value="22,14"/>
   <property name="music" value="res/audio/music/boylestem.mp3"/>
   <property name="music_speed" type="float" value="0.5"/>
   <property name="music_volume" type="float" value="0.5"/>
+  <property name="raindrops" type="bool" value="true"/>
  </properties>
  <tileset firstgid="1" source="entity/entity_circles.tsx"/>
  <tileset firstgid="5" source="checkered_tiles_slanted.tsx"/>
@@ -12,11 +13,11 @@
  <tileset firstgid="74" source="entity/misc_entities.tsx"/>
  <tileset firstgid="94" source="entity/lamppost.tsx"/>
  <tileset firstgid="98" source="entity/doors.tsx"/>
- <tileset firstgid="103" source="puddles.tsx"/>
- <tileset firstgid="131" source="entity/nexus_doors.tsx"/>
- <tileset firstgid="149" source="testing/animated_tile_test.tsx"/>
- <tileset firstgid="153" source="tilesets/sticks.tsx"/>
- <tileset firstgid="173" source="hospital.tsx"/>
+ <tileset firstgid="108" source="puddles.tsx"/>
+ <tileset firstgid="136" source="entity/nexus_doors.tsx"/>
+ <tileset firstgid="154" source="testing/animated_tile_test.tsx"/>
+ <tileset firstgid="158" source="tilesets/sticks.tsx"/>
+ <tileset firstgid="178" source="hospital.tsx"/>
  <imagelayer id="4" name="bg" visible="0">
   <image source="../textures/image/neon_space_mountain.png" width="512" height="512"/>
   <properties>
@@ -50,22 +51,22 @@
 0,0,0,0,71,71,71,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,71,71,71,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,89,89,89,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,93,93,93,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,93,93,93,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
+0,0,0,0,88,88,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,88,88,88,0,0,0,0,0,0,0,0,0,154,0,154,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,88,88,88,0,0,0,0,0,0,0,0,0,154,0,154,154,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,154,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,154,154,154,154,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,149,0,149,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,149,0,149,149,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,149,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,149,149,149,149,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,0,0,0,0,0,0,0,21,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,81,
+85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85
 </data>
  </layer>
  <objectgroup id="2" name="Objects">
@@ -325,7 +326,7 @@
     <property name="walk_behind" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="20" gid="103" x="416" y="224" width="16" height="16">
+  <object id="20" gid="108" x="416" y="224" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/entrances/warp.json"/>
     <property name="warp_map" value="puddles.tmx"/>
@@ -390,7 +391,7 @@
     <property name="walk_behind" type="bool" value="false"/>
    </properties>
   </object>
-  <object id="22" gid="131" x="208" y="128" width="16" height="32">
+  <object id="22" gid="136" x="208" y="128" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -429,19 +430,31 @@
     <property name="file" value="res/data/entity/effect/give_fire.json"/>
    </properties>
   </object>
-  <object id="26" gid="162" x="384" y="288" width="16" height="16">
+  <object id="26" gid="167" x="384" y="288" width="16" height="16">
    <properties>
     <property name="burn_frame_start" type="int" value="16"/>
     <property name="burn_frames" type="int" value="3"/>
     <property name="file" value="res/data/entity/flammable_opt.json"/>
    </properties>
   </object>
-  <object id="27" gid="267" x="368" y="336" width="16" height="16">
+  <object id="27" gid="272" x="368" y="336" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/seat/seat.json"/>
    </properties>
   </object>
  </objectgroup>
+ <imagelayer id="5" name="rain">
+  <image source="../textures/image/rain2.png" width="128" height="128"/>
+  <properties>
+   <property name="delay_x" type="int" value="0"/>
+   <property name="delay_y" type="int" value="0"/>
+   <property name="height" type="int" value="2"/>
+   <property name="looping" type="bool" value="true"/>
+   <property name="mismatch" type="bool" value="false"/>
+   <property name="scroll_x" type="int" value="-2"/>
+   <property name="scroll_y" type="int" value="8"/>
+  </properties>
+ </imagelayer>
  <layer id="3" name="Above" width="32" height="32">
   <properties>
    <property name="height" type="int" value="1"/>
@@ -466,7 +479,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,13,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,256,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,261,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

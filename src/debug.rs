@@ -3,7 +3,7 @@ use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
 
-use crate::{world::World, game::{Input, Transition, TransitionType, WarpPos, IntProperty, LevelPropertyType, RenderState}, ui::{Ui, Font}, player::Player};
+use crate::{game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -119,6 +119,7 @@ impl<'a> Debug<'a> {
             world.transition = Some(
                 Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
             );
+            player.dreaming = true;
         }
 
         // F3 + I - show debug info
@@ -129,6 +130,11 @@ impl<'a> Debug<'a> {
         // F3 + P - show profiling info
         if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
             self.enable_profiling = !self.enable_profiling;
+        }
+
+        // F3 + S - teleport one space forward
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::S) && !player.moving {
+            player.set_pos(player.x + player.facing.x() * 16, player.y + player.facing.y() * 16);
         }
 
         // F3 + F - print all flags
@@ -204,10 +210,9 @@ impl<'a> Debug<'a> {
             ui.theme.clear_frame(canvas, (state.screen_extents.0 - 140) / 16, 0, 9, 15);
             ui.theme.draw_frame(canvas, state.screen_extents.0 - 140, 0, 9, 15);
             let text_x = state.screen_extents.0 as i32 - 140 + 6;
-            let mut y = 4;
+            let y = 4;
             let standing_tile = player.get_standing_tile();
             self.mini_font.draw_string(canvas, format!("Tile: ({}, {})", standing_tile.0, standing_tile.1).as_str(), (text_x, y));
-            y += 6;
         }
     }
 }
