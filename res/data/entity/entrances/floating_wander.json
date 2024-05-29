@@ -1,0 +1,33 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": "$start",
+		"length": "$length",
+		"speed": "$speed"
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "warp",
+			"map": "$warp_map",
+			"pos": {
+				"x": "$warp_x",
+				"y": "$warp_y"
+			},
+			"transition": {
+				"type": "pixelate",
+				"speed": 2
+			}
+		}
+	}],
+	"ai": {
+		"type": "wander",
+		"frequency": 20,
+		"delay": 10
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="25" height="25" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="2">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="25" height="25" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="2">
  <properties>
   <property name="clamp_camera" type="bool" value="true"/>
+  <property name="music" value="res/audio/music/animated0.ogg"/>
+  <property name="music_speed" type="float" value="0.5"/>
+  <property name="music_volume" type="float" value="0.75"/>
   <property name="tint" value="0,0,0,70"/>
  </properties>
  <tileset firstgid="1" source="tilesets/industrial.tsx"/>
@@ -95,7 +98,7 @@
  <objectgroup id="5" name="entities">
   <object id="1" gid="63" x="304" y="80" width="16" height="16">
    <properties>
-    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="file" value="res/data/entity/entrances/walk_warp_nomusic.json"/>
     <property name="warp_map" value="balcony.tmx"/>
     <property name="warp_x" type="int" value="79"/>
     <property name="warp_y" type="int" value="14"/>

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="4">
+<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="5">
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="defaultPos" value="7,7"/>
   <property name="tint" value="0,0,0,127"/>
  </properties>
  <tileset firstgid="1" source="bedroom.tsx"/>
+ <tileset firstgid="73" source="entity/doors.tsx"/>
  <layer id="2" name="floor" width="16" height="16">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -118,9 +119,9 @@
     <property name="draw" type="bool" value="false"/>
     <property name="file" value="res/data/entity/bedroom/sleep.json"/>
     <property name="solid" type="bool" value="true"/>
-    <property name="warp_map" value="nexus.tmx"/>
-    <property name="warp_x" type="int" value="12"/>
-    <property name="warp_y" type="int" value="11"/>
+    <property name="warp_map" value="dream_bedroom.tmx"/>
+    <property name="warp_x" type="int" value="10"/>
+    <property name="warp_y" type="int" value="6"/>
    </properties>
   </object>
   <object id="3" gid="46" x="144" y="96" width="16" height="16">
@@ -128,6 +129,19 @@
     <property name="draw" type="bool" value="false"/>
     <property name="file" value="res/data/entity/bedroom/save.json"/>
     <property name="solid" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="4" gid="83" x="96" y="80" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="true"/>
    </properties>
   </object>
  </objectgroup>

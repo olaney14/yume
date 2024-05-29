@@ -150,6 +150,23 @@ impl<'a> Debug<'a> {
             }
         }
 
+        // F3 + R - reload map from file
+        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::R) {
+            world.special_context.reload_on_warp = true;
+            world.queued_load = Some(
+                crate::game::QueuedLoad { map: world.source_file.as_os_str().to_string_lossy().to_string(),
+                    pos: WarpPos {
+                        x: IntProperty::Int(player.x / 16),
+                        y: IntProperty::Int(player.y / 16)
+                    }
+                }
+            );
+
+            world.transition = Some(
+                Transition::new(TransitionType::Fade, 4, 1, true, 5)
+            );
+        }
+
         if self.load_handle.is_some() {
             if self.load_handle.as_ref().unwrap().is_finished() {
                 let handle = self.load_handle.take().unwrap();

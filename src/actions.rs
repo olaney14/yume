@@ -757,7 +757,6 @@ impl Action for RemoveEntityAction {
                         world.special_context.entity_removal_queue.push(id as usize);
                     }
                 }
-                
             },
             RemoveEntityTarget::This => {
                 if world.special_context.entity_context.entity_call { 

@@ -1,0 +1,23 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 16,
+		"length": 3,
+		"speed": 5
+	},
+	"particles": {
+		"lifetime": [20, 30],
+		"velocity": [[-1, 1], [-4, -2]],
+		"acceleration": [0, 0.1],
+		"tx_coord": [0, 0],
+		"tx_vel": [1, 1],
+		"freq": 2,
+		"pos_offset": [8, 8],
+		"size": [2, 2],
+		"texture": "fire_gradient.png",
+		"height": 1
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

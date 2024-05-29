@@ -55,23 +55,27 @@ impl TransitionType {
 pub struct TransitionTextures<'a> {
     pub spotlight: Texture<'a>,
     // TODO: move this outta here
-    pub raindrop: Texture<'a>
+    pub raindrop: Texture<'a>,
+    pub snow: Texture<'a>
 }
 
 impl <'a> TransitionTextures<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Result<Self, String> {
         let spotlight = Texture::from_file(&PathBuf::from("res/textures/image/spotlight.png"), creator)?;
         let raindrop = Texture::from_file(&PathBuf::from("res/textures/misc/drop.png"), creator)?;
+        let snow = Texture::from_file(&PathBuf::from("res/textures/misc/snow.png"), creator)?;
         Ok(Self {
                     spotlight,
-                    raindrop
+                    raindrop,
+                    snow
                 })
     }
 
     pub fn empty<T>(creator: &'a TextureCreator<T>) -> Self {
         Self {
             spotlight: Texture::empty(creator),
-            raindrop: Texture::empty(creator)
+            raindrop: Texture::empty(creator),
+            snow: Texture::empty(creator)
         }
     }
 }

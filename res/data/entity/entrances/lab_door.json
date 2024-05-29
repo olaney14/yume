@@ -27,7 +27,8 @@
 					"y": "$warp_y"
 				},
 				"transition": {
-					"type": "fade"
+					"type": "fade",
+					"music": false
 				}
 			},
 			"delay": 32

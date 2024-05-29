@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
 use sdl2::rect::Rect;
 
-use crate::{game::{Direction, IntProperty, FloatProperty, BoolProperty, StringProperty}, world::{Interaction, World}, ai::{Ai, Animator, AnimationFrameData}, player::{self, Player}, actions::Action};
+use crate::{actions::Action, ai::{Ai, AnimationFrameData, Animator}, game::{BoolProperty, Direction, FloatProperty, IntProperty, StringProperty}, particles::ParticleEmitter, player::{self, Player}, world::{Interaction, World}};
 
 pub struct TriggeredAction {
     pub trigger: Trigger,
@@ -94,6 +94,16 @@ pub fn parse_trigger(source: &mut json::JsonValue) -> Option<Trigger> {
 
     if source.is_string() {
         return parse_trigger_type(source.as_str().unwrap());
+    } else if source.is_array() {
+        let mut triggers = Vec::new();
+        let mut trigger = source.pop();
+
+        while !trigger.is_null() {
+            triggers.push(parse_trigger(&mut trigger));
+            trigger = source.pop();
+        }
+
+        base = Some(Trigger::Or(triggers.into_iter().filter_map(|x| x).collect()));
     }
 
     if source["type"].is_string() {
@@ -220,7 +230,7 @@ pub struct Entity {
     pub movement: Option<EntityMovementInfo>,
     pub interaction: Option<(Interaction, Direction)>,
     pub variables: Rc<RefCell<HashMap<String, VariableValue>>>,
-    //pub script: Option<>
+    pub particle_emitter: Option<ParticleEmitter>,
 }
 
 // TODO looping movement for entities
@@ -242,7 +252,8 @@ impl Entity {
             x: 0,
             y: 0,
             interaction: None,
-            variables: Rc::new(RefCell::new(HashMap::new()))
+            variables: Rc::new(RefCell::new(HashMap::new())),
+            particle_emitter: None
         }
     }
 
@@ -386,6 +397,10 @@ impl Entity {
                     animator.step();
                 }
             }
+        }
+
+        if let Some(particle_emitter) = &mut self.particle_emitter {
+            particle_emitter.update((self.x, self.y));
         }
     }
 

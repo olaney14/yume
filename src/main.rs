@@ -8,7 +8,7 @@ use game::{Input, RenderState, QueuedLoad, WarpPos, IntProperty, LevelPropertyTy
 use player::Player;
 use rodio::{OutputStream, Sink};
 use save::{SaveInfo, SaveData};
-use sdl2::{image::InitFlag, keyboard::Keycode, sys::{SDL_Delay, SDL_GetTicks}, pixels::Color, video::FullscreenType, rect::Rect};
+use sdl2::{image::{InitFlag, LoadSurface}, keyboard::Keycode, pixels::Color, rect::Rect, surface::Surface, sys::{SDL_Delay, SDL_GetTicks}, video::FullscreenType};
 use texture::Texture;
 use transitions::{Transition, TransitionType};
 use ui::{Ui, MenuType, Font};
@@ -24,6 +24,7 @@ mod effect;
 mod entity;
 mod game;
 mod loader;
+mod particles;
 mod player;
 mod save;
 mod tiles;
@@ -54,12 +55,14 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG);
-    let window = video_subsystem
+    let mut window = video_subsystem
         .window("yume", 640, 480)
         .opengl()
         .position_centered()
         .build()
         .map_err(|e| e.to_string()).unwrap();
+    let window_icon = Surface::from_file("res/textures/icon.png").expect("Failed to load res/textures/icon.png. Make sure the executable is in the same directory as the res/ folder.");
+    window.set_icon(window_icon);
 
     let mut canvas = window
         .into_canvas()
@@ -271,7 +274,8 @@ fn main() {
             let mut skip_end = false;
 
             if let Some(new_name) = name {
-                if new_name != world.name {
+                if (new_name != world.name) || world.special_context.reload_on_warp {
+                    world.special_context.reload_on_warp = false;
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
                     world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state);
                     world.global_flags = old_flags;

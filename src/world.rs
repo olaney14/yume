@@ -1,4 +1,4 @@
-use std::{path::PathBuf, collections::HashMap, rc::Rc, cell::RefCell};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, path::PathBuf, rc::Rc};
 
 use json::JsonValue;
 use rand::Rng;
@@ -9,6 +9,11 @@ use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, ent
 
 const RAINDROPS_LIFETIME: u32 = 10;
 const RAINDROPS_PER_CYCLE: usize = 3;
+const RAINDROP_FRAMES: usize = 4;
+
+const SNOW_LIFETIME: u32 = 40;
+const SNOW_PER_CYCLE: usize = 1;
+const SNOW_FRAMES: usize = 5;
 
 #[derive(Clone)]
 pub enum Interaction {
@@ -70,7 +75,10 @@ pub struct World<'a> {
     pub transition_context: TransitionContext<'a>,
     pub timer: u64,
     pub draw_player: bool,
-    pub raindrops: RaindropsInfo
+    pub raindrops: RaindropsInfo,
+    pub snow: SnowInfo,
+    pub source_file: PathBuf,
+    pub particle_textures: ParticleTextures<'a>,
 }
 
 pub enum Axis {
@@ -127,7 +135,10 @@ impl<'a> World<'a> {
             transition_context: TransitionContext::new(creator, state),
             timer: 0,
             draw_player: true,
-            raindrops: RaindropsInfo::new()
+            raindrops: RaindropsInfo::new(),
+            snow: SnowInfo::new(),
+            source_file: PathBuf::new(),
+            particle_textures: ParticleTextures::new()
         }
     }
 
@@ -171,7 +182,10 @@ impl<'a> World<'a> {
             },
             timer: 0,
             draw_player: true,
-            raindrops: RaindropsInfo::new()
+            raindrops: RaindropsInfo::new(),
+            snow: SnowInfo::new(),
+            source_file: PathBuf::new(),
+            particle_textures: ParticleTextures::new()
         }
     }
 
@@ -522,9 +536,15 @@ impl<'a> World<'a> {
                 }
             }
 
-            for (i, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
+            for (_, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
                 if entity.draw && entity.get_height(player.y) == height {
                     self.draw_entity(canvas, entity, false, state);
+                }
+
+                if let Some(emitter) = &entity.particle_emitter {
+                    if emitter.height == height {
+                        emitter.draw(canvas, self, state);
+                    }
                 }
             }
 
@@ -549,8 +569,9 @@ impl<'a> World<'a> {
     }
 
     pub fn post_draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+        let mut rng = rand::thread_rng();
+
         if self.raindrops.enabled {
-            let mut rng = rand::thread_rng();
             for _ in 0..RAINDROPS_PER_CYCLE {
                 let x = rng.gen_range(0..state.screen_extents.0) as i32 - state.offset.0;
                 let y = rng.gen_range(0..state.screen_extents.1) as i32 - state.offset.1;
@@ -571,15 +592,47 @@ impl<'a> World<'a> {
                     continue;
                 }
 
-                // TODO: create transparent raindrop textures and fade them out
+                let frame = (((RAINDROPS_LIFETIME - raindrop.lifetime) as f32 / RAINDROPS_LIFETIME as f32) * RAINDROP_FRAMES as f32) as i32;
                 canvas.copy(
                     &self.transitions.raindrop.texture,
-                    None,
+                    Some(Rect::new(frame * 4, 0, 4, 4)),
                     Some(Rect::new(raindrop.x + state.offset.0, raindrop.y + state.offset.1, 4, 4))
                 ).unwrap();
             }
 
             self.raindrops.raindrops.retain(|r| r.lifetime > 0);
+        }
+
+        if self.snow.enabled {
+            for _ in 0..SNOW_PER_CYCLE {
+                let x = rng.gen_range(0..state.screen_extents.0) as i32 - state.offset.0;
+                let y = rng.gen_range(-80..state.screen_extents.1 as i32) - state.offset.1;
+
+                self.snow.snow.push(Snow {
+                    lifetime: SNOW_LIFETIME,
+                    x, y
+                });
+            }
+
+            for (i, snow) in self.snow.snow.iter_mut().enumerate() {
+                snow.lifetime -= 1;
+                if snow.lifetime == 0 {
+                    continue;
+                }
+
+                snow.y += 2;
+
+                let osc = ((SNOW_LIFETIME - snow.lifetime) as f32 / (SNOW_LIFETIME as f32 / 10.0)).sin() * 2.0;
+                snow.x += osc as i32;
+
+                let frame = (((2.0 * SNOW_FRAMES as f32 / SNOW_LIFETIME as f32) * (snow.lifetime as f32 - SNOW_LIFETIME as f32 / 2.0).abs()) as i32).min(SNOW_FRAMES as i32 - 1);
+                canvas.copy(&self.transitions.snow.texture, 
+                    Some(Rect::new(frame * 3, 0, 3, 3)), 
+                    Some(Rect::new(snow.x + state.offset.0, snow.y + state.offset.1, 3, 3))
+                ).unwrap();
+            }
+
+            self.snow.snow.retain(|r| r.lifetime > 0);
         }
     }
 
@@ -605,6 +658,12 @@ impl<'a> World<'a> {
             for entity in self.entities.as_ref().unwrap().iter() {
                 if entity.draw && entity.get_height(player.y) == height {
                     self.draw_entity(canvas, entity, true, state);
+                }
+                
+                if let Some(emitter) = &entity.particle_emitter {
+                    if emitter.height == height {
+                        emitter.draw(canvas, self, state);
+                    }
                 }
             }
 
@@ -789,6 +848,10 @@ impl<'a> World<'a> {
                 } else {
                     self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, position);
                 }
+
+                // if let Some(particles) = &entity.particle_emitter {
+                //     particles.draw(canvas, &self, state);
+                // }
             }
         } else {
             if let Some(animator) = &entity.animator {
@@ -796,6 +859,10 @@ impl<'a> World<'a> {
             } else {
                 self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, (entity.x + state.offset.0, entity.y + state.offset.1));
             }
+
+            // if let Some(particles) = &entity.particle_emitter {
+            //     particles.draw(canvas, &self, state);
+            // }
         }
     }
 
@@ -965,6 +1032,31 @@ impl<'a> World<'a> {
     }
 }
 
+const PARTICLE_IMAGES_PATH: &str = "res/textures/particle/";
+
+pub struct ParticleTextures<'a> {
+    pub textures: HashMap<String, texture::Texture<'a>>
+}
+
+impl<'a> ParticleTextures<'a> {
+    pub fn new() -> Self {
+        Self {
+            textures: HashMap::new()
+        }
+    }
+
+    pub fn get_texture(&self, id: &String) -> Option<&texture::Texture> {
+        self.textures.get(id)
+    }
+
+    pub fn add_texture<T>(&mut self, name: &String, creator: &'a TextureCreator<T>) {
+        self.textures.insert(
+            name.clone(), 
+            texture::Texture::from_file(&PathBuf::from(PARTICLE_IMAGES_PATH).join(name), creator).expect(&format!("failed to load particle texture {}", name))
+        );
+    }
+}
+
 pub struct ImageLayer<'a> {
     pub image: texture::Texture<'a>,
     pub x: i32,
@@ -1128,6 +1220,9 @@ pub struct SpecialContext {
     pub entity_removal_queue: Vec<usize>,
 
     pub multiple_action_index: Option<usize>,
+
+    /// if the map visited on the next map is the same map, actually reload it from file instead of just keeping it
+    pub reload_on_warp: bool
 }
 
 struct Raindrop {
@@ -1150,6 +1245,26 @@ impl RaindropsInfo {
     }
 }
 
+struct Snow {
+    lifetime: u32,
+    x: i32,
+    y: i32
+}
+
+pub struct SnowInfo {
+    snow: Vec<Snow>,
+    pub enabled: bool
+}
+
+impl SnowInfo {
+    pub fn new() -> Self {
+        Self {
+            snow: Vec::new(),
+            enabled: false
+        }
+    }
+}
+
 impl SpecialContext {
     pub fn new() -> Self {
         Self {
@@ -1166,7 +1281,8 @@ impl SpecialContext {
             entity_context: EntityContext::new(),
             deferred_entity_actions: Vec::new(),
             entity_removal_queue: Vec::new(),
-            multiple_action_index: None
+            multiple_action_index: None,
+            reload_on_warp: false
         }
     }
 }

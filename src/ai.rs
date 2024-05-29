@@ -2,7 +2,7 @@ use std::{collections::VecDeque, ops::Rem, str::FromStr, task::Poll, time::Insta
 
 use json::JsonValue;
 
-use crate::{entity::Entity, game::Direction, player::Player, world::{self, Interaction, World}};
+use crate::{entity::Entity, game::Direction, particles::ParticleEmitter, player::Player, world::{self, Interaction, World}};
 
 pub enum AnimationAdvancementType {
     Cycle(i32),
@@ -156,8 +156,9 @@ pub struct MoveStraight {
 impl Ai for Wander {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         self.timer = (self.timer - 1).max(0);
-
+        //dbg!(self.timer);
         if self.timer == 0 {
+            
             if (rand::random::<f32>() * self.frequency as f32).round() as i32 == 0 {
                 entity.walk(rand::random::<Direction>(), world, player, entity_list);
                 self.timer = self.delay;
@@ -348,10 +349,6 @@ impl Ai for AnimateOnInteract {
         }
     }
 }
-
-// YOU WERE MAKING ENTITY LOOP WALK
-// AND LIKE THE MOVE STRAIGHT AI TYPE
-// YOU WERE GONNA TEST IT!!!!!!!!!!
 
 pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
     if !parsed["type"].is_string() { return Err("No ai type"); }
@@ -830,7 +827,6 @@ impl PolledPathfinder for WalkTowardsPathfinder {
             else { direction = Direction::Left; }
             if diff_x != x1.abs_diff(x0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
-            //return Some(direction);
         } else {
             if diff_y == 0 { return None; }
             let mut direction;
@@ -838,10 +834,8 @@ impl PolledPathfinder for WalkTowardsPathfinder {
             else { direction = Direction::Up; }
             if diff_y != y1.abs_diff(y0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
-            //return Some(direction);
         }
 
-        // TODO there might be some problems with checking across loop boundaries
         let check_x = ((x0 as i32) + suggested_direction.x()).rem_euclid(world.width as i32);
         let check_y = ((y0 as i32) + suggested_direction.y()).rem_euclid(world.height as i32);
         if world.collide_entity_at_tile_with_list(check_x as u32, check_y as u32, None, height, entity_list) {

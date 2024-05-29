@@ -43,7 +43,8 @@ pub struct Player<'a> {
     pub exit_bed_direction: Option<Direction>,
     pub no_snap_on_stop: bool,
     pub check_walkable_on_next_frame: bool,
-    pub speed_mod: i32
+    pub speed_mod: i32,
+    pub on_ladder: bool
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -144,6 +145,10 @@ impl AnimationInfo {
 
     pub fn get_frame_pos(&self) -> (u32, u32) {
         (self.frame * 16, self.frame_row * 32)
+    }
+
+    pub fn get_ladder_frame_pos(&self) -> (u32, u32) {
+        (self.frame * 16, 3 * 32)
     }
 }
 
@@ -246,7 +251,8 @@ impl<'a> Player<'a> {
             no_snap_on_stop: false,
             check_walkable_on_next_frame: false,
             speed_mod: 0,
-            move_delay_timer: 0
+            move_delay_timer: 0,
+            on_ladder: false
         };
 
         player.load_effect_textures(creator);
@@ -744,9 +750,31 @@ impl<'a> Player<'a> {
                 let tile = (self.x / 16, (self.y / 16) + 1);
                 world.player_walk(tile.0, tile.1);
                 self.speed_mod = 0;
+                let mut touched_ladder = false;
                 for special in world.get_special_in_layer(self.layer, tile.0 as u32, tile.1 as u32).into_iter() {
                     if let SpecialTile::SpeedMod(speed_mod) = special {
                         self.speed_mod = *speed_mod;
+                    }
+
+                    if let SpecialTile::Ladder = special {
+                        touched_ladder = true;
+                    }
+                }
+
+                if touched_ladder {
+                    if !self.on_ladder {
+                        self.on_ladder = true;
+                        self.stash_last_effect();
+                        if self.remove_effect() {
+                            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 1.0));
+                        }
+                    }
+                } else {
+                    if self.on_ladder {
+                        if self.enable_last_effect() {
+                            sfx.play("effect");
+                        }
+                        self.on_ladder = false;
                     }
                 }
 
@@ -836,7 +864,11 @@ impl<'a> Player<'a> {
     }
 
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
-        let source = self.animation_info.get_frame_pos();
+        let source = if self.on_ladder {
+            self.animation_info.get_ladder_frame_pos()
+        } else {
+            self.animation_info.get_frame_pos()
+        };
         let x;
         let y;
         

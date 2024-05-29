@@ -1,0 +1,50 @@
+{
+	"ai": {
+		"type": "animate_on_interact",
+		"frames": 2,
+		"use": true,
+		"side": "bottom"
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 10,
+		"length": 3,
+		"speed": 4,
+		"manual": true
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "delayed",
+			"action": {
+				"type": "warp",
+				"map": "$warp_map",
+				"pos": {
+					"x": "$warp_x",
+					"y": "$warp_y"
+				},
+				"transition": { 
+					"type": "fade",
+					"speed": 1,
+					"hold": 32
+				}
+			},
+			"delay": 32
+		}
+	},
+	{
+		"trigger": {
+			"type": "use",
+			"side": "bottom"
+		},
+		"action": {
+			"type": "freeze"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

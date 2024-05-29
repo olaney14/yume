@@ -1,10 +1,10 @@
-use std::{path::PathBuf, u8, collections::HashMap, fs, io::Read, ffi::OsString, rc::Rc, cell::RefCell};
+use std::{any::Any, cell::RefCell, collections::HashMap, ffi::OsString, fs, io::Read, path::PathBuf, rc::Rc, u8};
 
 use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
+use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> World<'a> {
@@ -18,6 +18,7 @@ impl<'a> World<'a> {
         };
         //let mut world = World::new(creator);
         world.name = PathBuf::from(file).file_stem().unwrap_or(&OsString::from("none")).to_str().unwrap_or("none").to_string();
+        world.source_file = PathBuf::from(file);
 
         if let Some(color) = map.background_color {
             world.background_color = sdl2::pixels::Color::RGBA(color.red, color.green, color.blue, color.alpha);
@@ -144,6 +145,12 @@ impl<'a> World<'a> {
             }
         }
 
+        if let Some(prop) = map.properties.get("snow") {
+            if let PropertyValue::BoolValue(snow) = prop {
+                world.snow.enabled = *snow;
+            }
+        }
+
         assert!(!map.infinite(), "Infinite maps not supported");
         assert!(matches!(map.orientation, Orientation::Orthogonal), "Non-orthogonal orientations not supported");
 
@@ -241,6 +248,14 @@ impl<'a> World<'a> {
                                             tilemap.set_special(i, j, SpecialTile::SpeedMod(*speed_mod));
                                         }
                                     }
+
+                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("ladder") {
+                                        if let PropertyValue::BoolValue(ladder) = prop {
+                                            if *ladder {
+                                                tilemap.set_special(i, j, SpecialTile::Ladder);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -297,7 +312,8 @@ impl<'a> World<'a> {
                                     animator: None,
                                     movement: None,
                                     interaction: None,
-                                    variables: Rc::new(RefCell::new(HashMap::new()))
+                                    variables: Rc::new(RefCell::new(HashMap::new())),
+                                    particle_emitter: None
                                 };
 
                                 // justification for clone call - i need to mutate the properties and this shouldnt be called more than like 100 times
@@ -340,6 +356,17 @@ impl<'a> World<'a> {
                                 if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider).unwrap()) } }
                                 if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai).unwrap()).unwrap()) } }
                                 if let Some(prop) = properties.get("animation") { if let PropertyValue::StringValue(animation) = prop { entity.animator = Some(ai::parse_animator(&json::parse(&animation).unwrap(), *tileset_id as u32).unwrap()) } }
+                                if let Some(prop) = properties.get("particles") { 
+                                    if let PropertyValue::StringValue(particles) = prop { 
+                                        entity.particle_emitter = Some(particles::parse_particles(&json::parse(&particles).unwrap()).unwrap());
+
+                                        let texture = &entity.particle_emitter.as_ref().unwrap().texture;
+
+                                        if !world.particle_textures.textures.contains_key(texture) {
+                                            world.particle_textures.add_texture(texture, creator);
+                                        }
+                                    }
+                                }
 
                                 let mut actions_vec = Vec::new();
                                 if let Some(prop) = properties.get("actions") {
@@ -352,8 +379,10 @@ impl<'a> World<'a> {
                                                 let mut trigger = None;
                                                 let mut action = None;
 
-                                                if cur_action["trigger"].is_object() || cur_action["trigger"].is_string() {
+                                                if cur_action["trigger"].is_object() || cur_action["trigger"].is_string() || cur_action["trigger"].is_array() {
                                                     trigger = Some(parse_trigger(&mut cur_action["trigger"]).expect("failed to parse trigger"));
+                                                } else {
+                                                    eprintln!("Invalid type for trigger: {:?}", cur_action["trigger"].type_id());
                                                 }
                                                 if cur_action["action"].is_object() || cur_action["action"].is_array() {
                                                     action = Some(actions::parse_action(&cur_action["action"]).expect("failed to parse action"));

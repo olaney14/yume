@@ -77,7 +77,8 @@ pub enum SpecialTile {
     Stairs,
     Step(String, f32),
     NoRain,
-    SpeedMod(i32)
+    SpeedMod(i32),
+    Ladder
 }
 
 pub struct Tilemap {

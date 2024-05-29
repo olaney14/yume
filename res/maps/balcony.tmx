@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="100" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="5">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="100" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="5">
  <properties>
   <property name="clamp_camera" type="bool" value="true"/>
   <property name="clamp_camera_axis" value="y"/>
   <property name="looping" type="bool" value="true"/>
   <property name="looping_axis" value="x"/>
+  <property name="music" value="res/audio/music/animated0.ogg"/>
+  <property name="music_speed" type="float" value="0.6"/>
+  <property name="music_volume" type="float" value="0.75"/>
   <property name="raindrops" type="bool" value="true"/>
   <property name="tint" value="0,0,0,70"/>
  </properties>
@@ -206,7 +209,7 @@
   </object>
   <object id="2" gid="63" x="1264" y="240" width="16" height="16">
    <properties>
-    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="file" value="res/data/entity/entrances/walk_warp_nomusic.json"/>
     <property name="warp_map" value="balcony2.tmx"/>
     <property name="warp_x" type="int" value="19"/>
     <property name="warp_y" type="int" value="4"/>
@@ -223,10 +226,10 @@
   </object>
   <object id="4" gid="63" x="368" y="240" width="16" height="16">
    <properties>
-    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
-    <property name="warp_map" value="metal.tmx"/>
-    <property name="warp_x" type="int" value="52"/>
-    <property name="warp_y" type="int" value="56"/>
+    <property name="file" value="res/data/entity/entrances/walk_warp_nomusic.json"/>
+    <property name="warp_map" value="balcony3.tmx"/>
+    <property name="warp_x" type="int" value="4"/>
+    <property name="warp_y" type="int" value="16"/>
    </properties>
   </object>
  </objectgroup>

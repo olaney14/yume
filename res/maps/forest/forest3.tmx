@@ -10,8 +10,8 @@
  <tileset firstgid="193" source="../entity/lizard.tsx"/>
  <tileset firstgid="201" source="../teleport_maze.tsx"/>
  <tileset firstgid="243" source="../entity/misc_entities.tsx"/>
- <tileset firstgid="263" source="../entity/nexus_doors.tsx"/>
- <tileset firstgid="281" source="../tilesets/effects.tsx"/>
+ <tileset firstgid="267" source="../entity/nexus_doors.tsx"/>
+ <tileset firstgid="285" source="../tilesets/effects.tsx"/>
  <imagelayer id="6" name="Image">
   <image source="../../textures/image/stars.png" width="128" height="128"/>
   <properties>
@@ -147,7 +147,7 @@
     <property name="file" value="res/data/entity/door.json"/>
    </properties>
   </object>
-  <object id="6" gid="269" x="1360" y="1040" width="16" height="32">
+  <object id="6" gid="273" x="1360" y="1040" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -165,7 +165,7 @@
     <property name="warp_y" type="int" value="18"/>
    </properties>
   </object>
-  <object id="7" gid="282" x="1376" y="448" width="16" height="16">
+  <object id="7" gid="286" x="1376" y="448" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/effect/give_shoes.json"/>
    </properties>
