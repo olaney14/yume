@@ -93,11 +93,16 @@ pub struct Debug<'a> {
     pub mini_font: Font<'a>
 }
 
+fn f3_combo(input: &Input, key: Keycode) -> bool {
+    input.get_pressed(Keycode::F3) && input.get_just_pressed(key)
+    || input.get_pressed(Keycode::LAlt) && input.get_just_pressed(key)
+}
+
 impl<'a> Debug<'a> {
     pub fn update(&mut self, input: &Input, world: &mut World, player: &mut Player) {
         
         // F3 + M - Load map
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::M) {
+        if f3_combo(input, Keycode::M) {
             world.paused = true;
             self.load_handle = Some(thread::spawn(|| {
                 FileDialog::new()
@@ -109,7 +114,7 @@ impl<'a> Debug<'a> {
         }
 
         // F3 + D - warp to dev map
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::D) {
+        if f3_combo(input, Keycode::D) {
             world.queued_load = Some(
                 crate::game::QueuedLoad { map: "res/maps/dev.tmx".to_string(), pos: WarpPos {
                     x: IntProperty::Level(LevelPropertyType::DefaultX),
@@ -123,22 +128,22 @@ impl<'a> Debug<'a> {
         }
 
         // F3 + I - show debug info
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::I) {
+        if f3_combo(input, Keycode::I) {
             self.enable_debug_overlay = !self.enable_debug_overlay;
         }
 
         // F3 + P - show profiling info
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::P) {
+        if f3_combo(input, Keycode::P) {
             self.enable_profiling = !self.enable_profiling;
         }
 
         // F3 + S - teleport one space forward
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::S) && !player.moving {
+        if f3_combo(input, Keycode::S) && !player.moving {
             player.set_pos(player.x + player.facing.x() * 16, player.y + player.facing.y() * 16);
         }
 
         // F3 + F - print all flags
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::F) {
+        if f3_combo(input, Keycode::F) {
             println!("===Global Flags===");
             for (i, v) in world.global_flags.iter() {
                 println!("{}: {}", i, v);
@@ -151,7 +156,7 @@ impl<'a> Debug<'a> {
         }
 
         // F3 + R - reload map from file
-        if input.get_pressed(Keycode::F3) && input.get_just_pressed(Keycode::R) {
+        if f3_combo(input, Keycode::R) {
             world.special_context.reload_on_warp = true;
             world.queued_load = Some(
                 crate::game::QueuedLoad { map: world.source_file.as_os_str().to_string_lossy().to_string(),

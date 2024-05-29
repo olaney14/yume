@@ -39,6 +39,7 @@ pub struct ParticleEmitter {
     pub init_tx_vel: (ParticleValue<f32>, ParticleValue<f32>),
     pub size: (u32, u32),
     pub freq: u32,
+    pub freq_rand: i32,
     pub timer: i32
 }
 
@@ -74,7 +75,7 @@ impl ParticleEmitter {
 
         self.timer -= 1;
         if self.timer <= 0 {
-            self.timer = self.freq as i32;
+            self.timer = self.freq as i32 + rand::thread_rng().gen_range(0..=self.freq_rand);
 
             self.add_particle();
         }
@@ -101,8 +102,12 @@ impl ParticleEmitter {
             }
         }
 
-        while !self.particles.front().unwrap().active {
-            self.particles.pop_front();
+        while let Some(particle) = self.particles.front() {
+            if !particle.active {
+                self.particles.pop_front();
+            } else {
+                break;
+            }
         }
     }
 }
@@ -251,6 +256,7 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
     let size = if !json["size"].is_null() { parse_u32_pair(&json["size"]).expect("failed to parse particle property `size`") } else { (1, 1) };
     //let texture = texture::Texture::from_file(&PathBuf::from("res/textures/particle/").join(texture_path), creator).expect("failed to load particle texture");
     let height = if !json["height"].is_null() { json["height"].as_i32().unwrap() } else { 0 };
+    let freq_rand = if !json["freq_rand"].is_null() { json["freq_rand"].as_i32().unwrap().abs() } else { 0 };
 
     let emitter = ParticleEmitter {
         freq,
@@ -265,7 +271,8 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
         texture: texture_path.to_owned(),
         timer: 0,
         size,
-        height
+        height,
+        freq_rand
     };
 
     Some(emitter)
