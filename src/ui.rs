@@ -480,7 +480,7 @@ impl<'a> Ui<'a> {
                 self.clear = false;
                 sfx.play("menu_blip_negative");
 
-            } else if !self.open && !player.moving && world.transition.is_none() {
+            } else if !self.open && !player.moving && !player.disable_player_input && world.transition.is_none() {
                 //sink.pause();
                 self.menu_state.current_menu = MenuType::Home;
                 sink.set_volume(sink.volume() / 5.0);
