@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use json::JsonValue;
 
-use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, WarpPos}, player::Player, transitions::Transition, world::{QueuedEntityAction, World}};
+use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, Direction, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, WarpPos}, player::Player, transitions::Transition, world::{QueuedEntityAction, World}};
 
 pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if parsed.is_array() {
@@ -59,7 +59,10 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         },
         "remove" => {
             return RemoveEntityAction::parse(parsed);
-        } 
+        },
+        "lay_down_in_place" => {
+            return LayDownInPlaceAction::parse(parsed);
+        },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -795,5 +798,42 @@ impl LayDownAction {
 impl Action for LayDownAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         player.do_lay_down(world);
+    }
+}
+
+/// Instantly lay down without the walking animation, used for starting a level laying down
+pub struct LayDownInPlaceAction {
+    exit_dir: Direction,
+    offset: (IntProperty, IntProperty)
+}
+
+impl LayDownInPlaceAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let direction = Direction::from_str(json["exit_dir"].as_str().unwrap_or("left")).expect("failed to parse `exit_dir`");
+        let offset = (
+            IntProperty::parse(&json["offset_x"]).unwrap_or(IntProperty::Int(0)),
+            IntProperty::parse(&json["offset_y"]).unwrap_or(IntProperty::Int(0))
+        );
+
+        Ok(Box::new(Self {
+            exit_dir: direction,
+            offset
+        }))
+    }
+}
+
+impl Action for LayDownInPlaceAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        player.disable_player_input = true;
+        player.stash_last_effect();
+        player.remove_effect();
+        player.animation_override_controller.do_lay_down();
+        player.exit_bed_direction = Some(self.exit_dir);
+        player.no_snap_on_stop = true;
+        player.disable_player_input_time = 0;
+
+        // TODO you might need to use set_x or sumn
+        player.x += self.offset.0.get(Some(player), Some(world)).unwrap();
+        player.y += self.offset.1.get(Some(player), Some(world)).unwrap();
     }
 }

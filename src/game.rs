@@ -161,6 +161,12 @@ impl Condition {
                     return Some(Self::Bool(Box::new(bool)));
                 }
 
+                if let Some(int) = IntProperty::parse(&json["val"]) {
+                    return Some(
+                        Self::IntEquals(int, IntProperty::Int(1))
+                    );
+                }
+
                 return None;
             },
             "variable" | "var" => {

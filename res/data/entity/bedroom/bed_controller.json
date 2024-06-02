@@ -1,0 +1,30 @@
+{
+    "actions": [{
+        "trigger": "onload",
+        "action": {
+            "type": "conditional",
+            "condition": {
+                "type": "bool",
+                "val": {
+                    "type": "flag",
+                    "global": true,
+                    "flag": "start_in_bed"
+                }
+            },
+            "action": [{
+                "type": "lay_down_in_place",
+                "exit_dir": "left",
+                "offset_x": 8
+            },
+            {
+                "type": "set_flag",
+                "flag": "start_in_bed",
+                "val": 0,
+                "global": true
+            }]
+        }
+    }],
+    "solid": false,
+    "walk_behind": false,
+    "draw": false
+}

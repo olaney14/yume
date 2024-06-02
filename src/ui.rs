@@ -272,15 +272,23 @@ impl MenuState {
                             self.menu_should_close = true;
                             sfx.play_ex("song1", 1.5, 0.5);
 
+                            // 11, 6
+                            // world.queued_load = Some(
+                            //     crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
+                            //         x: IntProperty::Level(LevelPropertyType::DefaultX),
+                            //         y: IntProperty::Level(LevelPropertyType::DefaultY)
+                            //     } }
+                            // );
                             world.queued_load = Some(
                                 crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
-                                    x: IntProperty::Level(LevelPropertyType::DefaultX),
-                                    y: IntProperty::Level(LevelPropertyType::DefaultY)
+                                    x: IntProperty::Int(11),
+                                    y: IntProperty::Int(6)
                                 } }
                             );
                             world.transition = Some(
                                 Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
                             );
+                            world.global_flags.insert("start_in_bed".to_string(), 1);
 
                             player.dreaming = false;
                             player.remove_effect();

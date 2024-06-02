@@ -1,0 +1,12 @@
+{
+	"actions": [{
+		"trigger": "use",
+		"action": {
+			"type": "lay_down"
+		}
+    }],
+	"height": "0",
+	"solid": true,
+	"walk_behind": true,
+    "draw": false
+}

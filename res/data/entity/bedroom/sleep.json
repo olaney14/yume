@@ -1,8 +1,6 @@
 {
 	"actions": [{
-		"trigger": {
-			"type": "use"
-		},
+		"trigger": "use",
 		"action": [{
 			"type": "lay_down"
 		},
@@ -22,20 +20,21 @@
 				}
 			},
 			"delay": 64
-		}]
-	},
-	{
-		"trigger": {
-			"type": "use"
 		},
-		"action": {
+		{
 			"type": "set",
 			"in": "player",
 			"val": "dreaming",
 			"to": true
-		}
+		},
+		{
+			"type": "set_flag",
+			"flag": "start_in_bed",
+			"val": 1,
+			"global": true
+		}]
 	}],
 	"height": "0",
 	"solid": true,
-	"walk_behind": false
+	"walk_behind": true
 }

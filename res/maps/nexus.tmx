@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="10">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="11">
  <properties>
   <property name="defaultPos" value="12,11"/>
  </properties>
  <tileset firstgid="1" source="entity/doors.tsx"/>
- <tileset firstgid="6" source="entity/nexus_doors.tsx"/>
- <tileset firstgid="24" source="entity/misc_entities.tsx"/>
+ <tileset firstgid="16" source="entity/nexus_doors.tsx"/>
+ <tileset firstgid="34" source="entity/misc_entities.tsx"/>
  <imagelayer id="2" name="nexus_image" offsetx="64" offsety="64">
   <image source="../textures/image/nexus.png" width="256" height="256"/>
   <properties>
@@ -42,7 +42,7 @@
 </data>
  </layer>
  <objectgroup id="3" name="objects">
-  <object id="4" gid="9" x="304" y="240" width="16" height="32">
+  <object id="4" gid="19" x="304" y="240" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -60,7 +60,7 @@
     <property name="warp_y" type="int" value="8"/>
    </properties>
   </object>
-  <object id="5" gid="12" x="240" y="304" width="16" height="32">
+  <object id="5" gid="22" x="240" y="304" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -78,7 +78,7 @@
     <property name="warp_y" type="int" value="64"/>
    </properties>
   </object>
-  <object id="6" gid="36" x="304" y="96" width="16" height="16">
+  <object id="6" gid="46" x="304" y="96" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/entrances/floating.json"/>
     <property name="length" type="int" value="2"/>
@@ -89,7 +89,7 @@
     <property name="warp_y" type="int" value="8"/>
    </properties>
   </object>
-  <object id="8" gid="18" x="64" y="160" width="16" height="32">
+  <object id="8" gid="28" x="64" y="160" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -107,7 +107,7 @@
     <property name="warp_y" type="int" value="5"/>
    </properties>
   </object>
-  <object id="9" gid="21" x="128" y="96" width="16" height="32">
+  <object id="9" gid="31" x="128" y="96" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -123,6 +123,23 @@
     <property name="warp_map" value="sticks.tmx"/>
     <property name="warp_x" type="int" value="46"/>
     <property name="warp_y" type="int" value="19"/>
+   </properties>
+  </object>
+  <object id="10" gid="11" x="176" y="192" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="file" value="res/data/entity/entrances/bedroom_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="true"/>
+    <property name="warp_map" value="dream_bedroom.tmx"/>
+    <property name="warp_x" type="int" value="6"/>
+    <property name="warp_y" type="int" value="4"/>
    </properties>
   </object>
  </objectgroup>

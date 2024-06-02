@@ -804,7 +804,9 @@ impl<'a> Player<'a> {
                     self.disable_player_input = false;
                     self.animation_override_controller.lay_down_animation = false;
                     self.animation_override_controller.active = false;
-                    self.force_move_player(self.exit_bed_direction.unwrap_or(Direction::Left), world);
+                    self.no_snap_on_stop = false;
+                    self.force_move_player_custom(self.exit_bed_direction.unwrap_or(Direction::Left), world, 24);
+                    //self.force_move_player(self.exit_bed_direction.unwrap_or(Direction::Left), world);
                     if self.enable_last_effect() {
                         sfx.play("effect");
                     }

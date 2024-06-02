@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="5">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="7">
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="defaultPos" value="7,7"/>
@@ -120,7 +120,7 @@
     <property name="file" value="res/data/entity/bedroom/sleep.json"/>
     <property name="solid" type="bool" value="true"/>
     <property name="warp_map" value="dream_bedroom.tmx"/>
-    <property name="warp_x" type="int" value="10"/>
+    <property name="warp_x" type="int" value="11"/>
     <property name="warp_y" type="int" value="6"/>
    </properties>
   </object>
@@ -142,6 +142,11 @@
     <property name="height" type="int" value="0"/>
     <property name="solid" type="bool" value="true"/>
     <property name="walk_behind" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="6" gid="20" x="64" y="144" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/bedroom/bed_controller.json"/>
    </properties>
   </object>
  </objectgroup>
