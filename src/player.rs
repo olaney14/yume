@@ -906,7 +906,7 @@ impl<'a> Player<'a> {
         }
         self.post_draw(canvas, (x, y), state);
 
-        if self.animation_info.effect_switch_animation > 0 {
+        if self.dreaming && self.animation_info.effect_switch_animation > 0 {
             let frame = 8 - self.animation_info.effect_switch_animation;
             canvas.copy(
                 &self.effects_texture.texture, 
