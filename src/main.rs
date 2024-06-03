@@ -280,6 +280,15 @@ fn main() {
                     world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state);
                     world.global_flags = old_flags;
                     world.transition = transition;
+
+                    if let Some(song) = &mut world.song {
+                        if let Some(transition) = &world.transition {
+                            if transition.fade_music {
+                                song.volume = 0.0;
+                            }
+                        }
+                    }
+                    
                     world.onload(&sink);
                 } else {
                     world.reset();

@@ -147,9 +147,9 @@ impl Song {
             if !sink.empty() {
                 sink.clear();
             }
+            sink.append(self.source.take().unwrap());
             sink.set_speed(self.speed);
             sink.set_volume(self.volume);
-            sink.append(self.source.take().unwrap());
             self.playing = true;
             self.dirty = false;
             sink.play();

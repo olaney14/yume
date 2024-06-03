@@ -1,0 +1,20 @@
+{
+	"particles": {
+		"lifetime": [50, 60],
+		"velocity": [[-1, 1], [-1, 1]],
+        "stagnate": 1.1,
+		"acceleration": [0, 0],
+		"tx_coord": [0, 0],
+		"tx_vel": [2, 0],
+		"freq": 32,
+		"pos_offset": [[4, 12], [4, 12]],
+		"size": [1, 1],
+		"texture": "lamplight2.png",
+		"height": 1,
+		"freq_rand": 32
+	},
+	"draw": false,
+	"height": "0",
+	"solid": false,
+	"walk_behind": false
+}

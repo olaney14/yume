@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="2021.03.23" orientation="orthogonal" renderorder="right-down" width="120" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="8">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="120" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="8">
  <properties>
   <property name="default_pos" value="85,64"/>
   <property name="looping" type="bool" value="true"/>
@@ -161,7 +161,7 @@
     <property name="start_frame" type="int" value="6"/>
     <property name="walk_behind" type="bool" value="true"/>
     <property name="warp_map" value="nexus.tmx"/>
-    <property name="warp_x" type="int" value="15"/>
+    <property name="warp_x" type="int" value="11"/>
     <property name="warp_y" type="int" value="18"/>
    </properties>
   </object>

@@ -40,7 +40,8 @@ pub struct ParticleEmitter {
     pub size: (u32, u32),
     pub freq: u32,
     pub freq_rand: i32,
-    pub timer: i32
+    pub timer: i32,
+    pub stagnate: ParticleValue<f32>
 }
 
 impl ParticleEmitter {
@@ -61,6 +62,7 @@ impl ParticleEmitter {
             pos: (self.pos.0 as f32 + self.pos_offset.0.get(), self.pos.1 as f32 + self.pos_offset.1.get()),
             vel: (self.init_vel.0.get(), self.init_vel.1.get()),
             acc: (self.init_acc.0.get(), self.init_acc.1.get()),
+            stagnate: self.stagnate.get(),
             life: self.init_life.get(),
             size: self.size,
             tx_coord: (self.init_tx_coord.0.get(), self.init_tx_coord.1.get()),
@@ -91,6 +93,8 @@ impl ParticleEmitter {
             particle.pos.1 += particle.vel.1;
             particle.vel.0 += particle.acc.0;
             particle.vel.1 += particle.acc.1;
+            particle.vel.0 /= particle.stagnate;
+            particle.vel.1 /= particle.stagnate;
 
             particle.tx_coord.0 += particle.tx_vel.0;
             particle.tx_coord.1 += particle.tx_vel.1;
@@ -118,6 +122,7 @@ pub struct Particle {
     pub pos: (f32, f32),
     pub vel: (f32, f32),
     pub acc: (f32, f32),
+    pub stagnate: f32,
     pub life: u32,
     pub tx_coord: (f32, f32),
     pub tx_vel: (f32, f32),
@@ -243,6 +248,7 @@ const DEFAULT_ACC: ParticleFloatPair = (ParticleValue::Value(0.0), ParticleValue
 const DEFAULT_TEX_COORD: ParticleFloatPair = (ParticleValue::Value(0.0), ParticleValue::Value(0.0));
 const DEFAULT_TEX_VEL: ParticleFloatPair = (ParticleValue::Value(0.0), ParticleValue::Value(0.0));
 const DEFAULT_FREQ: u32 = 5;
+const DEFAULT_STAGNATE: ParticleValue<f32> = ParticleValue::Value(1.0);
 
 pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
     let lifetime = if !json["lifetime"].is_null() { parse_particle_u32(&json["lifetime"]).expect("failed to parse particle property `lifetime`") } else { DEFAULT_LIFETIME };
@@ -257,6 +263,7 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
     //let texture = texture::Texture::from_file(&PathBuf::from("res/textures/particle/").join(texture_path), creator).expect("failed to load particle texture");
     let height = if !json["height"].is_null() { json["height"].as_i32().unwrap() } else { 0 };
     let freq_rand = if !json["freq_rand"].is_null() { json["freq_rand"].as_i32().unwrap().abs() } else { 0 };
+    let stagnate = if !json["stagnate"].is_null() { parse_particle_f32(&json["stagnate"]).expect("failed to parse particle property `stagnate`") } else { DEFAULT_STAGNATE };
 
     let emitter = ParticleEmitter {
         freq,
@@ -272,7 +279,8 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
         timer: 0,
         size,
         height,
-        freq_rand
+        freq_rand,
+        stagnate
     };
 
     Some(emitter)
