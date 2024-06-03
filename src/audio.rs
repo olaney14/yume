@@ -159,7 +159,7 @@ impl Song {
     /// This method only needs to be called if `dirty` is true but you do you
     pub fn update(&mut self, sink: &Sink) {
         sink.set_speed(self.speed);
-        sink.set_volume(self.volume);
+        sink.set_volume(self.volume.max(0.0));
 
         if self.reload {
             sink.clear();

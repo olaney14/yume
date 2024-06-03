@@ -359,7 +359,7 @@ impl<'a> Player<'a> {
         };
     }
 
-    pub fn move_player(&mut self, direction: Direction, world: &mut World, force: bool, just_pressed: bool, sfx: &mut SoundEffectBank) {
+    pub fn move_player(&mut self, direction: Direction, world: &mut World, force: bool, just_pressed: bool) {
         if !self.moving || force {
             if self.on_stairs(world) {
                 let diag = self.check_stair_diag(direction, world);
@@ -371,7 +371,11 @@ impl<'a> Player<'a> {
                         self.move_timer = MOVE_TIMER_MAX;
                         self.occupied_tile.0 = (self.occupied_tile.0 as i32 + direction.x()) as u32;
                         self.occupied_tile.1 = (self.occupied_tile.0 as i32 + diag) as u32;
-                        sfx.play_ex("step", 1.0, 0.25);
+                        //sfx.play_ex("step", 1.0, 0.25);
+                        world.special_context.play_sounds.push((
+                            "step".to_string(),
+                            1.0, 0.25
+                        ));
 
                         if !force {
                             self.animation_info.frame = 1;
@@ -399,7 +403,11 @@ impl<'a> Player<'a> {
                 let pos = self.get_standing_tile();
 
                 let (sound, volume) = self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32));
-                sfx.play_ex(&sound, 1.0, volume);
+                //sfx.play_ex(&sound, 1.0, volume);
+                world.special_context.play_sounds.push((
+                    "step".to_string(),
+                    1.0, volume
+                ));
 
                 if !force {
                     self.animation_info.frame = 1;
@@ -471,7 +479,12 @@ impl<'a> Player<'a> {
                         self.draw_over = true;
                         let new_pos = self.get_standing_tile();
                         let (sound, volume) = self.get_step_sound(world, ((new_pos.0 as i32 + direction.x()) as u32, (new_pos.1 as i32 + direction.y()) as u32));
-                        sfx.play_ex(&sound, 1.0, volume);
+                        //sfx.play_ex(&sound, 1.0, volume);
+                        world.special_context.play_sounds.push((
+                            "step".to_string(),
+                            1.0, volume
+                        ));
+                        
                     } else {
                         self.animation_info.frame = 1;
                         let player_pos = self.get_standing_tile();
@@ -500,7 +513,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn movement_check(&mut self, input: &Input, world: &mut World, force: bool, sfx: &mut SoundEffectBank) -> bool {
+    pub fn movement_check(&mut self, input: &Input, world: &mut World, force: bool) -> bool {
         use Keycode::*;
         if self.disable_player_input {
             return false;
@@ -519,12 +532,12 @@ impl<'a> Player<'a> {
             let last_pressed = directions_pressed.iter()
                 .find(|dir| **dir == self.last_direction.unwrap());
             if let Some(last) = last_pressed {
-                self.move_player(*last, world, force, input.get_just_pressed(last.to_key().unwrap_or(Keycode::PrintScreen)), sfx);
+                self.move_player(*last, world, force, input.get_just_pressed(last.to_key().unwrap_or(Keycode::PrintScreen)));
                 return true;
             }
         } else if directions_pressed.len() == 1 {
             let direction = directions_pressed.first().unwrap();
-            self.move_player(*direction, world, force, input.get_just_pressed(direction.to_key().unwrap_or(Keycode::PrintScreen)), sfx);
+            self.move_player(*direction, world, force, input.get_just_pressed(direction.to_key().unwrap_or(Keycode::PrintScreen)));
             return true;
         }
 
@@ -782,12 +795,12 @@ impl<'a> Player<'a> {
                     self.layer = reset_layer;
                 }
                 self.reset_layer_on_stop = None;
-                if !self.movement_check(input, world, true, sfx) {
+                if !self.movement_check(input, world, true) {
                     self.animation_info.stop();
                 }
             }
         } else {
-            self.movement_check(input, world, false, sfx);
+            self.movement_check(input, world, false);
             if input.get_just_pressed(Keycode::Z) {
                 let pos = self.get_standing_tile();
                 world.interactions.push(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));

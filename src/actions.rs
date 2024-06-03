@@ -63,6 +63,9 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "lay_down_in_place" => {
             return LayDownInPlaceAction::parse(parsed);
         },
+        "move_player" => {
+            return MovePlayerAction::parse(parsed);
+        },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -137,7 +140,7 @@ pub struct DelayedAction {
 impl DelayedAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         if !parsed["delay"].is_number() { return Err("No delay time included".to_string()); }
-        if !parsed["action"].is_object() { return Err("No action included for after delay".to_string()); }
+        if !parsed["action"].is_object() && !parsed["action"].is_array() { return Err("No action included for after delay".to_string()); }
         let parsed_action = parse_action(&parsed["action"]);
         if parsed_action.is_ok() {
             return Ok(
@@ -835,5 +838,45 @@ impl Action for LayDownInPlaceAction {
         // TODO you might need to use set_x or sumn
         player.x += self.offset.0.get(Some(player), Some(world)).unwrap();
         player.y += self.offset.1.get(Some(player), Some(world)).unwrap();
+    }
+}
+
+pub struct MovePlayerAction {
+    direction: Direction,
+    forced: BoolProperty,
+    custom_distance: Option<IntProperty>
+}
+
+impl MovePlayerAction {
+    pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let direction = Direction::from_str(json["direction"].as_str().unwrap()).expect("failed to parse `direction`");
+        let forced = BoolProperty::parse(&json["forced"]).unwrap_or(BoolProperty::Bool(false));
+        let custom_distance = IntProperty::parse(&json["custom_distance"]);
+
+        Ok(Box::new(Self {
+                            direction,
+                            forced,
+                            custom_distance
+                        }))
+    }
+}
+
+impl Action for MovePlayerAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        if self.forced.get(Some(player), Some(world)).unwrap() {
+            if let Some(distance) = &self.custom_distance {
+                // TODO: you might need to find a way to incorporate the no snap on stop thing
+                let distance_get = distance.get(Some(player), Some(world)).unwrap();
+                player.force_move_player_custom(self.direction, world, distance_get);
+            } else {
+                player.force_move_player(self.direction, world);
+            }
+        } else {
+            if self.custom_distance.is_some() {
+                eprintln!("Warning: in move_player_action forced must be set to true to use custom_distance");
+            }
+
+            player.move_player(self.direction, world, false, true);
+        }
     }
 }

@@ -40,9 +40,14 @@
 			"type": "use",
 			"side": "bottom"
 		},
-		"action": {
+		"action": [{
 			"type": "freeze"
-		}
+		},
+		{
+			"type": "play",
+			"sound": "small_fridge_open_001",
+			"volume": 2.0
+		}]
 	}],
 	"height": "0",
 	"solid": true,

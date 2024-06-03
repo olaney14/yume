@@ -1,0 +1,12 @@
+{
+	"actions": [{
+		"trigger": "use",
+		"action": {
+			"type": "move_player",
+            "direction": "down"
+		}
+    }],
+	"height": "0",
+	"solid": true,
+	"walk_behind": true
+}

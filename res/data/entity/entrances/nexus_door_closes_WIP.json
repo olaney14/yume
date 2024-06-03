@@ -47,6 +47,12 @@
 			"type": "play",
 			"sound": "small_fridge_open_001",
 			"volume": 2.0
+		},
+		{
+			"type": "set_flag",
+			"flag": "nexus_door_open",
+			"val": 1,
+			"global": true
 		}]
 	},
 	{
@@ -62,6 +68,49 @@
 				"volume": 2.0
 			},
 			"delay": 16
+		}
+	},
+	{
+		"trigger": "onload",
+		"action": {
+			"type": "conditional",
+			"condition": {
+                "type": "bool",
+                "val": {
+                    "type": "flag",
+                    "global": true,
+                    "flag": "nexus_door_open"
+                }
+			},
+			"action": [{
+				"type": "set_animation_frame",
+				"target": "self",
+				"val": {
+					"type": "add",
+					"lhs": "$start_frame",
+					"rhs": 2
+				}
+			},
+			{
+				"type": "set_flag",
+				"flag": "nexus_door_open",
+				"val": 0,
+				"global": true
+			},
+			{
+				"type": "delayed",
+				"action": [{
+					"type": "set_animation_frame",
+					"target": "self",
+					"val": "$start_frame"
+				},
+				{
+					"type": "play",
+					"sound": "door_big_close_001",
+					"volume": 0.5
+				}],
+				"delay": 16
+			}]
 		}
 	}],
 	"height": "0",
