@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="campus" tilewidth="16" tileheight="16" tilecount="64" columns="8">
- <image source="../../textures/tiles/campus.png" width="128" height="128"/>
+<tileset version="1.10" tiledversion="1.10.2" name="campus" tilewidth="16" tileheight="16" tilecount="96" columns="8">
+ <image source="../../textures/tiles/campus.png" width="128" height="192"/>
  <tile id="0">
   <properties>
    <property name="step" value="step9"/>
@@ -104,6 +104,60 @@
   </properties>
  </tile>
  <tile id="22">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="28">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="29">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="30">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="36">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="37">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="38">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="44">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="45">
+  <properties>
+   <property name="step" value="step5"/>
+   <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="46">
   <properties>
    <property name="step" value="step5"/>
    <property name="step_volume" type="float" value="1"/>

@@ -174,9 +174,11 @@ impl<'a> World<'a> {
 
                                 if let Some(tile) = tile_opt {
                                     if tile.get_tile().is_none() { continue; }
+                                    let tileset_width = tile.get_tileset().columns;
+
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("animation") {
                                         if let PropertyValue::StringValue(animation) = prop {
-                                            match parse_animator(&json::parse(&animation).expect("failed to parse tile animator json"), tile.tileset_index() as u32) {
+                                            match parse_animator(&json::parse(&animation).expect("failed to parse tile animator json"), tile.tileset_index() as u32, tileset_width) {
                                                 Ok(animator) => {
                                                     let mut entity = Entity::new();
                                                     entity.animator = Some(animator);
@@ -297,6 +299,8 @@ impl<'a> World<'a> {
                     for object in object_layer.objects().into_iter() {
                         if let Some(tile_obj) = object.get_tile() {
                             if let TilesetLocation::Map(tileset_id) = tile_obj.tileset_location() {
+                                let tileset_width = tile_obj.get_tileset().columns;
+
                                 let mut entity = Entity {
                                     actions: Vec::new(),
                                     height: 0,
@@ -355,7 +359,7 @@ impl<'a> World<'a> {
                                 } }
                                 if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider).unwrap()) } }
                                 if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai).unwrap()).unwrap()) } }
-                                if let Some(prop) = properties.get("animation") { if let PropertyValue::StringValue(animation) = prop { entity.animator = Some(ai::parse_animator(&json::parse(&animation).unwrap(), *tileset_id as u32).unwrap()) } }
+                                if let Some(prop) = properties.get("animation") { if let PropertyValue::StringValue(animation) = prop { entity.animator = Some(ai::parse_animator(&json::parse(&animation).unwrap(), *tileset_id as u32, tileset_width).unwrap()) } }
                                 if let Some(prop) = properties.get("particles") { 
                                     if let PropertyValue::StringValue(particles) = prop { 
                                         entity.particle_emitter = Some(particles::parse_particles(&json::parse(&particles).unwrap()).unwrap());

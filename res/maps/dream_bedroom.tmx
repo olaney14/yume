@@ -3,6 +3,9 @@
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="defaultPos" value="7,7"/>
+  <property name="music" value="res/audio/music/newworld.mp3"/>
+  <property name="music_speed" type="float" value="1.2"/>
+  <property name="music_volume" type="float" value="0.2"/>
   <property name="tint" value="0,0,0,127"/>
  </properties>
  <tileset firstgid="1" source="bedroom.tsx"/>

@@ -403,9 +403,8 @@ impl<'a> Player<'a> {
                 let pos = self.get_standing_tile();
 
                 let (sound, volume) = self.get_step_sound(world, ((pos.0 as i32 + direction.x()) as u32, (pos.1 as i32 + direction.y()) as u32));
-                //sfx.play_ex(&sound, 1.0, volume);
                 world.special_context.play_sounds.push((
-                    "step".to_string(),
+                    sound,
                     1.0, volume
                 ));
 
@@ -481,7 +480,7 @@ impl<'a> Player<'a> {
                         let (sound, volume) = self.get_step_sound(world, ((new_pos.0 as i32 + direction.x()) as u32, (new_pos.1 as i32 + direction.y()) as u32));
                         //sfx.play_ex(&sound, 1.0, volume);
                         world.special_context.play_sounds.push((
-                            "step".to_string(),
+                            sound,
                             1.0, volume
                         ));
                         

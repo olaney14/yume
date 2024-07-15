@@ -15,6 +15,8 @@ const SNOW_LIFETIME: u32 = 40;
 const SNOW_PER_CYCLE: usize = 1;
 const SNOW_FRAMES: usize = 5;
 
+pub const OFFSCREEN_DISTANCE: u32 = 18;
+
 #[derive(Clone)]
 pub enum Interaction {
     Use(i32, i32),

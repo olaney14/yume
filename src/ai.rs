@@ -20,15 +20,26 @@ pub struct DirectionalAnimationData {
     pub advance: AnimationAdvancementType
 }
 
+pub struct FollowAnimationData {
+    pub follow_vec: (i32, i32),
+    pub easing: u32,
+    pub center: u32,
+    pub axes: world::Axis
+}
+
 pub enum AnimationFrameData {
     SingleFrame(u32),
     FrameSequence{start: u32, idle: u32, len: u32, advance: AnimationAdvancementType},
     Directional(DirectionalAnimationData),
+    Follow(FollowAnimationData),
 }
 
 pub struct Animator {
     pub frame_data: AnimationFrameData,
     pub tileset: u32,
+
+    /// this is only Some if frame_data is Follow
+    pub tileset_width: Option<u32>,
     pub frame: u32,
     pub speed: u32,
     pub timer: i32,
@@ -41,12 +52,14 @@ impl Animator {
         let beginning_frame = match &data {
             AnimationFrameData::SingleFrame(frame) => { *frame },
             AnimationFrameData::FrameSequence { start, .. } => { *start },
-            AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) }
+            AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) },
+            AnimationFrameData::Follow(data) => { data.center }
         };
 
         Self {
             frame_data: data,
             tileset,
+            tileset_width: None,
             speed,
             timer: speed as i32,
             frame: beginning_frame,
@@ -59,7 +72,8 @@ impl Animator {
         let beginning_frame = match &self.frame_data {
             AnimationFrameData::SingleFrame(frame) => { *frame },
             AnimationFrameData::FrameSequence { start, .. } => { *start },
-            AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) }
+            AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) },
+            AnimationFrameData::Follow(data) => { data.center }
         };
 
         self.frame = beginning_frame;
@@ -131,6 +145,23 @@ impl Animator {
                             self.frame = advanced as u32;
                         }
                     }
+                },
+                AnimationFrameData::Follow(data) => {
+                    assert!(self.tileset_width.is_some());
+                    // TODO: add easing
+                    let look_offset = match &data.axes {
+                        &world::Axis::Horizontal => {
+                            (data.follow_vec.0, 0)
+                        }
+                        &world::Axis::Vertical => {
+                            (0, data.follow_vec.1)
+                        }
+                        &world::Axis::All => {
+                            data.follow_vec
+                        }
+                    };
+
+                    self.frame = (data.center as i32 + look_offset.0 + (look_offset.1 * self.tileset_width.unwrap() as i32)).max(0) as u32;
                 }
             }
         }
@@ -431,7 +462,7 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
 
 pub const DEFAULT_ANIMATION_SPEED: u32 = 5;
 
-pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str> {
+pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> Result<Animator, &str> {
     if !parsed["type"].is_string() { return Err("No animation type") }
     let repeat = match parsed["repeat"].as_str() {
         Some(v) => {
@@ -453,6 +484,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
             return Ok(Animator { 
                 frame_data: AnimationFrameData::SingleFrame(parsed["frame"].as_u32().unwrap()), 
                 tileset, 
+                tileset_width: Some(tileset_width),
                 frame: 0, 
                 speed: 0, 
                 timer: 0,
@@ -470,6 +502,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
             return Ok(Animator {
                 frame: start,
                 speed,
+                tileset_width: Some(tileset_width),
                 tileset,
                 timer: speed as i32,
                 frame_data: AnimationFrameData::FrameSequence { 
@@ -496,6 +529,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
                     frame: down * frames + (frames / 2),
                     speed,
                     tileset,
+                    tileset_width: Some(tileset_width),
                     timer: speed as i32,
                     frame_data: AnimationFrameData::Directional(DirectionalAnimationData {
                         advance: repeat,
@@ -511,6 +545,29 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32) -> Result<Animator, &str
                 }
             )
         },
+        "follow" => {
+            let center = parsed["center"].as_u32().expect("Expected u32 for follow animation center.");
+            let axes = world::Axis::parse(parsed["axes"].as_str().expect("Expected string for follow animation axes.")).expect("Could not parse axes for follow animation");
+            let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
+
+            return Ok(
+                Animator {
+                    frame: center,
+                    speed,
+                    tileset,
+                    tileset_width: Some(tileset_width),
+                    timer: speed as i32,
+                    frame_data: AnimationFrameData::Follow(FollowAnimationData {
+                        axes,
+                        center: center,
+                        easing: 0,
+                        follow_vec: (0, 0)
+                    }),
+                    manual,
+                    on_move
+                }
+            )
+        }
         _ => return Err("Unrecognized animation type")
     }
 }

@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
 use sdl2::rect::Rect;
 
-use crate::{actions::Action, ai::{Ai, AnimationFrameData, Animator}, game::{BoolProperty, Direction, FloatProperty, IntProperty, StringProperty}, particles::ParticleEmitter, player::{self, Player}, world::{Interaction, World}};
+use crate::{actions::Action, ai::{Ai, AnimationFrameData, Animator}, game::{BoolProperty, Direction, FloatProperty, IntProperty, StringProperty}, particles::ParticleEmitter, player::{self, Player}, world::{self, Interaction, World}};
 
 pub struct TriggeredAction {
     pub trigger: Trigger,
@@ -370,6 +370,32 @@ impl Entity {
 
         let on_move = if let Some(animator) = &self.animator { animator.on_move } else { false };
         let manual = if let Some(animator) = &self.animator { animator.manual } else { false };
+
+        let self_tile = self.get_standing_tile();
+        let player_tile = player.get_standing_tile();
+        let distance = ((self_tile.0 as i32 - player_tile.0 as i32).abs() + (self_tile.1 as i32 - player_tile.1 as i32).abs()) as u32;
+        if distance <= world::OFFSCREEN_DISTANCE {
+            if let Some(animator) = &mut self.animator {
+                if let AnimationFrameData::Follow(data) = &mut animator.frame_data {
+                    let player_tile = player.get_standing_tile();
+                    if player_tile.1 == self_tile.1 {
+                        data.follow_vec.1 = 0;
+                    } else if player_tile.1 > self_tile.1 {
+                        data.follow_vec.1 = 1;
+                    } else {
+                        data.follow_vec.1 = -1;
+                    }
+
+                    if player_tile.0 == self_tile.0 {
+                        data.follow_vec.0 = 0;
+                    } else if player_tile.0 > self_tile.0 {
+                        data.follow_vec.0 = 1;
+                    } else {
+                        data.follow_vec.0 = -1;
+                    }
+                }
+            }
+        }
 
         if !(on_move || manual) {
             if let Some(animator) = &mut self.animator {
