@@ -169,4 +169,11 @@ impl Song {
             sink.play();
         }
     }
+
+    pub fn reload(&mut self, sink: &Sink) {
+        let file = File::open(&self.path).expect(format!("Failed to load song {}", self.path.as_os_str().to_str().unwrap()).as_str());
+        self.source = Some(rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite());
+        self.reload = true;
+        self.update(sink);
+    }
 }

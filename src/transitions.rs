@@ -94,10 +94,11 @@ pub struct Transition {
     pub delay: i32,
     pub delay_timer: i32,
     pub draw_player: bool,
+    pub reset_same_music: bool,
 }
 
 impl Transition {
-    pub fn new(kind: TransitionType, speed: i32, delay: i32, fade_music: bool, hold: u32) -> Self {
+    pub fn new(kind: TransitionType, speed: i32, delay: i32, fade_music: bool, hold: u32, reset_music: bool) -> Self {
         let needs_screenshot = match &kind {
             TransitionType::FadeScreenshot | TransitionType::Spin | TransitionType::Lines(..) | TransitionType::Pixelate | TransitionType::Zoom(..) | TransitionType::Wave(..) => true,
             _ => false
@@ -115,14 +116,15 @@ impl Transition {
             hold, holding: false, hold_timer: hold,
             needs_screenshot,
             delay, delay_timer: 0,
-            draw_player
+            draw_player,
+            reset_same_music: reset_music
         }
     }
 
     pub fn parse(json: &JsonValue) -> Option<Self> {
         if json.is_string() {
             if let Some(transition_type) = TransitionType::parse(json) {
-                return Some(Self::new(transition_type, 8, 0, true, 0));
+                return Some(Self::new(transition_type, 8, 0, true, 0, false));
             } else {
                 eprintln!("Error parsing transition: invalid transition type");
                 return None;
@@ -132,16 +134,17 @@ impl Transition {
             let speed = json["speed"].as_i32().unwrap_or(8);
             let music = json["music"].as_bool().unwrap_or(true);
             let hold = json["hold"].as_u32().unwrap_or(0);
+            let reset_music = json["reset_music"].as_bool().unwrap_or(false);
             if let Some(parsed_type) = TransitionType::parse(&json["type"]) {
                 match parsed_type {
                     TransitionType::Zoom(..) => {
                         return Some(
-                            Self::new(TransitionType::Zoom(json["scale"].as_f32().unwrap_or(1.0)), speed, 0, music, hold)
+                            Self::new(TransitionType::Zoom(json["scale"].as_f32().unwrap_or(1.0)), speed, 0, music, hold, reset_music)
                         )
                     },
                     TransitionType::Lines(..) => {
                         return Some(
-                            Self::new(TransitionType::Lines(json["height"].as_u32().unwrap_or(1)), speed, 0, music, hold)
+                            Self::new(TransitionType::Lines(json["height"].as_u32().unwrap_or(1)), speed, 0, music, hold, reset_music)
                         )
                     },
                     TransitionType::Wave(..) => {
@@ -157,11 +160,11 @@ impl Transition {
                         };
 
                         return Some(
-                            Self::new(TransitionType::Wave(direction, json["waves"].as_u32().unwrap_or(10)), speed, 0, music, hold)
+                            Self::new(TransitionType::Wave(direction, json["waves"].as_u32().unwrap_or(10)), speed, 0, music, hold, reset_music)
                         )
                     }, TransitionType::GridCycle => {
                         return Some(
-                            Self::new(TransitionType::GridCycle, speed, 0, music, hold)
+                            Self::new(TransitionType::GridCycle, speed, 0, music, hold, reset_music)
                         );
                     },
                     TransitionType::FadeToColor(..) => {
@@ -170,10 +173,10 @@ impl Transition {
                         let b = json["b"].as_u32().expect("no `b` value for fade to color transition");
 
                         return Some(
-                            Self::new(TransitionType::FadeToColor(r, g, b), speed, 0, music, hold)
+                            Self::new(TransitionType::FadeToColor(r, g, b), speed, 0, music, hold, reset_music)
                         )
                     }
-                    _ => return Some(Self::new(parsed_type, speed, 0, music, hold))
+                    _ => return Some(Self::new(parsed_type, speed, 0, music, hold, reset_music))
                 }
             } else {
                 eprintln!("Error parsing transition: invalid transition type");

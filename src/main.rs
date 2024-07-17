@@ -179,7 +179,7 @@ fn main() {
                 map: String::from(START_MAP),
                 pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
             });
-            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 2, 0, true, 32));
+            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 2, 0, true, 32, false));
             world.special_context.new_game = false;
             world.paused = false;
         }
@@ -276,6 +276,10 @@ fn main() {
             if let Some(new_name) = name {
                 if (new_name != world.name) || world.special_context.reload_on_warp {
                     world.special_context.reload_on_warp = false;
+                    let mut old_song = None;
+                    if let Some(song) = &world.song {
+                        old_song = Some(song.path.clone());
+                    }
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
                     world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state);
                     world.global_flags = old_flags;
@@ -285,6 +289,12 @@ fn main() {
                         if let Some(transition) = &world.transition {
                             if transition.fade_music {
                                 song.volume = 0.0;
+                            }
+
+                            if let Some(old_song) = old_song {
+                                if transition.reset_same_music && old_song == song.path {
+                                    song.reload(&sink);
+                                }
                             }
                         }
                     }

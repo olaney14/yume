@@ -122,7 +122,7 @@ impl<'a> Debug<'a> {
                 } }
             );
             world.transition = Some(
-                Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
+                Transition::new(TransitionType::FadeScreenshot, 1, 1, true, 5, false)
             );
             player.dreaming = true;
         }
@@ -168,7 +168,7 @@ impl<'a> Debug<'a> {
             );
 
             world.transition = Some(
-                Transition::new(TransitionType::Fade, 4, 1, true, 5)
+                Transition::new(TransitionType::Fade, 4, 1, true, 5, false)
             );
         }
 
@@ -184,7 +184,7 @@ impl<'a> Debug<'a> {
                                     y: IntProperty::Level(LevelPropertyType::DefaultY)
                                 }
                             });
-                        world.transition = Some(Transition::new(TransitionType::Fade, 8, 0, true, 0));
+                        world.transition = Some(Transition::new(TransitionType::Fade, 8, 0, true, 0, false));
                     }
                 }
                 world.paused = false;

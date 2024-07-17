@@ -196,7 +196,7 @@ impl MenuState {
                                 map: String::new(),
                                 pos: WarpPos { x: IntProperty::Level(LevelPropertyType::DefaultX), y: IntProperty::Level(LevelPropertyType::DefaultY) }
                             });
-                            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 32, 0, true, 2));
+                            world.transition = Some(Transition::new(TransitionType::FadeScreenshot, 32, 0, true, 2, false));
                         },
                         1 => {
                             // No
@@ -286,7 +286,7 @@ impl MenuState {
                                 } }
                             );
                             world.transition = Some(
-                                Transition::new(TransitionType::GridCycle, 1, 1, true, 5)
+                                Transition::new(TransitionType::GridCycle, 1, 1, true, 5, false)
                             );
                             world.global_flags.insert("start_in_bed".to_string(), 1);
 

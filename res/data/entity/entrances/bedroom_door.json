@@ -29,7 +29,8 @@
 				"transition": { 
 					"type": "fade",
 					"speed": 1,
-					"hold": 32
+					"hold": 32,
+					"reset_music": true
 				}
 			},
 			"delay": 32
