@@ -142,6 +142,8 @@ pub struct EntityMovementInfo {
     pub move_timer: i32,
     pub speed: u32,
     pub direction: Direction,
+    pub delay: u32,
+    pub move_delay_timer: i32,
 }
 
 #[derive(Clone)]
@@ -304,7 +306,9 @@ impl Entity {
                     move_timer: player::MOVE_TIMER_MAX,
                     moving: false,
                     speed: 1,
-                    direction
+                    direction,
+                    delay: 0,
+                    move_delay_timer: 0
                 });
             }
             let mut movement = self.movement.take().unwrap();
@@ -356,7 +360,9 @@ impl Entity {
                 move_timer: player::MOVE_TIMER_MAX,
                 moving: false,
                 speed: 1,
-                direction: Direction::Down
+                direction: Direction::Down,
+                delay: 0,
+                move_delay_timer: 0
             });
         }
     }
@@ -403,8 +409,16 @@ impl Entity {
             }
         }
 
+        if let Some(particle_emitter) = &mut self.particle_emitter {
+            particle_emitter.update((self.x, self.y));
+        }
+
         if let Some(movement) = &mut self.movement {
             if movement.moving {
+                if movement.move_delay_timer > 0 {
+                    movement.move_delay_timer -= 1;
+                    return;
+                }
                 self.x += movement.direction.x() * movement.speed as i32;
                 self.y += movement.direction.y() * movement.speed as i32;
                 movement.move_timer -= movement.speed as i32;
@@ -416,6 +430,8 @@ impl Entity {
                     movement.move_timer = player::MOVE_TIMER_MAX;
                     movement.moving = false;
                 }
+
+                movement.move_delay_timer = movement.delay as i32;
             }
 
             if movement.moving && on_move {
@@ -423,10 +439,6 @@ impl Entity {
                     animator.step();
                 }
             }
-        }
-
-        if let Some(particle_emitter) = &mut self.particle_emitter {
-            particle_emitter.update((self.x, self.y));
         }
     }
 

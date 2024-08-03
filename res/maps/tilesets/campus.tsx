@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="campus" tilewidth="16" tileheight="16" tilecount="96" columns="8">
- <image source="../../textures/tiles/campus.png" width="128" height="192"/>
+<tileset version="1.10" tiledversion="1.10.2" name="campus" tilewidth="16" tileheight="16" tilecount="144" columns="8">
+ <image source="../../textures/tiles/campus.png" width="128" height="288"/>
  <tile id="0">
   <properties>
    <property name="step" value="step9"/>
@@ -41,6 +41,11 @@
   <properties>
    <property name="step" value="step5"/>
    <property name="step_volume" type="float" value="1"/>
+  </properties>
+ </tile>
+ <tile id="8">
+  <properties>
+   <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
  <tile id="9">

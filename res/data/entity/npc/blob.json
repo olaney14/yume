@@ -1,0 +1,27 @@
+{
+    "ai": {
+        "type": "wander",
+        "frequency": 50,
+        "delay": 150,
+        "speed": 1,
+        "move_delay": 1
+    },
+    "animation": {
+        "type": "sequence",
+        "start": 0,
+        "length": 2,
+        "speed": 10,
+        "repeat": "loop",
+        "on_move": true
+    },
+    "actions": [{
+        "trigger": "use",
+        "action": {
+            "type": "play",
+            "sound": "click"
+        }
+    }],
+    "height": "0",
+    "solid": true,
+    "walk_behind": false
+}

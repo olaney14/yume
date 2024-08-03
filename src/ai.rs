@@ -178,6 +178,8 @@ pub struct Wander {
     pub frequency: i32,
     pub delay: i32,
     pub timer: i32,
+    pub speed: u32,
+    pub move_delay: u32,
 }
 
 pub struct MoveStraight {
@@ -186,6 +188,13 @@ pub struct MoveStraight {
 
 impl Ai for Wander {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
+        if entity.movement.is_none() {
+            entity.init_movement();
+            dbg!(self.speed);
+            entity.movement.as_mut().unwrap().speed = self.speed;
+            entity.movement.as_mut().unwrap().delay = self.move_delay;
+        }
+
         self.timer = (self.timer - 1).max(0);
         //dbg!(self.timer);
         if self.timer == 0 {
@@ -388,10 +397,14 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
         "wander" => {
             let frequency = parsed["frequency"].as_i32().unwrap_or(100);
             let delay = parsed["delay"].as_i32().unwrap_or(25);
+            let speed = parsed["speed"].as_u32().unwrap_or(2);
+            let move_delay = parsed["move_delay"].as_u32().unwrap_or(0);
             return Ok(Box::new(Wander {
                             frequency,
                             delay,
-                            timer: delay
+                            speed,
+                            timer: delay,
+                            move_delay
                         }));
         },
         "move_straight" => {
