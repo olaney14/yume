@@ -206,6 +206,8 @@ fn main() {
                 //render_state.update_zoom(4.0, 4.0);
                 canvas.set_clip_rect(Rect::new(0, 0, render_state.screen_dims.0 / 2, render_state.screen_dims.1 / 2));
                 let window_size = canvas.window().size();
+                dbg!(window_size);
+                dbg!(render_state.screen_dims);
                 canvas.set_viewport(Rect::new(
                     (window_size.0 / 2 - (render_state.screen_dims.0)) as i32 / 4,
                     (window_size.1 / 2 - (render_state.screen_dims.1)) as i32 / 4,

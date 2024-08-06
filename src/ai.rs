@@ -190,7 +190,6 @@ impl Ai for Wander {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         if entity.movement.is_none() {
             entity.init_movement();
-            dbg!(self.speed);
             entity.movement.as_mut().unwrap().speed = self.speed;
             entity.movement.as_mut().unwrap().delay = self.move_delay;
         }
