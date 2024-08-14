@@ -4,6 +4,7 @@ use json::JsonValue;
 use rand::Rng;
 use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, IntProperty, QueuedLoad, RenderState}, player::Player, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
 
@@ -83,6 +84,7 @@ pub struct World<'a> {
     pub particle_textures: ParticleTextures<'a>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum Axis {
     All,
     Horizontal,

@@ -2,13 +2,14 @@ use core::fmt;
 use std::path::PathBuf;
 
 use sdl2::{render::{Canvas, TextureCreator, RenderTarget}, rect::Rect};
+use serde_derive::{Deserialize, Serialize};
 use crate::texture::Texture;
 
 #[derive(Debug)]
 pub struct Tileset<'a> {
     pub texture: Texture<'a>,
-    tiles_width: u32,
-    tiles_height: u32,
+    pub tiles_width: u32,
+    pub tiles_height: u32,
     pub total_tiles: u32,
     pub tile_width: u32,
     pub tile_height: u32,
@@ -72,7 +73,7 @@ impl<'a> Tileset<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum SpecialTile {
     Stairs,
     Step(String, f32),

@@ -24,6 +24,7 @@ mod effect;
 mod entity;
 mod game;
 mod loader;
+mod optimize;
 mod particles;
 mod player;
 mod save;
@@ -155,7 +156,7 @@ fn main() {
         }
         canvas.fill_rect(Rect::new(0, 0, 640, 480)).unwrap();
 
-        debug.update(&input, &mut world, &mut player);
+        debug.update(&input, &mut world, &mut player, &texture_creator);
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
 
         if world.special_context.write_save_to_pending {
@@ -283,7 +284,7 @@ fn main() {
                         old_song = Some(song.path.clone());
                     }
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
-                    world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state);
+                    world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state).expect("failed to load map");
                     world.global_flags = old_flags;
                     world.transition = transition;
 

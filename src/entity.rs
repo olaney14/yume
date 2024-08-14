@@ -426,7 +426,7 @@ impl Entity {
 
                 if movement.move_timer <= 0 {
                     self.x = (self.x as f32 / 16.0).round() as i32 * 16;
-                    self.y = (self.y as f32 / 16.0).round() as i32 * 16;
+                    self.y = (self.y as f32 / 16.0).round() as i32 * 16; 
                     movement.move_timer = player::MOVE_TIMER_MAX;
                     movement.moving = false;
                 }

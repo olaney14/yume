@@ -7,9 +7,9 @@ use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLoc
 use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
-    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> World<'a> {
+    pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> Result<World<'a>, Box<dyn std::error::Error>> {
         let mut loader = Loader::new();
-        let map = loader.load_tmx_map(file).unwrap();
+        let map = loader.load_tmx_map(file)?;
 
         let mut world = if let Some(old) = old_world {
             World::with_old(old, creator)
@@ -66,16 +66,16 @@ impl<'a> World<'a> {
             if let PropertyValue::StringValue(edges) = prop {
                 let parsed = json::parse(&edges.as_str()).unwrap();
                 if !parsed["down"].is_null() {
-                    world.side_actions[1] = (false, Some(actions::parse_action(&parsed["down"]).expect("failed to parse down screen transition action")));
+                    world.side_actions[1] = (false, Some(actions::parse_action(&parsed["down"]).map_err(|err| { format!("in down screen action: {}", err) })?));
                 }
                 if !parsed["up"].is_null() {
-                    world.side_actions[0] = (false, Some(actions::parse_action(&parsed["up"]).expect("failed to parse up screen action")));
+                    world.side_actions[0] = (false, Some(actions::parse_action(&parsed["up"]).map_err(|err| { format!("in up screen action: {}", err) })?));
                 }
                 if !parsed["left"].is_null() {
-                    world.side_actions[2] = (false, Some(actions::parse_action(&parsed["left"]).expect("failed to parse left screen transition action")));
+                    world.side_actions[2] = (false, Some(actions::parse_action(&parsed["left"]).map_err(|err| { format!("in left screen action: {}", err) })?));
                 }
                 if !parsed["right"].is_null() {
-                    world.side_actions[3] = (false, Some(actions::parse_action(&parsed["right"]).expect("failed to parse right screen action")));
+                    world.side_actions[3] = (false, Some(actions::parse_action(&parsed["right"]).map_err(|err| { format!("in right screen action: {}", err) })?));
                 }
             }
         }
@@ -131,10 +131,10 @@ impl<'a> World<'a> {
             if let PropertyValue::StringValue(tint_color) = prop {
                 let mut color = tint_color.split(',');
                 world.tint = Some(Color::RGBA(
-                    color.next().unwrap().parse::<u8>().unwrap(), 
-                    color.next().unwrap().parse::<u8>().unwrap(), 
-                    color.next().unwrap().parse::<u8>().unwrap(), 
-                    color.next().unwrap().parse::<u8>().unwrap(), 
+                    color.next().ok_or("tint property missing r channel (ex: r,g,b,a)")?.parse::<u8>()?, 
+                    color.next().ok_or("tint property missing g channel (ex: r,g,b,a)")?.parse::<u8>()?, 
+                    color.next().ok_or("tint property missing b channel (ex: r,g,b,a)")?.parse::<u8>()?, 
+                    color.next().ok_or("tint property missing a channel (ex: r,g,b,a)")?.parse::<u8>()?, 
                 ));
             }
         }
@@ -151,12 +151,14 @@ impl<'a> World<'a> {
             }
         }
 
-        assert!(!map.infinite(), "Infinite maps not supported");
-        assert!(matches!(map.orientation, Orientation::Orthogonal), "Non-orthogonal orientations not supported");
+        if map.infinite() { return Err("infinite maps not supported".into()) }
+        if !matches!(map.orientation, Orientation::Orthogonal) { return Err("non-orthogonal maps not supported".into()) }
+        //assert!(!map.infinite(), "Infinite maps not supported");
+        //assert!(matches!(map.orientation, Orientation::Orthogonal), "Non-orthogonal orientations not supported");
 
         for tileset in map.tilesets().iter() {
             let mut ts = Tileset::new_with_tile_size(
-                Texture::from_file(&tileset.as_ref().image.as_ref().expect("tileset has no source image").source, creator).expect("failed to load tileset texture"),
+                Texture::from_file(&tileset.as_ref().image.as_ref().ok_or("tileset has no source image")?.source, creator).map_err(|err| { format!("failed to load tileset texture: {}", err) })?,
                 tileset.tile_width, tileset.tile_height
             );
             ts.name = Some(tileset.name.clone());
@@ -178,11 +180,11 @@ impl<'a> World<'a> {
 
                                     if let Some(prop) = tile.get_tile().unwrap().properties.get("animation") {
                                         if let PropertyValue::StringValue(animation) = prop {
-                                            match parse_animator(&json::parse(&animation).expect("failed to parse tile animator json"), tile.tileset_index() as u32, tileset_width) {
+                                            match parse_animator(&json::parse(&animation).map_err(|err| { format!("failed to parse tile animator json: {}", err) })?, tile.tileset_index() as u32, tileset_width) {
                                                 Ok(animator) => {
                                                     let mut entity = Entity::new();
                                                     entity.animator = Some(animator);
-                                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("blocking") {
+                                                    if let Some(prop) = tile.get_tile().ok_or("failed to get tile for animation parsing")?.properties.get("blocking") {
                                                         if let PropertyValue::BoolValue(blocking) = prop {
                                                             entity.solid = *blocking;
                                                         }
@@ -202,20 +204,21 @@ impl<'a> World<'a> {
                                         }
                                     }
 
-                                    tilemap.set_tile(i, j, Tile::from_tiled(tile)).unwrap();
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("blocking") {
+                                    tilemap.set_tile(i, j, Tile::from_tiled(tile)).map_err(|err| { err.to_string() })?;
+                                    let ref_tile = tile.get_tile().ok_or("failed to get tile for property parsing")?;
+                                    if let Some(prop) = ref_tile.properties.get("blocking") {
                                         if let PropertyValue::BoolValue(blocking) = prop {
                                             tilemap.set_collision(i, j, *blocking);
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("step") {
+                                    if let Some(prop) = ref_tile.properties.get("step") {
                                         if let PropertyValue::StringValue(step) = prop {
                                             tilemap.set_special(i, j, SpecialTile::Step(step.clone(), 0.25));
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("step_volume") {
+                                    if let Some(prop) = ref_tile.properties.get("step_volume") {
                                         if let PropertyValue::FloatValue(step_volume) = prop {
                                             let sound = tilemap.get_special(i, j).map(|f| {
                                                 if let SpecialTile::Step(step, _) = f {
@@ -229,7 +232,7 @@ impl<'a> World<'a> {
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("stairs") {
+                                    if let Some(prop) = ref_tile.properties.get("stairs") {
                                         if let PropertyValue::BoolValue(stairs) = prop {
                                             if *stairs {
                                                 tilemap.set_special(i, j, SpecialTile::Stairs);
@@ -237,7 +240,7 @@ impl<'a> World<'a> {
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("no_rain") {
+                                    if let Some(prop) = ref_tile.properties.get("no_rain") {
                                         if let PropertyValue::BoolValue(no_rain) = prop {
                                             if *no_rain {
                                                 tilemap.set_special(i, j, SpecialTile::NoRain);
@@ -245,13 +248,13 @@ impl<'a> World<'a> {
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("speed_mod") {
+                                    if let Some(prop) = ref_tile.properties.get("speed_mod") {
                                         if let PropertyValue::IntValue(speed_mod) = prop {
                                             tilemap.set_special(i, j, SpecialTile::SpeedMod(*speed_mod));
                                         }
                                     }
 
-                                    if let Some(prop) = tile.get_tile().unwrap().properties.get("ladder") {
+                                    if let Some(prop) = ref_tile.properties.get("ladder") {
                                         if let PropertyValue::BoolValue(ladder) = prop {
                                             if *ladder {
                                                 tilemap.set_special(i, j, SpecialTile::Ladder);
@@ -320,30 +323,15 @@ impl<'a> World<'a> {
                                     particle_emitter: None
                                 };
 
-                                // justification for clone call - i need to mutate the properties and this shouldnt be called more than like 100 times
                                 let mut properties = object.properties.clone();
 
                                 let filename = if let Some(prop) = properties.get("file") { if let PropertyValue::StringValue(file) = prop { Some(file) } else { None } } else { None };
 
                                 if let Some(properties_filename) = filename {
-                                    let file = fs::File::open(properties_filename);
-                                    match file {
-                                        Ok(mut f) => {
-                                            let mut source = String::new();
-                                            f.read_to_string(&mut source).unwrap();
-                                            match json::parse(&source) {
-                                                Ok(mut v) => {
-                                                    json_to_properties(&mut properties, &mut v);
-                                                },
-                                                Err(e) => {
-                                                    eprintln!("Error parsing properties file: {}", e);
-                                                }
-                                            }
-                                        },
-                                        Err(e) => {
-                                            eprintln!("Error opening properties file `{}`: {}", properties_filename, e);
-                                        }
-                                    }
+                                    let mut file = fs::File::open(properties_filename)?;
+                                    let mut source = String::new();
+                                    file.read_to_string(&mut source).unwrap();
+                                    json_to_properties(&mut properties, &mut json::parse(&source)?);
                                 }
                                 
                                 if let Some(prop) = properties.get("height") { if let PropertyValue::IntValue(height) = prop { entity.height = *height; } }
@@ -357,12 +345,12 @@ impl<'a> World<'a> {
                                     // so the world's depth is changed to accommodate
                                     world.layer_max = world.layer_max.max(entity.height + 1);
                                 } }
-                                if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider).unwrap()) } }
-                                if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai).unwrap()).unwrap()) } }
-                                if let Some(prop) = properties.get("animation") { if let PropertyValue::StringValue(animation) = prop { entity.animator = Some(ai::parse_animator(&json::parse(&animation).unwrap(), *tileset_id as u32, tileset_width).unwrap()) } }
+                                if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider)?) } }
+                                if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai)?)?) } }
+                                if let Some(prop) = properties.get("animation") { if let PropertyValue::StringValue(animation) = prop { entity.animator = Some(ai::parse_animator(&json::parse(&animation)?, *tileset_id as u32, tileset_width)?) } }
                                 if let Some(prop) = properties.get("particles") { 
                                     if let PropertyValue::StringValue(particles) = prop { 
-                                        entity.particle_emitter = Some(particles::parse_particles(&json::parse(&particles).unwrap()).unwrap());
+                                        entity.particle_emitter = Some(particles::parse_particles(&json::parse(&particles)?).ok_or("error parsing particles")?);
 
                                         let texture = &entity.particle_emitter.as_ref().unwrap().texture;
 
@@ -375,7 +363,7 @@ impl<'a> World<'a> {
                                 let mut actions_vec = Vec::new();
                                 if let Some(prop) = properties.get("actions") {
                                     if let PropertyValue::StringValue(actions) = prop {
-                                        let mut parsed = json::parse(actions).expect("failed to parse actions");
+                                        let mut parsed = json::parse(actions).map_err(|err| { format!("error parsing actions: {}", err) })?;
                                         if parsed.is_array() {
 
                                             let mut cur_action = parsed.pop();
@@ -384,12 +372,12 @@ impl<'a> World<'a> {
                                                 let mut action = None;
 
                                                 if cur_action["trigger"].is_object() || cur_action["trigger"].is_string() || cur_action["trigger"].is_array() {
-                                                    trigger = Some(parse_trigger(&mut cur_action["trigger"]).expect("failed to parse trigger"));
+                                                    trigger = Some(parse_trigger(&mut cur_action["trigger"]).ok_or("failed to parse trigger")?);
                                                 } else {
                                                     eprintln!("Invalid type for trigger: {:?}", cur_action["trigger"].type_id());
                                                 }
                                                 if cur_action["action"].is_object() || cur_action["action"].is_array() {
-                                                    action = Some(actions::parse_action(&cur_action["action"]).expect("failed to parse action"));
+                                                    action = Some(actions::parse_action(&cur_action["action"]).map_err(|err| { format!("error parsing action: {}", err) })?);
                                                 }
 
                                                 if trigger.is_some() && action.is_some() {
@@ -439,16 +427,16 @@ impl<'a> World<'a> {
                         world.image_layers.push(world_image_layer);
                     }
                 }
-                _ => println!("Unsupported layer type")
+                _ => eprintln!("Unsupported layer type")
             }
         }
 
         if world.looping {
-            world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
+            world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).map_err(|err| { format!("failed to create render texture for looping level: {}", err) })?);
             world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
         }
 
-        return world;
+        return Ok(world);
     }
 }
 

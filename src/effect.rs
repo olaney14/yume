@@ -4,7 +4,8 @@ use crate::player::Player;
 pub enum Effect {
     Glasses,
     Speed,
-    Fire
+    Fire,
+    Bat
 }
 
 impl Effect {
@@ -13,6 +14,7 @@ impl Effect {
             "glasses" | "Glasses" => Some(Self::Glasses),
             "shoes" | "Running shoes" => Some(Self::Speed),
             "fire" | "Fire" => Some(Self::Fire),
+            "bat" | "Bat" => Some(Self::Bat),
             _ => None
         }
     }
@@ -21,7 +23,8 @@ impl Effect {
         match self {
             Self::Fire => "fire",
             Self::Speed => "shoes",
-            Self::Glasses => "glasses"
+            Self::Glasses => "glasses",
+            Self::Bat => "bat"
         }
     }
 
@@ -30,7 +33,8 @@ impl Effect {
         match self {
             Glasses => "Put on glasses",
             Speed => "Put on running shoes",
-            Fire => "Catch on fire"
+            Fire => "Catch on fire",
+            Bat => "Wield a bat"
         }
     }
 
@@ -39,7 +43,8 @@ impl Effect {
         match self {
             Glasses => "Glasses",
             Speed => "Running shoes",
-            Fire => "Fire"
+            Fire => "Fire",
+            Bat => "Bat"
         }
     }
 
@@ -49,7 +54,8 @@ impl Effect {
         match self {
             Glasses => 0,
             Speed => 1,
-            Fire => 2
+            Fire => 2,
+            Bat => 3
         }
     }
 

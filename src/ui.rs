@@ -681,10 +681,10 @@ impl<'a> Ui<'a> {
         }
 
         if let Some(str) = &self.effect_get {
-            self.theme.clear_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
-            self.theme.draw_frame_tiled(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
+            self.theme.clear_frame(canvas, ((state.screen_extents.0 / 2) - (16 * 4)) / 16, 150 / 16, 8, 2);
+            self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 4)) / 16, 150 / 16, 8, 2);
             let text_width = self.theme.font.string_width(str);
-            self.theme.font.draw_string(canvas, str, (200 - text_width as i32, 156));
+            self.theme.font.draw_string(canvas, str, ((state.screen_extents.0 / 2) as i32 - text_width as i32, 156));
         }
     }
 }

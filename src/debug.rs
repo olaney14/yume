@@ -1,9 +1,9 @@
 use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, collections::{HashMap, LinkedList}};
 
 use rfd::FileDialog;
-use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
+use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}};
 
-use crate::{game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
+use crate::{game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World, optimize};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -99,7 +99,7 @@ fn f3_combo(input: &Input, key: Keycode) -> bool {
 }
 
 impl<'a> Debug<'a> {
-    pub fn update(&mut self, input: &Input, world: &mut World, player: &mut Player) {
+    pub fn update<T>(&mut self, input: &Input, world: &mut World, player: &mut Player, creator: &TextureCreator<T>) {
         
         // F3 + M - Load map
         if f3_combo(input, Keycode::M) {
@@ -170,6 +170,18 @@ impl<'a> Debug<'a> {
             world.transition = Some(
                 Transition::new(TransitionType::Fade, 4, 1, true, 5, false)
             );
+        }
+
+        // F3 + O - optimize map files
+        if f3_combo(input, Keycode::O) {
+            match optimize::optimize_all(&PathBuf::from("res/maps/"), creator) {
+                Err(e) => {
+                    eprintln!("Error in map optimization: {}", e);
+                }
+                Ok(()) => {
+                    println!("Map optimization complete");
+                }
+            }
         }
 
         if self.load_handle.is_some() {

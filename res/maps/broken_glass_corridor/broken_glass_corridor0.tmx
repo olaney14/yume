@@ -3,6 +3,20 @@
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="defaultPos" value="6,62"/>
+  <property name="edges">{
+	&quot;right&quot;: {
+		&quot;type&quot;: &quot;warp&quot;,
+		&quot;map&quot;: &quot;broken_glass_corridor/broken_glass_corridor1.tmx&quot;,
+		&quot;pos&quot;: { 
+			&quot;x&quot;: 6, 
+			&quot;y&quot;: 62
+		},
+		&quot;transition&quot;: {
+			&quot;type&quot;: &quot;fade&quot;,
+			&quot;music&quot;: false
+		}
+	}
+}</property>
   <property name="music" value="res/audio/music/flotation0.ogg"/>
   <property name="music_speed" type="float" value="1"/>
   <property name="tint" value="0,0,0,127"/>
