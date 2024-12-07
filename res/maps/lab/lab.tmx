@@ -381,8 +381,8 @@
     <property name="file" value="res/data/entity/entrances/lab_door.json"/>
     <property name="start_frame" type="int" value="4"/>
     <property name="warp_map" value="lab/lab_sub1.tmx"/>
-    <property name="warp_x" type="int" value="24"/>
-    <property name="warp_y" type="int" value="87"/>
+    <property name="warp_x" type="int" value="14"/>
+    <property name="warp_y" type="int" value="31"/>
    </properties>
   </object>
  </objectgroup>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="14">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="15">
  <properties>
   <property name="defaultPos" value="12,11"/>
   <property name="music" value="res/audio/music/newworld.mp3"/>
@@ -62,24 +62,6 @@
     <property name="warp_y" type="int" value="8"/>
    </properties>
   </object>
-  <object id="5" gid="22" x="176" y="304" width="16" height="32">
-   <properties>
-    <property name="collider">{
-	&quot;x&quot;: 0,
-	&quot;y&quot;: 16,
-	&quot;w&quot;: 16,
-	&quot;h&quot;: 16
-}</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
-    <property name="height" type="int" value="0"/>
-    <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="6"/>
-    <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="forest/forest3.tmx"/>
-    <property name="warp_x" type="int" value="85"/>
-    <property name="warp_y" type="int" value="64"/>
-   </properties>
-  </object>
   <object id="6" gid="52" x="304" y="96" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/entrances/floating.json"/>
@@ -89,24 +71,6 @@
     <property name="warp_map" value="fan/flow/flowhub.tmx"/>
     <property name="warp_x" type="int" value="9"/>
     <property name="warp_y" type="int" value="8"/>
-   </properties>
-  </object>
-  <object id="8" gid="28" x="48" y="192" width="16" height="32">
-   <properties>
-    <property name="collider">{
-	&quot;x&quot;: 0,
-	&quot;y&quot;: 16,
-	&quot;w&quot;: 16,
-	&quot;h&quot;: 16
-}</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
-    <property name="height" type="int" value="0"/>
-    <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="12"/>
-    <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="loops.tmx"/>
-    <property name="warp_x" type="int" value="13"/>
-    <property name="warp_y" type="int" value="5"/>
    </properties>
   </object>
   <object id="9" gid="31" x="176" y="96" width="16" height="32">
@@ -144,25 +108,7 @@
     <property name="warp_y" type="int" value="4"/>
    </properties>
   </object>
-  <object id="11" gid="34" x="48" y="96" width="16" height="32">
-   <properties>
-    <property name="collider">{
-	&quot;x&quot;: 0,
-	&quot;y&quot;: 16,
-	&quot;w&quot;: 16,
-	&quot;h&quot;: 16
-}</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
-    <property name="height" type="int" value="0"/>
-    <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="18"/>
-    <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="campus.tmx"/>
-    <property name="warp_x" type="int" value="95"/>
-    <property name="warp_y" type="int" value="95"/>
-   </properties>
-  </object>
-  <object id="13" gid="37" x="48" y="304" width="16" height="32">
+  <object id="13" gid="37" x="176" y="304" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -178,6 +124,24 @@
     <property name="warp_map" value="paranoia.tmx"/>
     <property name="warp_x" type="int" value="26"/>
     <property name="warp_y" type="int" value="22"/>
+   </properties>
+  </object>
+  <object id="14" gid="25" x="48" y="192" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="start_frame" type="int" value="9"/>
+    <property name="walk_behind" type="bool" value="true"/>
+    <property name="warp_map" value="metal.tmx"/>
+    <property name="warp_x" type="int" value="6"/>
+    <property name="warp_y" type="int" value="11"/>
    </properties>
   </object>
  </objectgroup>

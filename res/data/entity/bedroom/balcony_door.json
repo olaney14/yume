@@ -1,0 +1,52 @@
+{
+    "ai": {
+        "type": "animate_on_interact",
+        "frames": 3,
+        "use": true
+    },
+    "animation": {
+        "type": "sequence",
+        "start": 0,
+        "length": 4,
+        "speed": 4,
+        "manual": true
+    },
+    "actions": [{
+        "trigger": {
+            "type": "use"
+        },
+        "action": {
+            "type": "delayed",
+            "action": {
+                "type": "warp",
+                "map": "$warp_map",
+                "pos": {
+                    "x": "$warp_x",
+                    "y": "$warp_y"
+                },
+                "transition": {
+                    "type": "fade",
+                    "speed": 4,
+                    "music": false
+                }
+            },
+            "delay": 32
+        }
+    },
+    {
+        "trigger": {
+            "type": "use"
+        },
+        "action": [{
+            "type": "freeze"
+        }, 
+        {
+            "type": "play",
+            "sound": "small_fridge_open_001",
+            "volume": 2.0
+        }]
+    }],
+    "height": "0",
+    "solid": true,
+    "walk_behind": true
+}

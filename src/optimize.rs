@@ -375,7 +375,6 @@ pub fn optimize_all<T>(dir: &PathBuf, creator: &TextureCreator<T>) -> Result<(),
             }
         }
     }
-
     Ok(())
 }
 
