@@ -62,17 +62,6 @@
     <property name="warp_y" type="int" value="8"/>
    </properties>
   </object>
-  <object id="6" gid="52" x="304" y="96" width="16" height="16">
-   <properties>
-    <property name="file" value="res/data/entity/entrances/floating.json"/>
-    <property name="length" type="int" value="2"/>
-    <property name="speed" type="int" value="8"/>
-    <property name="start" type="int" value="12"/>
-    <property name="warp_map" value="fan/flow/flowhub.tmx"/>
-    <property name="warp_x" type="int" value="9"/>
-    <property name="warp_y" type="int" value="8"/>
-   </properties>
-  </object>
   <object id="9" gid="31" x="176" y="96" width="16" height="32">
    <properties>
     <property name="collider">{
