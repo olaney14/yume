@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use rodio::Sink;
 use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{audio::SoundEffectBank, effect::Effect, game::{Input, IntProperty, LevelPropertyType, QueuedLoad, RenderState, WarpPos}, player::Player, save::SaveInfo, texture::Texture, tiles::Tileset, transitions::{Transition, TransitionType}, world::World};
+use crate::{audio::SoundEffectBank, effect::Effect, game::{Input, IntProperty, LevelPropertyType, QueuedLoad, RenderState, WarpPos}, player::{self, Player}, save::SaveInfo, texture::Texture, tiles::Tileset, transitions::{Transition, TransitionType}, world::World};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -269,8 +269,13 @@ impl MenuState {
                 MenuType::Special => {
                     if self.button_id == 0 {
                         if player.dreaming {
+                            player.waking_up = true;
+                            player.waking_up_timer = player::WAKE_UP_TIMER_MAX;
+
                             self.menu_should_close = true;
-                            sfx.play_ex("song1", 1.5, 0.5);
+
+                            // self.menu_should_close = true;
+                            // sfx.play_ex("song1", 1.5, 0.5);
 
                             // 11, 6
                             // world.queued_load = Some(
@@ -279,19 +284,19 @@ impl MenuState {
                             //         y: IntProperty::Level(LevelPropertyType::DefaultY)
                             //     } }
                             // );
-                            world.queued_load = Some(
-                                crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
-                                    x: IntProperty::Int(11),
-                                    y: IntProperty::Int(6)
-                                } }
-                            );
-                            world.transition = Some(
-                                Transition::new(TransitionType::GridCycle, 1, 1, true, 5, false)
-                            );
-                            world.global_flags.insert("start_in_bed".to_string(), 1);
+                            // world.queued_load = Some(
+                            //     crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
+                            //         x: IntProperty::Int(11),
+                            //         y: IntProperty::Int(6)
+                            //     } }
+                            // );
+                            // world.transition = Some(
+                            //     Transition::new(TransitionType::GridCycle, 1, 1, true, 5, false)
+                            // );
+                            // world.global_flags.insert("start_in_bed".to_string(), 1);
 
-                            player.dreaming = false;
-                            player.remove_effect();
+                            // player.dreaming = false;
+                            // player.remove_effect();
                         } else {
                             sfx.play("menu_blip_error");
                         }

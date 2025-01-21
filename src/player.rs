@@ -4,9 +4,10 @@ use sdl2::{render::{TextureCreator, RenderTarget, Canvas}, rect::Rect, keyboard:
 
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{audio::SoundEffectBank, effect::Effect, game::{Direction, Input, RenderState}, texture::Texture, tiles::SpecialTile, world::World};
+use crate::{audio::SoundEffectBank, effect::Effect, game::{Direction, Input, IntProperty, RenderState, WarpPos}, texture::Texture, tiles::SpecialTile, transitions::{Transition, TransitionType}, world::World};
 
 pub const SWITCH_EFFECT_ANIMATION_SPEED: u32 = 2;
+pub const WAKE_UP_TIMER_MAX: u32 = 100;
 
 pub struct Player<'a> {
     pub x: i32,
@@ -45,7 +46,9 @@ pub struct Player<'a> {
     pub no_snap_on_stop: bool,
     pub check_walkable_on_next_frame: bool,
     pub speed_mod: i32,
-    pub on_ladder: bool
+    pub on_ladder: bool,
+    pub waking_up: bool,
+    pub waking_up_timer: u32
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -168,6 +171,7 @@ pub enum PlayerTextureSheet {
     Player,
     Effect,
     Fire,
+    Pinch,
     Other
 }
 
@@ -175,16 +179,18 @@ pub struct ExtraTextures<'a> {
     pub fire: Texture<'a>,
     pub other: Texture<'a>,
     pub fire_frame: u32,
-    pub fire_timer: u32
+    pub fire_timer: u32,
+    pub pinch: Texture<'a>
 }
 
 impl<'a> ExtraTextures<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
         let fire = Texture::from_file(&PathBuf::from("res/textures/player/fire_sheet.png"), creator).expect("could not load \"res/textures/player/fire_sheet.png\"");
         let other = Texture::from_file(&PathBuf::from("res/textures/player/other.png"), creator).expect("could not load \"res/textures/player/other.png\"");
+        let pinch = Texture::from_file(&PathBuf::from("res/textures/player/pinch.png"), creator).expect("failed to load player pinch texture");
         Self { 
             fire, fire_frame: 0, fire_timer: 5,
-            other
+            other, pinch
         }
     }
 
@@ -253,7 +259,9 @@ impl<'a> Player<'a> {
             check_walkable_on_next_frame: false,
             speed_mod: 0,
             move_delay_timer: 0,
-            on_ladder: false
+            on_ladder: false,
+            waking_up: false,
+            waking_up_timer: 0
         };
 
         player.load_effect_textures(creator);
@@ -306,7 +314,8 @@ impl<'a> Player<'a> {
             PlayerTextureSheet::Effect => Some(&self.effects_texture),
             PlayerTextureSheet::Fire => Some(&self.extra_textures.fire),
             PlayerTextureSheet::Other => Some(&self.extra_textures.other),
-            PlayerTextureSheet::Player => Some(&self.texture)
+            PlayerTextureSheet::Player => Some(&self.texture),
+            PlayerTextureSheet::Pinch => Some(&self.extra_textures.pinch)
         }
     }
 
@@ -702,6 +711,47 @@ impl<'a> Player<'a> {
             if self.disable_player_input_time == 0 {
                 self.disable_player_input = false;
             }
+        }
+
+        if self.waking_up {
+            if self.waking_up_timer == 1 {
+                sfx.play_ex("song1", 1.5, 0.5);
+
+                world.queued_load = Some(
+                    crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
+                        x: IntProperty::Int(11),
+                        y: IntProperty::Int(6)
+                    } }
+                );
+
+                world.transition = Some(
+                    Transition::new(TransitionType::GridCycle, 1, 1, true, 5, false)
+                );
+                world.global_flags.insert("start_in_bed".to_string(), 1);
+
+                self.dreaming = false;
+                self.waking_up = false;
+            } else if self.waking_up_timer == 30 {
+                self.animation_override_controller.active = true;
+                self.animation_override_controller.texture = PlayerTextureSheet::Pinch;
+                self.animation_override_controller.frame_pos = (32, 0);
+                sfx.play_ex("pinch", 1.0, 1.0);
+            } else if self.waking_up_timer == 80 {
+                self.animation_override_controller.active = true;
+                self.animation_override_controller.texture = PlayerTextureSheet::Pinch;
+                self.animation_override_controller.frame_pos = (16, 0);
+            } else if self.waking_up_timer == 90 {
+                self.animation_override_controller.active = true;
+                self.animation_override_controller.texture = PlayerTextureSheet::Pinch;
+                self.animation_override_controller.frame_pos = (0, 0);
+            } else if self.waking_up_timer == WAKE_UP_TIMER_MAX {
+                self.look_in_direction(Direction::Down);
+                self.remove_effect();
+                self.disable_player_input_time = WAKE_UP_TIMER_MAX;
+                self.disable_player_input = true;
+            }
+
+            self.waking_up_timer -= 1;
         }
 
         self.extra_textures.animate();
