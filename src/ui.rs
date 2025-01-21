@@ -99,7 +99,7 @@ impl MenuState {
                     if matches!(self.current_menu, MenuType::Special) { self.button_id = 1; }
                     if matches!(self.current_menu, MenuType::Me) { self.button_id = 2; }
                     if matches!(self.current_menu, MenuType::Quit) { self.button_id = 4; }
-                    sfx.play("menu_blip_negative");
+                    sfx.play_ex("menu_blip_negative", 1.0, 0.5);
 
                     self.current_menu = MenuType::Home;
                     self.close_on_x = true;
@@ -478,7 +478,7 @@ impl<'a> Ui<'a> {
                 }
                 self.open = false;
                 self.clear = false;
-                sfx.play("menu_blip_negative");
+                sfx.play_ex("menu_blip_negative", 1.0, 0.5);
 
             } else if !self.open && !player.moving && !player.disable_player_input && world.transition.is_none() {
                 //sink.pause();
@@ -544,7 +544,7 @@ impl<'a> Ui<'a> {
                     self.theme.draw_frame_tiled(canvas, 0, 2, state.screen_extents.0 / 16, (state.screen_extents.1 / 16) - 2);
                     if player.unlocked_effects.len() > 0 {
                         let description = player.unlocked_effects[self.menu_state.button_id as usize].description();
-                        self.theme.font.draw_string(canvas, description, (8, 8));
+                        self.theme.font.draw_string(canvas, description, (11, 11));
                         let start_y = (2 * 16) + 8;
                         let start_x = 8;
                         let button_height = 14 + MENU_BUTTON_PADDING_VERT as i32;
@@ -564,7 +564,8 @@ impl<'a> Ui<'a> {
                     let no_selected = self.menu_state.button_id == 1;
 
                     self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 5)) / 16, 64 / 16, 10, 2);
-                    self.theme.font.draw_string(canvas, "Do you want to quit?", ((state.screen_extents.0 as i32 / 2) - (16 * 4) - 4, 64 + 10));
+                    let text_width = self.theme.font.string_width("Do you want to quit?");
+                    self.theme.font.draw_string(canvas, "Do you want to quit?", ((state.screen_extents.0 as i32 / 2) - text_width as i32 / 2, 64 + 10));
                     self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 2)) / 16, 112 / 16, 4, 3);
 
                     let button_x = (((state.screen_extents.0 as i32 / 2) - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
@@ -577,8 +578,9 @@ impl<'a> Ui<'a> {
                     let yes_selected = self.menu_state.button_id == 0;
                     let no_selected = self.menu_state.button_id == 1;
 
-                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 5)) / 16, 64 / 16, 12, 2);
-                    self.theme.font.draw_string(canvas, "Overwrite this save file?", ((state.screen_extents.0 as i32 / 2) - (16 * 4) - 4, 64 + 10));
+                    self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 6)) / 16, 64 / 16, 12, 2);
+                    let text_width = self.theme.font.string_width("Overwrite this save file?");
+                    self.theme.font.draw_string(canvas, "Overwrite this save file?", ((state.screen_extents.0 as i32 / 2) - text_width as i32 / 2, 64 + 10));
                     self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 2)) / 16, 112 / 16, 4, 3);
 
                     let button_x = (((state.screen_extents.0 as i32 / 2) - (16 * 2)) / 16) * 16 + 4 + MENU_BUTTON_PADDING_HORIZ as i32;
@@ -617,7 +619,7 @@ impl<'a> Ui<'a> {
                 },
                 MenuType::SaveLoad(b) => {
                     self.theme.draw_frame(canvas, 0, 0, state.screen_extents.0 / 16, 2);
-                    self.theme.font.draw_string(canvas, if b { "Save Game" } else { "Load Game" }, (14, 9));
+                    self.theme.font.draw_string(canvas, if b { "Save Game" } else { "Load Game" }, (11, 11));
                     let mut y = 32;
 
                     let drawn_files = save_info.files.len() as i32 + if b { 1 } else { 0 };
@@ -640,8 +642,8 @@ impl<'a> Ui<'a> {
                             self.theme.draw_frame(canvas, 0, y, state.screen_extents.0 / 16, 4);
                             let slot_message = String::from("Slot ") + &(id + 1).to_string();
                             let effects_message = entry.effects.to_string() + if entry.effects == 1 { " Effect" } else { " Effects" };
-                            self.theme.draw_button(canvas, 14 + 8, y as i32 + 9, 48, &slot_message, selected_button == id as i32, self.menu_state.selection_flash);
-                            self.theme.font.draw_string(canvas, "Wasutsuki", (14 + 8, y as i32 + 9 + 16));
+                            self.theme.draw_button(canvas, 14 + 4, y as i32 + 9, 48, &slot_message, selected_button == id as i32, self.menu_state.selection_flash);
+                            self.theme.font.draw_string(canvas, "Katrin", (14 + 8, y as i32 + 9 + 16 + 1));
                             self.theme.font.draw_string(canvas, &effects_message, (14 + 8, y as i32 + 9 + 32));
                             canvas.copy(
                                 &self.player_preview_texture.texture,
@@ -674,8 +676,8 @@ impl<'a> Ui<'a> {
                     }
                 }
                 _ => {
-                    let width = self.theme.font.string_width("under construction...");
-                    self.theme.font.draw_string(canvas, "under construction...", ((state.screen_extents.0 as i32 / 2) - (width as i32 / 2), (state.screen_extents.1 as i32 / 2) - (self.theme.font.char_height as i32 / 2)));
+                    let width = self.theme.font.string_width("...");
+                    self.theme.font.draw_string(canvas, "...", ((state.screen_extents.0 as i32 / 2) - (width as i32 / 2), (state.screen_extents.1 as i32 / 2) - (self.theme.font.char_height as i32 / 2)));
                 }
             }
         }
@@ -684,7 +686,7 @@ impl<'a> Ui<'a> {
             self.theme.clear_frame(canvas, ((state.screen_extents.0 / 2) - (16 * 4)) / 16, 150 / 16, 8, 2);
             self.theme.draw_frame_tiled(canvas, ((state.screen_extents.0 / 2) - (16 * 4)) / 16, 150 / 16, 8, 2);
             let text_width = self.theme.font.string_width(str);
-            self.theme.font.draw_string(canvas, str, ((state.screen_extents.0 / 2) as i32 - text_width as i32, 156));
+            self.theme.font.draw_string(canvas, str, ((state.screen_extents.0 / 2) as i32 - text_width as i32 / 2, 156));
         }
     }
 }

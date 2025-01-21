@@ -5,7 +5,8 @@ pub enum Effect {
     Glasses,
     Speed,
     Fire,
-    Bat
+    Bat,
+    Security
 }
 
 impl Effect {
@@ -15,6 +16,7 @@ impl Effect {
             "shoes" | "Running shoes" => Some(Self::Speed),
             "fire" | "Fire" => Some(Self::Fire),
             "bat" | "Bat" => Some(Self::Bat),
+            "security" | "Security" => Some(Self::Security),
             _ => None
         }
     }
@@ -24,7 +26,8 @@ impl Effect {
             Self::Fire => "fire",
             Self::Speed => "shoes",
             Self::Glasses => "glasses",
-            Self::Bat => "bat"
+            Self::Bat => "bat",
+            Self::Security => "security"
         }
     }
 
@@ -34,7 +37,8 @@ impl Effect {
             Glasses => "Put on glasses",
             Speed => "Put on running shoes",
             Fire => "Catch on fire",
-            Bat => "Wield a bat"
+            Bat => "Wield a bat",
+            Security => "Wear a reflective vest"
         }
     }
 
@@ -44,7 +48,8 @@ impl Effect {
             Glasses => "Glasses",
             Speed => "Running shoes",
             Fire => "Fire",
-            Bat => "Bat"
+            Bat => "Bat",
+            Security => "Security Guard"
         }
     }
 
@@ -55,7 +60,8 @@ impl Effect {
             Glasses => 0,
             Speed => 1,
             Fire => 2,
-            Bat => 3
+            Bat => 3,
+            Security => 4
         }
     }
 

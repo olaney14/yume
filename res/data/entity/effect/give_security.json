@@ -1,0 +1,14 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "give_effect",
+			"effect": "security"
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

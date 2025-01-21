@@ -3,7 +3,7 @@ use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}};
 
-use crate::{game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World, optimize};
+use crate::{audio::SoundEffectBank, effect, game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, optimize, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -99,7 +99,7 @@ fn f3_combo(input: &Input, key: Keycode) -> bool {
 }
 
 impl<'a> Debug<'a> {
-    pub fn update<T>(&mut self, input: &Input, world: &mut World, player: &mut Player, creator: &TextureCreator<T>) {
+    pub fn update<T>(&mut self, input: &Input, world: &mut World, player: &mut Player, sfx: &mut SoundEffectBank, creator: &TextureCreator<T>) {
         
         // F3 + M - Load map
         if f3_combo(input, Keycode::M) {
@@ -130,11 +130,13 @@ impl<'a> Debug<'a> {
         // F3 + I - show debug info
         if f3_combo(input, Keycode::I) {
             self.enable_debug_overlay = !self.enable_debug_overlay;
+            sfx.play("click-21156");
         }
 
         // F3 + P - show profiling info
         if f3_combo(input, Keycode::P) {
             self.enable_profiling = !self.enable_profiling;
+            sfx.play("click-21156");
         }
 
         // F3 + S - teleport one space forward
@@ -153,6 +155,7 @@ impl<'a> Debug<'a> {
             for (i, v) in world.flags.iter() {
                 println!("{}: {}", i, v);
             }
+            sfx.play("click-21156");
         }
 
         // F3 + R - reload map from file
@@ -182,6 +185,17 @@ impl<'a> Debug<'a> {
                     println!("Map optimization complete");
                 }
             }
+            sfx.play("click-21156");
+        }
+
+        // F3 + E - Give all items
+        if f3_combo(input, Keycode::E) {
+            player.give_effect(effect::Effect::Bat);
+            player.give_effect(effect::Effect::Fire);
+            player.give_effect(effect::Effect::Glasses);
+            player.give_effect(effect::Effect::Security);
+            player.give_effect(effect::Effect::Speed);
+            sfx.play("click-21156");
         }
 
         if self.load_handle.is_some() {
@@ -247,6 +261,10 @@ impl<'a> Debug<'a> {
             let y = 4;
             let standing_tile = player.get_standing_tile();
             self.mini_font.draw_string(canvas, format!("Tile: ({}, {})", standing_tile.0, standing_tile.1).as_str(), (text_x, y));
+
+            ui.theme.font.draw_string(canvas, "the quick brown fox jumped over the lazy dog", (10, state.screen_extents.1 as i32 - 50));
+            ui.theme.font.draw_string(canvas, "The Quick Brown Fox Jumped Over The Lazy Dog", (10, state.screen_extents.1 as i32 - 35));
+            ui.theme.font.draw_string(canvas, "THE QUICK BROWN FOX JUMPED OVER THE LAZY DOG", (10, state.screen_extents.1 as i32 - 20));
         }
     }
 }
