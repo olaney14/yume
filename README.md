@@ -396,6 +396,36 @@ Triggers begin with a `type`
 - `switch`: Triggered on effect switch
 - `tick`: Triggered every `freq` (u32) game ticks (60fps)
 
+# Particles
+Particle emitters are included as an argument in an entity. Particle colors are based on textures.
+## Particle types
+Most properties in the particle emitter can exist as fixed values or ranges, which are chosen from randomly.<br>
+Coordinate pairs and ranges are expressed with arrays. Ex: `"velocity": [[-1, 1], [-4, -2]]`<br>
+Each property value has a reasonable default.
+- **lifetime (u32, range):**
+How long the particle lasts, in frames
+- **pos_offset ((f32, f32), range)**
+Offset from the entity origin that the particles are created from
+- **velocity ((f32, f32), range)**
+Initial velocity of the particles
+- **acceleration ((f32, f32), range)**
+Acceleration of the particles
+- **tx_coord ((f32, f32), range)**
+Starting texture coordinate for the particle
+- **tx_vel ((f32, f32), range)**
+Velocity of the texture coordinate for the particle
+- **freq (u32, range)**
+Frequency of emission of particles
+- **texture_path (string)**
+Path to the particle texture, local to the particle textures folder
+- **size ((u32, u32))**
+Size of the particle
+- **freq_rand (i32)**
+Random variation of the emitter frequency
+- **stagnate (f32, range)**
+The particle velocity will be divided by this every frame if set
+
+
 practical examples:
 lamp post
 ```
