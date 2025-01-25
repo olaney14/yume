@@ -425,107 +425,106 @@ Random variation of the emitter frequency
 - **stagnate (f32, range)**
 The particle velocity will be divided by this every frame if set
 
+# Transitions
+Transition begins with a `type`. Some types require extra information
+- `fade`
+- `fade_to_color`: `r`, `g`, and `b` (u32) define the color
+- `music_only`
+- `spotlight`
+- `spin`
+- `zoom`: `scale` (f32) is the scale to zoom in
+- `pixelate`:
+- `lines`: `height` (u32) is the height of each line
+- `wave`: `dir` (string) can be any of `horizontal`, `vertical`. Direction of the wave
+- `grid_cycle`
+- `player_fall`
+Transitions also can include
+- `speed` (int): Speed at which the transition is played. Defaults to `8`
+- `music` (bool): Whether or not to fade the music with the transition
+- `hold` (int): Number of frames to hold at the fully transitioned state
+- `reset_music` (bool): Whether to reset the music to the beginning if the transition is between two maps with the same song
 
-practical examples:
-lamp post
-```
-{
-	"ai": {
-		"type": "animate_on_interact",
-		"frames": 3,
-		"use": true
-	},
-	"animation": {
-		"type": "sequence",
-		"start": 0,
-		"length": 4,
-		"speed": 8,
-		"manual": true
-	},
-	"actions": [{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "delayed",
-			"action": {
-				"type": "warp",
-				"map": "$door_warp_map",
-				"pos": {
-					"x": "$door_warp_x",
-					"y": "$door_warp_y"
-				},
-				"transition": "fade"
-			},
-			"delay": 64
-		}
-	},
-	{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "freeze"
-		}
-	}],
-	"height": "0",
-	"solid": true,
-	"walk_behind": false
-}
-```
+# Properties
+A property is a value of type `int`, `float`, `string`, or `bool` that can be used within most fields and gets a value based on the game state or performs a calculation.
+## IntProperty
+An integer literal will be parsed as an `int` type IntProperty
+- **`int`**: Contains a `val` with the integer value
+- **`player`**: Contains a `property` corresponding to a [player property](#player-properties)
+- **`entity`**: Contains a `property` corresponding to an [entity property](#entity-properties)
+- **`level`**: Contains a `property` corresponding to a [level property](#level-properties)
+- **`flag`**: Contains `global` and `flag` defining what flag to get
+- **`add`**: Add `lhs` and `rhs`
+- **`sub`**: Subtract `rhs` from `lhs`
+- **`mul`**: Multiply `lhs` and `rhs`
+- **`div`**: (Integer) divide `lhs` and `rhs`
+- **`var` (`variable`)**: Get a variable `name` (StringProperty) from the calling entity
 
-chaser
-```
-{
-	"ai": {
-		"type": "chaser",
-		"speed": "$chaser_speed", 
-		"detection_radius": 100
-	},
-	"animation": {
-		"type": "directional",
-		"up": 3,
-		"down": 1,
-		"left": 2,
-		"right": 0,
-		"frames": 3,
-		"speed": 4,
-		"repeat": "cycle",
-		"idle": 1
-	},
-	"height": "0",
-	"solid": true,
-	"walk_behind": false
-}
-```
+## FloatProperty
+A float literal will be parsed as a `float` type FloatProperty
+- **`float`**: Contains a `val` with the float value
+- **`player`**: Contains a `property` corresponding to a [player property](#player-properties)
+- **`level`**: Contains a `property` corresponding to a [level property](#level-properties)
+- Note: There are not yet any float properties made available from entities
+- **`add`**: Add `lhs` and `rhs`
+- **`sub`**: Subtract `rhs` from `lhs`
+- **`mul`**: Multiply `lhs` and `rhs`
+- **`div`**: (Integer) divide `lhs` and `rhs`
+- **`var` (`variable`)**: Get a variable `name` (StringProperty) from the calling entity
 
-tall chaser
-```
-{
-	"ai": {
-		"type": "chaser",
-		"speed": 2,
-		"detection_radius": 100
-	},
-	"animation": {
-		"type": "directional",
-		"up": 0,
-		"down": 1,
-		"left": 3,
-		"right": 2,
-		"frames": 3,
-		"speed": 4,
-		"repeat": "cycle",
-		"on_move": true
-	},
-	"collider": {
-		"x": 0,
-		"y": 16,
-		"w": 16,
-		"h": 16
-	},
-	"height": "0",
-	"solid": true,
-	"walk_behind": true
-}
-```
+## StringProperty
+A string literal will be parsed as a `string` type StringProperty
+- **`string`**: Contains a `val` with the string value
+- **`from_int`**: Convert an IntProperty `val` into a string
+- **`concatenate`**: Concatenate two StringProperties `lhs` and `rhs` together
+- **`var` (`variable`)**: Get a variable `name` (StringProperty) from the calling entity
+
+## BoolProperty
+A bool literal will be parsed as a `bool` type BoolProperty
+- **`bool`**: Contains a `val` with the bool value
+- **`player`**: Contains a `property` corresponding to a [player property](#player-properties)
+- **`level`**: Contains a `property` corresponding to a [level property](#level-properties)
+- Note: There are not yet any boolean properties made available from entities
+- **`and`**: Perform and on `lhs` and `rhs`
+- **`or`**: Perform or on `lhs` and `rhs`
+- **`xor`**: Perform xor on `lhs` and `rhs`
+- **`not`**: Perform not on `val`
+- **`var` (`variable`)**: Get a variable `name` (StringProperty) from the calling entity
+- **`condition` (`from_condition`)**: Return true or false based on whether a [Condition](#conditions) `condition` is met
+
+## Player Properties
+- `x` (int)
+- `y` (int)
+- `height` (int)
+- `dreaming` (bool)
+- `layer` (int)
+- `check_walkable` (bool) (i dont know what this does)
+
+## Level Properties
+- `default_x` (int)
+- `default_y` (int)
+- `tint_r` (int)
+- `tint_g` (int)
+- `tint_b` (int)
+- `special_save_game` (bool)
+- `paused` (bool)
+- `background_r`: (int)
+- `background_g`: (int)
+- `background_b`: (int)
+
+## Entity Properties
+These are only valid to access from an entity action 
+- `x` (int)
+- `y` (int)
+- `id` (int)
+- `draw` (bool)
+
+# Conditions
+A condition begins with a `type`
+- `int_equals`: Compare IntProperty `lhs` == `rhs`
+- `int_greater`: Compare IntProperty `lhs` > `rhs`
+- `int_less`: Compare IntProperty `lhs` < `rhs`
+- `string_equals`: Compare StringProperty `lhs` == `rhs`
+- `effect_equipped`: Check if `effect` (string) is equipped
+- `negate`: Negate `condition` (Condition)
+- `bool`: Check if BoolProperty `val` is true (or if IntProperty `val` == 1)
+- `variable`: Check if variable `name` is true
