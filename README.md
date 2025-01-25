@@ -1,13 +1,26 @@
 # yume
-yume nikki fangame with Rust + SDL
+Yume Nikki fangame with Rust + SDL2
 
-# guide for tiled properties
-## map
-### clampCamera (bool)
-### defaultPos (string)
-default pos for player, used when debug warping and in the `default` warp coordinate. formatted as `x,y`
-### edges (string)
-JSON string that defines an action for each side
+# Table of Contents
+- [Properties](#properties)
+- [Actions](#actions)
+- [Animation](#animation)
+- [AI](#ai)
+- [Particles](#particles)
+
+# Properties
+- [Map](#map)
+- [Layer](#layer)
+- [Entity](#entity)
+## Map
+- **clamp_camera (legacy clampCamera) (bool):**
+Whether or not the clamp the camera to the edges of the map
+- **clamp_camera_axis (string):**
+What axes to use for clamping the camera (`"x"`, `"y"`, `"all"`)
+- **default_pos (legacy defaultPos) (string):**
+Default position for the player, used in debug warp, default warp coordinate. `"x,y"`
+- **edges (JSON):**
+Define an [Action](#actions) for when the player reaches each edge of the map (`"up"`, `"down"`, `"left"`, `"right"`)
 ```
 {
 	"down": {
@@ -18,26 +31,71 @@ JSON string that defines an action for each side
 	}
 }
 ```
-### looping (bool)
-### music (string)
-path from res to the map's music
-### music_speed (float)
-### music_volume (float)
-### tint (string)
-the map's tint color, formatted as `r,g,b,a`
-## layer
-### height (int)
-### draw (bool)
-### collide (bool)
-### name (string)
-layer's name for access by `World::get_mut_layer_by_name`
-## entities
-### height (int)
-### solid (bool)
-### draw (bool)
-### walk_behind (bool)
-if this is true, when the player is above the object it will be draw above the player
-### collider (string)
+- **looping (bool):**
+Whether or not the map should loop
+- **looping_axis (string):**
+Which axes the map should loop on (`"x"`, `"y"`, `"all"`)
+- **music (string):**
+Full path starting from res/ to the music to play in the world, ex. `"res/audio/music/animated0.ogg"`
+- **music_speed (float):**
+Speed of the song to be played, `1.0` being the default
+- **music_volume (float):**
+Volume to play the song at, `1.0` being the default
+- **tint (string):**
+The map's tint color (`"r,g,b,a"`)
+- **raindrops (bool):**
+Whether or not to create raindrop particles on applicable tiles (you have to do the foreground effect with an image layer)
+- **snow (bool):**
+Whether or not to draw the foreground snow effect 
+
+## Layer
+- **height (int):**
+Height of this layer. Drawn layers are sorted by height, then ordering in the .tmx file
+- **draw (bool):**
+Whether or not this layer is rendered
+- **collide (bool):**
+Whether or not this layer has collisions enabled
+- **name (string):**
+Name of this layer for use in `World::get_mut_layer_by_name` TODO ?????
+
+### Image layers
+- **looping (bool):**
+Whether or not the image layer is drawn looping
+- **looping_x (bool):**
+Enable looping only on the X axis
+- **looping_y (bool):**
+Enable looping only on the Y axis
+- **scroll_x (int):**
+Amount to scroll this layer in the X axis, in pixels per frame
+- **scroll_y (int):**
+Amount to scroll this layer in the Y axis
+- **x (int):**
+Starting X position
+- **y (int):**
+Starting Y position
+- **delay_x (int):**
+Delay between image scrolling on X axis, in frames, for very slow movement
+- **delay_y (int):**
+Delay between image scrolling on Y axis
+- **mismatch (bool):**
+If `mismatch` is true, the image layer will be move along each axis on alternating frames
+- **parallax_x (int):**
+Amount of parallax effect on X axis, higher values appear farther away
+- **parallax_y (int):**
+Amount of parallax effect on Y axis
+- **height (int):**
+Same effect as on a regular layer
+
+## Entity
+- **height (int):**
+Height (layer) this entity is drawn at (player is at 0 by default)
+- **solid (bool):**
+Whether or not collision is enabled for this entity
+- **draw (bool):**
+Whether or not this entity is drawn to the screen (useful for event controllers)
+- **walk_behind (bool):**
+If this is true, when the player is above the object it will be draw above the player (ex. doors)
+- **collider (JSON):**
 JSON object with `x`, `y`, `w`, `h` properties
 ```
 {
@@ -47,46 +105,21 @@ JSON object with `x`, `y`, `w`, `h` properties
 	"h": 16
 }
 ```
-### ai (string)
-JSON string, see AI section
-### animation (string)
-JSON string, see animation section
-### actions (string)
-JSON string, an array with objects with a `trigger` and `action` (see action section)
-```
-	"actions": [{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "delayed",
-			"action": {
-				"type": "warp",
-				"map": "$warp_map",
-				"pos": {
-					"x": "$warp_x",
-					"y": "$warp_y"
-				},
-				"transition": "fade"
-			},
-			"delay": 16
-		}
-	},
-	{
-		"trigger": {
-			"type": "use"
-		},
-		"action": {
-			"type": "freeze"
-		}
-	}]
-```
-### file (string)
-path to a JSON file to load as properties onto this entity
-a string beginning with a $ will be replaced with the according tiled property
+- **ai (JSON):**
+See [AI](#ai)
+- **animation (JSON):**
+See [Animation](#animation)
+- **actions (JSON):**
+See [Actions](#actions)
+- **particles (JSON):**
+See [Particles](#particles)
+- **file (string):**
+Path to a JSON file to load as properties onto this entity<br>
+A string beginning with a $ will be replaced with the according tiled property
 ex: `"x": "$warp_x"` would be replaced by the property `warp_x` in the entity's tiled properties
-## ai
-An ai entry is a json object in a file or string property
+
+## AI
+An AI object contains data on how an entity moves
 ```
 "ai": {
   "type": "chaser",
@@ -94,37 +127,51 @@ An ai entry is a json object in a file or string property
   "detection_radius": 100
 },
 ```
-All ai entries start with a `type`
-### AI Type: `wander`
+All AI objects start with a `type`
+
+### **AI Type: `wander`**
 The entity wanders around randomly
-#### frequency (i32)
-every frame, if rand from 0 to frequency == 0 and past delay time, move, defaults to 100
-#### delay (i32)
-min time for entity to move, defaults to 25
-### AI Type: `chaser`
-The entity chases the player using an A* pathfinder
+- **frequency (i32):**
+How often the entity wanders, one out of `frequency`. Default is `100` (frames)
+- **delay (i32):**
+Minimum time between entity movements. Default is `25` (frames)
+- **speed (u32):**
+Entity speed (pixels per frame)
+- **move_delay (u32):**
+Delay between each movement frame, used to make very slow entities
+
+### **AI Type: `chaser`**
+The entity chases the player<br>
 When the entity bumps into the player, a player bump interaction is simulated
-#### speed (u32)
-player's default speed is 1, with running shoes is 2, defaults to 1
-#### path_max (u32)
-max amount of steps the chaser's pathfinding can search, defaults to 10000
-#### detection_radius (u32)
-the maximum taxicab distance the chaser can chase after the player from, defaults to 16
-### AI Type: `push`
-the entity is pushed on interaction
-#### speed (u32)
-defaults to 2
-### AI Type: `animate_on_interact`
-#### frames (u32)
-number of frames to advance, defaults to 1
-#### use (bool)
-#### bump (bool)
-#### walk (bool)
-these properties define if the animation can be triggered by a use, bump, or walk interaction, all default to false
-#### side (string) (optional)
-if present, only a certain side will trigger
-## animators
-an animator is similar to an ai definition
+- **speed (u32):**
+Entity speed. The player's default speed is `1`, `2` with running shoes. Defaults to `1`
+- **path_max (u32):**
+For the `astar` pathfinder, the maximum steps the algorithm can make before giving up. Defaults to `10000`
+- **detection_radius (u32):**
+The maximum (manhattan) distance the chaser can chase after the player from. Defaults to `16`
+- **pathfinder (string):**
+One of `astar` or `walk_towards`. `astar` is very slow but traverses complicated maps. `walk_towards` just walks towards the player, stopping on walls
+
+### **AI Type: `push`**
+The entity is pushed on interaction
+- **speed (u32):**
+Entity speed. Defaults to `2`
+
+### **AI Type: `animate_on_interact`**
+The entity will play an animation on interaction. Useful for things like doors
+- **frames (u32):**
+Number of frames to advance on interaction. Defaults to `1`
+- **use (bool):**
+Can be triggered upon use. Ex: doors. Defaults to `false`
+- **bump (bool):**
+Can be triggered on bump. Defaults to `false`
+- **walk (bool):**
+Can be triggered on walk. Defaults to `false`
+- **side (string) (optional):**
+If present, only a certain side will trigger the animation.
+
+## Animation
+An animation is similar to an [AI](#ai) definition
 ```
 "animation": {
   "type": "directional",
