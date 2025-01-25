@@ -9,6 +9,7 @@ Yume Nikki fangame with Rust + SDL2
 - [Particles](#particles)
 - [Transitions](#transitions)
 - [Properties](#properties)
+- [Conditions](#conditions)
 
 # Tiled Properties
 - [Map](#map)
@@ -256,7 +257,8 @@ Whether the animation can only be triggered manually (ex. through the `animate_o
 If neither are set, the animation will always run
 
 ## Actions
-All begin with a `type`
+All begin with a `type`<br>
+And include a [Trigger](#triggers)
 ### **Action: `warp`**
 Warp the player
 - **map (string) (optional):**
@@ -285,9 +287,115 @@ Freeze the player
 - **time (u32) (optional):**
 Time to freeze the player for (frames). If not present, toggle freeze on
 
-### **Action:
-## tilesets
-### blocking (bool)
+### **Action: `give_effect`**
+Give an effect to the player
+- **effect (string):**
+Effect to give to the player
+
+### **Action: `set_flag`**
+Set a flag within the game state
+- **global (bool):**
+Whether or not the flag is global. Global flags are not erased on level change. Defaults to `false`
+- **flag (string):**
+Name of desired flag to set
+- **val (int):**
+Value to set the flag to
+
+### **Action: `conditional`**
+Run an action based on a condition
+- **condition (JSON):**
+See [Conditions](#conditions)
+- **action (JSON):**
+Action to run if the condition is met
+
+### **Action: `play`**
+Play a sound effect
+- **sound (string)**
+Name of the sound effect to be played
+- **speed (float)**
+Speed at which to play the sound effect
+- **volume (float)**
+Volume at which to play the sound effect
+
+### **Action: `set`**
+Set a property within the game state
+- **in (string)**
+Category the game property lies within. Can be one of `player`, `world`, `entity`. Entity set commands must be called by the entity itself
+- **val (string)**
+Name of the value to be set within the category defined by `in`. See [Properties](#properties)
+- **to (any):**
+Value to set the property to
+
+### **Action: `change_song`**
+Change the current map's song
+- **volume (float)**
+Volume for the new song to be played at
+- **speed (float)**
+Speed for the new song to be played at
+- **song (string)**
+Path to the new song to be played (from root)
+- **set_defaults (bool)**
+If true, the song's default speed and volume will be overwritten
+
+### **Action: `set_animation_frame`**
+Set the animation frame of an entity. Works best with the animation in `manual` mode
+- **target (string)**
+Currently only `this` is supported
+- **val (IntProperty)**
+Frame id to set
+
+### **Action: `multiple`**
+Usually this isn't explicitly used, as an array of actions is parsed as a `multiple` action
+- **actions (list of actions)**
+Actions to run
+
+### **Action: `set_variable` or `set_var`**
+Sets a variable, which is local to the entity and can be any property type. This action is only valid when called by an entity.
+- **store (bool)**
+If `store` is true, the value passed into `val` is evaluated on the spot and the result is stored in the variable. Otherwise, the variable value will change if `val` changes.
+- **var_type (string)**
+One of `int`, `float`, `bool` (`boolean`), `string`
+- **val (any)**
+Value ([property](#properties)) that the variable is set to
+
+### **Action: `sit`**
+Makes the player move up one tile, negate effects, and enter a sitting state.
+
+### **Action: `lay_down`**
+Makes the player travel 3/2 of a tile in either facing horizontal direction, negate effects, and enter a lying down state. 
+
+### **Action: `remove`**
+Remove an entity
+- **target (string | IntProperty)**
+Either `self` (`this`) or an IntProperty corresponding to the tiled ID of the entity to remove
+
+### **Action: `lay_down_in_place`**
+Makes the player lay down without movement. Used upon waking up.
+- **exit_dir (string)**
+One of `up`, `down`, `left`, `right`. The direction the player exits the lying down state from. The player will travel 3/2 of a tile in this direction.
+- **offset_x (IntProperty)**
+X offset applied to lying state
+- **offset_y (IntProperty)**
+Y offset applied to lying state
+
+### **Action: `move_player`**
+- **direction (string)**
+One of `up`, `down`, `left`, `right`
+- **forced (bool)**
+If true, the player will ignore all checks while moving
+- **custom_distance (int)**
+Can be used to change the distance moved to something aside from 16
+
+## Triggers
+Triggers begin with a `type`
+- `use`: Triggered upon interaction. A `side` argument can be included
+- `walk`: Triggered on being walked on. I dont know if `side` works with this one
+- `bump`: Triggered on being bumped. A `side` argument can be included
+- `interact`: Triggered on any interaction. Probably can use `side`
+- `onload`: Triggered on level load
+- `switch`: Triggered on effect switch
+- `tick`: Triggered every `freq` (u32) game ticks (60fps)
+
 practical examples:
 lamp post
 ```
