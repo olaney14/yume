@@ -2,16 +2,19 @@
 Yume Nikki fangame with Rust + SDL2
 
 # Table of Contents
-- [Properties](#properties)
+- [Tiled Properties](#tiled-properties)
 - [Actions](#actions)
 - [Animation](#animation)
 - [AI](#ai)
 - [Particles](#particles)
+- [Transitions](#transitions)
+- [Properties](#properties)
 
-# Properties
+# Tiled Properties
 - [Map](#map)
 - [Layer](#layer)
 - [Entity](#entity)
+- [Tile](#tile)
 ## Map
 - **clamp_camera (legacy clampCamera) (bool):**
 Whether or not the clamp the camera to the edges of the map
@@ -118,7 +121,23 @@ Path to a JSON file to load as properties onto this entity<br>
 A string beginning with a $ will be replaced with the according tiled property
 ex: `"x": "$warp_x"` would be replaced by the property `warp_x` in the entity's tiled properties
 
-## AI
+## Tile
+- **blocking (bool):**
+Whether or not this tile has collisions. Defaults to `false`
+- **step (string):**
+Step sounds for this tile. Sound effect names do not need file extensions
+- **step_volume (float):**
+Volume to play the step sound at. Defaults to `1.0`
+- **stairs (bool):**
+Whether or not this tile acts as stairs. Defaults to `false`
+- **no_rain (bool):**
+If true, raindrops will not fall on this tile. Defaults to `false`
+- **speed_mod (int):**
+Modifies player speed while standing on this tile. Changes the speed by `2^n`. Defaults to `0`
+- **ladder (bool):**
+Whether this tile acts as a ladder. Defaults to `false`
+
+# AI
 An AI object contains data on how an entity moves
 ```
 "ai": {
@@ -185,60 +204,88 @@ An animation is similar to an [AI](#ai) definition
   "idle": 1
 },
 ```
-starts with a `type` 
-also starts with a `repeat`
-### repeat, defaults to loop
-#### cycle
-animation cycles back and forth, like 0, 1, 2, 1, 0, 1, 2, ...
-the player does this
-#### loop
-animation just loops, like 0, 1, 2, 0, 1, 2, 0, 1, ...
-types:
-### still
-just stays still (why did i add this????)
-#### frame (u32) its the frame it sits still on
-### sequence
-moves through a sequence of frames
-#### start (u32)
-#### length (u32)
-#### speed (u32)
-#### idle (u32) (optional) (useless???)
-### directional
-#### up (u32)
-#### down (u32)
-#### left (u32)
-#### right (u32)
-these define the rows of the animation
-#### frames (u32)
-how many frames per row
-#### speed (u32)
-## actions
-all begin with a `type`
-### `warp`
-warps the player
-#### map (string) (optional)
-path starts from res/maps
-#### transition (string)
-transition type
-#### transition_speed (number) (optional)
-#### transition_music (bool) (optional)
-#### pos (string)
-warp coord things, goes like `"pos": { "x": 5, "y": 5 }`
-x and y can be numbers, or several keywords. `match` keeps the player's position for one component, 
-`default` puts the player at the map's default position, `sub` + number (ex: `sub32`) takes a position
-component and subtracts number, `add` works the same
-### `print`
-for debugging 
-#### message (string)
-### `delayed`
-delays another action for some amount of frames
-#### delay (u32)
-#### after (string)
-action json
-### `freeze`
-freezes player
-#### time (u32) (optional)
-if not present, just toggle freeze on
+Every animation includes a `repeat`, defining how frames advance at loop boundaries
+- **cycle:**
+Animation cycles back and forth, like 0, 1, 2, 1, 0, 1, 2, ..., like the player
+- **loop:**
+Animation loops, like 0, 1, 2, 0, 1, 2, 0, 1, ...
+
+Every animation also includes a `type`
+### Animation type: **`still`**
+Animation does not play
+- **frame (u32) its the frame it sits still on**
+### Animation type: **`sequence`**
+Moves through a sequence of frames in order of the spritesheet
+- **start (u32):**
+Starting frame for the animation
+- **length (u32):**
+Total length of the animation in frames
+- **speed (u32):**
+Speed the animation is played at, in frames per frame advancement
+- **idle (u32):**
+Legacy property. Does nothing
+
+### Animation type: **`directional`**
+- **up (u32):**
+Upwards facing row on the spritesheet
+- **down (u32):**
+Downwards facing row on the spritesheet
+- **left (u32):**
+Left facing row on the spritesheet
+- **right (u32):**
+Right facing row on the spritesheet
+- **frames (u32):**
+Amount of frames per row
+- **speed (u32):**
+Speed at which animation is played
+
+### Animation type: **`follow`**:
+Animation follows the player, like the eyes in paranoia world
+- **center (u32):**
+Center frame for the follow animation
+- **axes (string):**
+Axis in which the animation follows the player (`"all"`, `"x"` ,`"y"`)
+- **speed (u32):**
+Speed of the animation
+
+Animations also can include
+- **on_move (bool):**
+Whether the animation only runs while the entity is moving
+- **manual (bool):**
+Whether the animation can only be triggered manually (ex. through the `animate_on_interact` AI type)<br>
+If neither are set, the animation will always run
+
+## Actions
+All begin with a `type`
+### **Action: `warp`**
+Warp the player
+- **map (string) (optional):**
+Path starting from `res/maps/` to the map to warp to. If not specified, warp the player to the same map they are in
+- **transition (JSON):**
+See [Transitions](#transitions)
+- **pos (JSON):**
+Position of the warp Internally, `WarpPos`, formatted as `"pos": { "x": 5, "y": 5 }`<br>
+X and Y can be numbers, or several keywords. `match` keeps the player's position for one component, 
+`default` puts the player at the map's default position.<br>
+X and Y can also be [IntProperty](#intproperty)
+
+### **Action: `print`**
+Print a message to the console
+- **message (string)**
+
+### **Action: `delayed`**
+Delays an action for some amount of frames
+- **delay (u32):**
+Number of frames to wait until the action is triggered
+- **after (JSON):**
+Action to trigger after the delay
+
+### **Action: `freeze`**
+Freeze the player
+- **time (u32) (optional):**
+Time to freeze the player for (frames). If not present, toggle freeze on
+
+### **Action:
 ## tilesets
 ### blocking (bool)
 practical examples:
