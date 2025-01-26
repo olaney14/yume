@@ -53,6 +53,9 @@ pub struct World<'a> {
     pub background_color: sdl2::pixels::Color,
     pub clamp_camera: bool,
     pub clamp_camera_axes: Option<Axis>,
+
+    /// On the next available frame, the map in the QueuedLoad will be loaded and the map transition will begin <br>
+    /// The player is placed at the target position
     pub queued_load: Option<QueuedLoad>,
     pub queued_entity_actions: Vec<QueuedEntityAction>,
 
@@ -1204,6 +1207,7 @@ pub struct SpecialContext {
     /// sound, speed, volume
     pub play_sounds: Vec<(String, f32, f32)>,
 
+    /// Gives the player an effect on the next available frame
     pub effect_get: Option<Effect>,
 
     /// set by the ui, used by main to make a new game

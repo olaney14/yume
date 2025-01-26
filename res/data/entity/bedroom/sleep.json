@@ -32,7 +32,12 @@
 			"flag": "start_in_bed",
 			"val": 1,
 			"global": false
-		}]
+		},
+		{
+            "type": "play",
+            "sound": "bed",
+            "volume": 0.5
+        }]
 	}],
 	"height": "0",
 	"solid": true,

@@ -190,8 +190,8 @@
     <property name="solid" type="bool" value="true"/>
     <property name="start_frame" type="int" value="9"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="metal.tmx"/>
-    <property name="warp_x" type="int" value="6"/>
+    <property name="warp_map" value="nexus.tmx"/>
+    <property name="warp_x" type="int" value="3"/>
     <property name="warp_y" type="int" value="11"/>
    </properties>
   </object>

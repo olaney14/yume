@@ -405,7 +405,7 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                             timer: delay,
                             move_delay
                         }));
-        },
+        }, // TODO: add speed ?????
         "move_straight" => {
             let direction = Direction::from_str(parsed["direction"].as_str().expect("Direction must be a string")).expect("Invalid direction");
             return Ok(Box::new(MoveStraight {

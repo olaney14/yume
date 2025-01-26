@@ -28,9 +28,7 @@ pub struct ParticleEmitter {
     pub texture: String,
     pub pos: (i32, i32),
     pub height: i32,
-
     pub particles: VecDeque<Particle>,
-
     pub pos_offset: (ParticleValue<f32>, ParticleValue<f32>),
     pub init_vel: (ParticleValue<f32>, ParticleValue<f32>),
     pub init_acc: (ParticleValue<f32>, ParticleValue<f32>),

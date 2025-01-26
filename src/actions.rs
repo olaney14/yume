@@ -12,60 +12,24 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
     if !parsed["type"].is_string() { return Err("Invalid or no type".to_string()); }
 
     match parsed["type"].as_str().unwrap() {
-        "warp" => {
-            return WarpAction::parse(parsed);
-        },
-        "print" => {
-            return PrintAction::parse(parsed);
-        },
-        "delayed" => {
-            return DelayedAction::parse(parsed);
-        },
-        "freeze" => {
-            return FreezeAction::parse(parsed);
-        },
-        "give_effect" => {
-            return GiveEffectAction::parse(parsed);
-        },
-        "set_flag" => {
-            return SetFlagAction::parse(parsed);
-        },
-        "conditional" => {
-            return ConditionalAction::parse(parsed);
-        },
-        "play" => {
-            return PlaySoundAction::parse(parsed);
-        },
-        "set" => {
-            return SetPropertyAction::parse(parsed);
-        },
-        "change_song" => {
-            return ChangeSongAction::parse(parsed);
-        },
-        "set_animation_frame" => {
-            return SetAnimationFrameAction::parse(parsed);
-        },
-        "multiple" => {
-            return MultipleAction::parse(parsed);
-        },
-        "set_variable" | "set_var" => {
-            return SetVariableAction::parse(parsed);
-        },
-        "sit" => {
-            return SitAction::parse(parsed);
-        },
-        "lay_down" => {
-            return LayDownAction::parse(parsed);
-        },
-        "remove" => {
-            return RemoveEntityAction::parse(parsed);
-        },
-        "lay_down_in_place" => {
-            return LayDownInPlaceAction::parse(parsed);
-        },
-        "move_player" => {
-            return MovePlayerAction::parse(parsed);
-        },
+        "warp" => { return WarpAction::parse(parsed); },
+        "print" => { return PrintAction::parse(parsed); },
+        "delayed" => { return DelayedAction::parse(parsed); },
+        "freeze" => { return FreezeAction::parse(parsed); },
+        "give_effect" => { return GiveEffectAction::parse(parsed); },
+        "set_flag" => { return SetFlagAction::parse(parsed); },
+        "conditional" => { return ConditionalAction::parse(parsed); },
+        "play" => { return PlaySoundAction::parse(parsed); },
+        "set" => { return SetPropertyAction::parse(parsed); },
+        "change_song" => { return ChangeSongAction::parse(parsed); },
+        "set_animation_frame" => { return SetAnimationFrameAction::parse(parsed); },
+        "multiple" => { return MultipleAction::parse(parsed); },
+        "set_variable" | "set_var" => { return SetVariableAction::parse(parsed); },
+        "sit" => { return SitAction::parse(parsed); },
+        "lay_down" => { return LayDownAction::parse(parsed); },
+        "remove" => { return RemoveEntityAction::parse(parsed); },
+        "lay_down_in_place" => { return LayDownInPlaceAction::parse(parsed); },
+        "move_player" => { return MovePlayerAction::parse(parsed); },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -76,9 +40,15 @@ pub trait Action {
     fn act(&self, player: &mut Player, world: &mut World);
 }
 
+/// Warp the player to another map or the same map with a transition effect
 pub struct WarpAction {
+    /// The target map
     pub map: Option<String>,
+
+    /// Target position for warp exit
     pub exit: WarpPos,
+
+    /// Transition played on warp
     pub transition: Option<Transition>
 }
 
@@ -86,33 +56,18 @@ impl WarpAction {
     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         let mut map = None;
         let transition;
-        //let mut transition_type = None;
 
-        // Map
         if parsed["map"].is_string() {
             map = Some(parsed["map"].as_str().unwrap());
         }
 
-        // Transition
         transition = Transition::parse(&parsed["transition"]);
-
-        // Pos
-        if !parsed["pos"].is_object() { return Err("Invalid or missing position".to_string()); }
-        if !(parsed["pos"]["x"].is_object() || parsed["pos"]["x"].is_number()) { return Err("Missing x position".to_string()); }
-        if !(parsed["pos"]["y"].is_object() || parsed["pos"]["y"].is_number()) { return Err("Missing y position".to_string()); }
-        let parsed_x = IntProperty::parse(&parsed["pos"]["x"]);
-        let parsed_y = IntProperty::parse(&parsed["pos"]["y"]);
-        if parsed_x.is_none() { return Err("failed to parse x coord".to_string()); }
-        if parsed_y.is_none() { return Err("failed to parse y coord".to_string()); }
-        let pos = WarpPos {
-            x: parsed_x.unwrap(),
-            y: parsed_y.unwrap()
-        };
+        let pos = WarpPos::parse(&parsed["pos"]).unwrap();
 
         return Ok(Box::new(WarpAction {
                     exit: pos,
                     map: match map {
-                        Some(m) => Some(m.to_owned()),
+                        Some(m) => Some(m.to_string()),
                         None => None
                     },
                     transition
@@ -128,12 +83,17 @@ impl Action for WarpAction {
                 pos: self.exit.clone()
             });
             world.transition = self.transition.clone();
+        } else {
+            eprintln!("Warning: Warp action had no target map");
         }
     }
 }
 
+/// Runs an action after a certain delay
 pub struct DelayedAction {
     pub after: Box<dyn Action>,
+
+    /// Delay in frames (game runs at ~60fps)
     pub delay: u32
 }
 
@@ -145,9 +105,9 @@ impl DelayedAction {
         if parsed_action.is_ok() {
             return Ok(
                 Box::new(DelayedAction {
-                                    after: parsed_action.unwrap(),
-                                    delay: parsed["delay"].as_u32().expect("Invalid delay, likely negative or too high")
-                                })
+                    after: parsed_action.unwrap(),
+                    delay: parsed["delay"].as_u32().expect("Invalid delay, likely negative or too high")
+                })
             );
         }
 
@@ -157,6 +117,8 @@ impl DelayedAction {
 
 impl Action for DelayedAction {
     fn act(&self, player: &mut Player, world: &mut World) {
+        // delayed_run acts as a way to differentiate between an act call to start waiting
+        // and when the action is really ready to be run
         if world.special_context.delayed_run {
             self.after.act(player, world);
         } else {
@@ -166,11 +128,12 @@ impl Action for DelayedAction {
                 entity_id: world.special_context.entity_id,
                 multiple_action_id: world.special_context.multiple_action_index
             });
-            //world.special_context.multiple_action_index = None;
         }
     }
 }
 
+/// Freeze the player for a certain amount of frames or toggle frozen state on <br>
+/// While frozen, the player cannot move, but can still access UI
 pub struct FreezeAction {
     pub time: Option<u32>
 }
@@ -223,6 +186,7 @@ impl Action for GiveEffectAction {
     }
 }
 
+/// Sets a world integer flag to a value, global or local
 pub struct SetFlagAction {
     pub global: bool,
     pub flag: StringProperty,
@@ -240,6 +204,7 @@ impl SetFlagAction {
             StringProperty::parse(&parsed["flag"])?
         };
 
+        // The passed flag value can be an integer literal or an IntProperty object
         if parsed["val"].is_number() {
             return Ok(Box::new(SetFlagAction {
                 flag: flag_name,
@@ -277,6 +242,7 @@ impl Action for SetFlagAction {
     }
 }
 
+/// Run an action if a Condition is met
 pub struct ConditionalAction {
     pub inner: Box<dyn Action>,
     pub condition: Condition
@@ -330,11 +296,11 @@ impl PlaySoundAction {
 
         return Ok(
             Box::new(Self {
-                            sound: parsed["sound"].as_str().unwrap().to_string(),
-                            speed: parsed["speed"].as_f32().unwrap_or(1.0),
-                            volume: parsed["volume"].as_f32().unwrap_or(1.0)
-                        })
-        )
+                sound: parsed["sound"].as_str().unwrap().to_string(),
+                speed: parsed["speed"].as_f32().unwrap_or(1.0),
+                volume: parsed["volume"].as_f32().unwrap_or(1.0)
+            })
+        );
     }
 }
 
@@ -344,6 +310,7 @@ impl Action for PlaySoundAction {
     }
 }
 
+/// Set a property, which can be any defined property of the player, world, or level
 pub struct SetPropertyAction {
     pub property: PropertyLocation,
     pub val: JsonValue
@@ -695,10 +662,10 @@ impl SetVariableAction {
 
         if let Some(value) = value {
             return Ok(Box::new(Self {
-                                        store,
-                                        value,
-                                        variable: name
-                                    }));
+                store,
+                value,
+                variable: name
+            }));
         }
 
         return Err("Error in set variable action parsing, invalid value?".to_string());

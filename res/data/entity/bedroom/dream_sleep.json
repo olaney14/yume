@@ -1,9 +1,14 @@
 {
 	"actions": [{
 		"trigger": "use",
-		"action": {
+		"action": [{
 			"type": "lay_down"
-		}
+		},
+		{
+            "type": "play",
+            "sound": "bed",
+            "volume": 0.5
+        }]
     }],
 	"height": "0",
 	"solid": true,
