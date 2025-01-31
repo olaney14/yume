@@ -1,0 +1,28 @@
+{
+	"ai": {
+		"type": "animate_on_interact",
+		"frames": 15,
+		"use": true
+	},
+	"animation": {
+		"type": "sequence",
+		"start": 0,
+		"length": 15,
+		"speed": 4,
+		"manual": true
+	},
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "play",
+            "sound": "spoken",
+            "speed": 5.0,
+            "volume": 1.0
+		}
+	}],
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}
