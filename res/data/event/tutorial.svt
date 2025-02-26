@@ -1,0 +1,9 @@
+# texture event/tutorial.png 200 120
+# freeze true
+
+visible
+play entry 0.25 2
+animate 0 6 4
+wait until use
+play entry 0.25 3
+animate 6 12 4

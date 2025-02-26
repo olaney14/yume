@@ -4,7 +4,7 @@ use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
+use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, screen_event::ScreenEvent, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> Result<World<'a>, Box<dyn std::error::Error>> {
@@ -378,6 +378,8 @@ impl<'a> World<'a> {
                                                 }
                                                 if cur_action["action"].is_object() || cur_action["action"].is_array() {
                                                     action = Some(actions::parse_action(&cur_action["action"]).map_err(|err| { format!("error parsing action: {}", err) })?);
+
+                                                    action_preload(&cur_action["action"], &mut world, creator);
                                                 }
 
                                                 if trigger.is_some() && action.is_some() {
@@ -534,4 +536,19 @@ pub fn json_to_property(parsed: &JsonValue) -> Option<PropertyValue> {
     }
 
     return None;
+}
+
+fn action_preload<'a, T>(action: &JsonValue, world: &mut World<'a>, creator: &'a TextureCreator<T>) {
+    // Preload screen events
+    if action.is_object() {
+        if action["type"].as_str().unwrap() == "play_event" {
+            let screen_event = ScreenEvent::from_file(&PathBuf::from("res/data/event/").join(format!("{}.svt", action["event"].as_str().unwrap())), creator);
+        
+            world.screen_events.insert(action["event"].as_str().unwrap().to_string(), screen_event);
+        }
+    } else {
+        for sub_action in action.members() {
+            action_preload(sub_action, world, creator);
+        }
+    }
 }

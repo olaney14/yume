@@ -6,7 +6,7 @@ use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, IntProperty, QueuedLoad, RenderState}, player::Player, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, player::Player, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
 
 const RAINDROPS_LIFETIME: u32 = 10;
 const RAINDROPS_PER_CYCLE: usize = 3;
@@ -22,7 +22,7 @@ pub const OFFSCREEN_DISTANCE: u32 = 18;
 pub enum Interaction {
     Use(i32, i32),
     Bump(i32, i32),
-    Walk(i32, i32),
+    Walk(i32, i32), 
 }
 
 impl Interaction {
@@ -85,6 +85,10 @@ pub struct World<'a> {
     pub snow: SnowInfo,
     pub source_file: PathBuf,
     pub particle_textures: ParticleTextures<'a>,
+
+    pub screen_events: HashMap<String, ScreenEvent<'a>>,
+    pub running_screen_event: Option<String>,
+    pub pre_event_song: Option<Song>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -145,7 +149,10 @@ impl<'a> World<'a> {
             raindrops: RaindropsInfo::new(),
             snow: SnowInfo::new(),
             source_file: PathBuf::new(),
-            particle_textures: ParticleTextures::new()
+            particle_textures: ParticleTextures::new(),
+            running_screen_event: None,
+            screen_events: HashMap::new(),
+            pre_event_song: None
         }
     }
 
@@ -192,7 +199,10 @@ impl<'a> World<'a> {
             raindrops: RaindropsInfo::new(),
             snow: SnowInfo::new(),
             source_file: PathBuf::new(),
-            particle_textures: ParticleTextures::new()
+            particle_textures: ParticleTextures::new(),
+            running_screen_event: None,
+            screen_events: HashMap::new(),
+            pre_event_song: None
         }
     }
 
@@ -282,7 +292,7 @@ impl<'a> World<'a> {
         self.entities.as_mut().unwrap().push(entity);
     }
 
-    pub fn update(&mut self, player: &mut Player, sfx: &mut SoundEffectBank, sink: &Sink) {
+    pub fn update(&mut self, player: &mut Player, sfx: &mut SoundEffectBank, sink: &Sink, input: &Input) {
         self.timer += 1;
         if let Some(transition) = &mut self.transition {
             if transition.holding {
@@ -498,6 +508,49 @@ impl<'a> World<'a> {
             if let Some(id) = self.special_context.entity_removal_queue.pop() {
                 self.entities.as_mut().unwrap().remove(id);
             }
+
+            if let Some(event) = &self.running_screen_event {
+                if let Some(event) = self.screen_events.get_mut(event) {
+                    if !event.running {
+                        player.frozen = event.freeze_player;
+                        event.running = true;
+                        event.visible = true;
+                    }
+                    
+                    if !event.tick(sfx, input) {
+                        event.reset();
+                        self.running_screen_event = None;
+                        player.frozen = false;
+                        if self.pre_event_song.is_some() {
+                            self.song = self.pre_event_song.take();
+                            self.song.as_mut().unwrap().dirty = true;
+                            self.song.as_mut().unwrap().speed = self.song.as_ref().unwrap().default_speed;
+                            self.song.as_mut().unwrap().volume = self.song.as_ref().unwrap().default_volume;
+                            self.song.as_mut().unwrap().reload(sink);
+                        } else if event.has_changed_song {
+                            self.song = None;
+                            sink.clear();
+                        }
+                    }
+
+                    if let Some(song) = event.set_song.take() {
+                        self.pre_event_song = self.song.take();
+                        self.song = Some(Song::new(PathBuf::from("res/audio/music/").join(format!("{}.ogg", song.0))));
+                        self.song.as_mut().unwrap().volume = song.1 * self.pre_event_song.as_ref().map(|s| s.volume).unwrap_or(1.0);
+                        self.song.as_mut().unwrap().speed = song.2;
+                        self.song.as_mut().unwrap().default_volume = song.1;
+                        self.song.as_mut().unwrap().default_speed = song.2;
+                        self.song.as_mut().unwrap().dirty = true;
+                        self.song.as_mut().unwrap().reload = true;
+                        event.has_changed_song = true;
+                    }
+
+                    if let Some(volume) = event.set_volume.take() {
+                        self.song.as_mut().unwrap().volume = self.song.as_ref().unwrap().default_volume * volume;
+                        self.song.as_mut().unwrap().dirty = true;
+                    }
+                }
+            }
         }
     }
 
@@ -640,6 +693,12 @@ impl<'a> World<'a> {
             }
 
             self.snow.snow.retain(|r| r.lifetime > 0);
+        }
+
+        if let Some(screen_event) = &self.running_screen_event {
+            if let Some(event) = self.screen_events.get(screen_event) {
+                event.draw(canvas, state);
+            }
         }
     }
 

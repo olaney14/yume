@@ -3,7 +3,7 @@ use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}};
 
-use crate::{audio::SoundEffectBank, effect, game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, optimize, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
+use crate::{audio::SoundEffectBank, effect, game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ProfileTargetType {
@@ -175,18 +175,18 @@ impl<'a> Debug<'a> {
             );
         }
 
-        // F3 + O - optimize map files
-        if f3_combo(input, Keycode::O) {
-            match optimize::optimize_all(&PathBuf::from("res/maps/"), creator) {
-                Err(e) => {
-                    eprintln!("Error in map optimization: {}", e);
-                }
-                Ok(()) => {
-                    println!("Map optimization complete");
-                }
-            }
-            sfx.play("click-21156");
-        }
+        // // F3 + O - optimize map files
+        // if f3_combo(input, Keycode::O) {
+        //     match optimize::optimize_all(&PathBuf::from("res/maps/"), creator) {
+        //         Err(e) => {
+        //             eprintln!("Error in map optimization: {}", e);
+        //         }
+        //         Ok(()) => {
+        //             println!("Map optimization complete");
+        //         }
+        //     }
+        //     sfx.play("click-21156");
+        // }
 
         // F3 + E - Give all items
         if f3_combo(input, Keycode::E) {

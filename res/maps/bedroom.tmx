@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="8">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="9">
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="defaultPos" value="7,7"/>
@@ -166,6 +166,12 @@
     <property name="warp_map" value="bedroom_balcony.tmx"/>
     <property name="warp_x" type="int" value="15"/>
     <property name="warp_y" type="int" value="14"/>
+   </properties>
+  </object>
+  <object id="8" gid="78" x="112" y="80" width="16" height="16">
+   <properties>
+    <property name="event" value="tutorial"/>
+    <property name="file" value="res/data/entity/event/play_event.json"/>
    </properties>
   </object>
  </objectgroup>

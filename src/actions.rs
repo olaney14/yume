@@ -30,6 +30,7 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "remove" => { return RemoveEntityAction::parse(parsed); },
         "lay_down_in_place" => { return LayDownInPlaceAction::parse(parsed); },
         "move_player" => { return MovePlayerAction::parse(parsed); },
+        "play_event" => { return ScreenEventAction::parse(parsed); }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -845,5 +846,30 @@ impl Action for MovePlayerAction {
 
             player.move_player(self.direction, world, false, true);
         }
+    }
+}
+
+pub struct ScreenEventAction {
+    pub event: String,
+}
+
+impl ScreenEventAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        // TODO: i dont think this first branch can happen
+        let event = if parsed.is_string() {
+            parsed.as_str().unwrap()
+        } else {
+            parsed["event"].as_str().expect("Error parsing ScreenEventAction: no event specified")
+        };
+
+        Ok(Box::new(Self {
+                            event: event.to_string()
+                        }))
+    }
+}
+
+impl Action for ScreenEventAction {
+    fn act(&self, _: &mut Player, world: &mut World) {
+        world.running_screen_event = Some(self.event.clone());
     }
 }

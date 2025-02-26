@@ -24,10 +24,11 @@ mod effect;
 mod entity;
 mod game;
 mod loader;
-mod optimize;
+// mod optimize;
 mod particles;
 mod player;
 mod save;
+mod screen_event;
 mod tiles;
 mod transitions;
 mod texture;
@@ -189,7 +190,7 @@ fn main() {
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
-            world.update(&mut player, &mut sfx, &sink);
+            world.update(&mut player, &mut sfx, &sink, &input);
             if player.effect_just_changed {
                 player.effect_just_changed = false;
             }

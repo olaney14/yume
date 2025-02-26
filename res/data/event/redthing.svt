@@ -1,0 +1,7 @@
+# texture event/hurl.png 320 240
+# freeze false
+
+visible
+play shock 0.5 1
+animate 0 1 4 until 128
+play shock 0.25 2

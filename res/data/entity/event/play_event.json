@@ -1,18 +1,11 @@
 {
-	"animation": {
-		"type": "sequence",
-		"start": 2,
-		"length": 2,
-		"speed": 20,
-		"repeat": "loop"
-	},
 	"actions": [{
 		"trigger": {
 			"type": "use"
 		},
 		"action": {
 			"type": "play_event",
-            "event": "redthing"
+            "event": "$event"
 		}
 	}],
 	"height": "0",

@@ -1,0 +1,14 @@
+# texture event/happenstance.png
+# can_exit true
+# freeze true
+
+// this is a comment
+
+hidden
+song valenada 1 0.5
+hide_bg 4
+visible
+play scary2_good 1.0 0.5
+wait until 256
+wait until use
+play metal 1 1
