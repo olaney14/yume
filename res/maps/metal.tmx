@@ -3,6 +3,7 @@
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/metal.ogg"/>
+  <property name="music_volume" type="float" value="1.25"/>
   <property name="tint" value="0,0,0,127"/>
  </properties>
  <tileset firstgid="1" source="metal.tsx"/>
