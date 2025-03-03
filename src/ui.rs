@@ -165,13 +165,13 @@ impl MenuState {
                         if player.dreaming {
                             if player.current_effect.is_some() && player.current_effect.as_ref().unwrap() == &player.unlocked_effects[self.button_id as usize] {
                                 player.remove_effect();
-                                sfx.play("effect_negate");
+                                sfx.play_ex("effect_negate", 1.0, 0.25);
                             } else {
                                 if player.current_effect.is_some() {
                                     player.remove_effect();
                                 }
                                 player.apply_effect(player.unlocked_effects[self.button_id as usize].clone());
-                                sfx.play("effect");
+                                sfx.play_ex("effect", 1.0, 0.25);
                             }
                             self.current_menu = MenuType::Home;
                             self.menu_should_close = true;

@@ -323,7 +323,7 @@ impl<'a> Player<'a> {
         self.disable_player_input = true;
         self.stash_last_effect();
         if self.remove_effect() {
-            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.5));
+            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.25));
         }
         self.disable_player_input_time = 0;
         self.animation_override_controller.do_sit();
@@ -337,7 +337,7 @@ impl<'a> Player<'a> {
         self.disable_player_input = true;
         self.stash_last_effect();
         if self.remove_effect() {
-            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.5));
+            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.25));
         }
         self.disable_player_input_time = 0;
         self.animation_override_controller.do_lay_down();
@@ -831,13 +831,13 @@ impl<'a> Player<'a> {
                         self.on_ladder = true;
                         self.stash_last_effect();
                         if self.remove_effect() {
-                            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.5));
+                            world.special_context.play_sounds.push(("effect_negate".to_string(), 1.0, 0.25));
                         }
                     }
                 } else {
                     if self.on_ladder {
                         if self.enable_last_effect() {
-                            sfx.play_ex("effect", 1.0, 0.5);
+                            sfx.play_ex("effect", 1.0, 0.25);
                         }
                         self.on_ladder = false;
                     }
@@ -862,7 +862,7 @@ impl<'a> Player<'a> {
                     self.animation_override_controller.active = false;
                     self.force_move_player(Direction::Down, world);
                     if self.enable_last_effect() {
-                        sfx.play_ex("effect", 1.0, 0.5);
+                        sfx.play_ex("effect", 1.0, 0.25);
                     }
                     self.reset_layer_on_stop = Some(self.layer - 1);
                 } else if self.animation_override_controller.lay_down_animation {
@@ -873,7 +873,7 @@ impl<'a> Player<'a> {
                     self.force_move_player_custom(self.exit_bed_direction.unwrap_or(Direction::Left), world, 24);
                     //self.force_move_player(self.exit_bed_direction.unwrap_or(Direction::Left), world);
                     if self.enable_last_effect() {
-                        sfx.play_ex("effect", 1.0, 0.5);
+                        sfx.play_ex("effect", 1.0, 0.25);
                     }
                 }
             }
