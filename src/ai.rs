@@ -151,6 +151,7 @@ impl Animator {
                     // TODO: add easing
                     let look_offset = match &data.axes {
                         &world::Axis::Horizontal => {
+                            
                             (data.follow_vec.0, 0)
                         }
                         &world::Axis::Vertical => {

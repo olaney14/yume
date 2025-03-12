@@ -561,6 +561,17 @@ impl<'a> Player<'a> {
         if target_pos.0 < 0 || target_pos.1 < 0 || target_pos.0 >= world.width as i32 || target_pos.1 >= world.height as i32 {
             return false;
         }
+
+        // Check exit tiles
+        let special_tiles = world.get_special_in_layer(self.layer, pos.0, pos.1);
+        for special in special_tiles.iter() {
+            if let SpecialTile::Exits(exits) = special {
+                if !exits.can_pass(&direction) {
+                    return false;
+                }
+            }
+        }
+
         return !world.get_collision_at_tile(target_pos.0 as u32, target_pos.1 as u32, self.layer);
     }
 

@@ -4,7 +4,7 @@ use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, screen_event::ScreenEvent, texture::Texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
+use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, screen_event::ScreenEvent, texture::Texture, tiles::{SpecialTile, Tile, TileExits, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> Result<World<'a>, Box<dyn std::error::Error>> {
@@ -259,6 +259,13 @@ impl<'a> World<'a> {
                                             if *ladder {
                                                 tilemap.set_special(i, j, SpecialTile::Ladder);
                                             }
+                                        }
+                                    }
+
+                                    if let Some(prop) = ref_tile.properties.get("exits") {
+                                        if let PropertyValue::StringValue(exits) = prop {
+                                            let exit_type = TileExits::parse(&exits);
+                                            tilemap.set_special(i, j, SpecialTile::Exits(exit_type));
                                         }
                                     }
                                 }

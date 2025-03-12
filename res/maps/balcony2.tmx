@@ -5,7 +5,7 @@
   <property name="music" value="res/audio/music/animated0.ogg"/>
   <property name="music_speed" type="float" value="0.5"/>
   <property name="music_volume" type="float" value="0.75"/>
-  <property name="tint" value="0,0,0,70"/>
+  <property name="tint" value="0,0,0,170"/>
  </properties>
  <tileset firstgid="1" source="tilesets/industrial.tsx"/>
  <layer id="1" name="walls" width="25" height="25">

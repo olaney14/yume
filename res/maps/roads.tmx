@@ -451,9 +451,9 @@
    <properties>
     <property name="draw" type="bool" value="false"/>
     <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
-    <property name="warp_map" value="marmol.tmx"/>
-    <property name="warp_x" type="int" value="22"/>
-    <property name="warp_y" type="int" value="24"/>
+    <property name="warp_map" value="dark_roads.tmx"/>
+    <property name="warp_x" type="int" value="28"/>
+    <property name="warp_y" type="int" value="15"/>
    </properties>
   </object>
  </objectgroup>

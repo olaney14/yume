@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="128" height="128" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="3">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="128" height="128" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="4">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/01.ogg"/>
@@ -7,6 +7,7 @@
   <property name="music_volume" type="float" value="1"/>
  </properties>
  <tileset firstgid="1" source="tilesets/flowers.tsx"/>
+ <tileset firstgid="37" source="teleport_maze.tsx"/>
  <layer id="1" name="grass" width="128" height="128">
   <data encoding="csv">
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -278,6 +279,14 @@
     <property name="warp_map" value="sky.tmx"/>
     <property name="warp_x" type="int" value="21"/>
     <property name="warp_y" type="int" value="23"/>
+   </properties>
+  </object>
+  <object id="3" gid="40" x="1472" y="320" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/entrances/enter_warp_maze.json"/>
+    <property name="warp_map" value="teleport_maze.tmx"/>
+    <property name="warp_x" type="int" value="35"/>
+    <property name="warp_y" type="int" value="16"/>
    </properties>
   </object>
  </objectgroup>

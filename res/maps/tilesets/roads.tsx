@@ -6,6 +6,86 @@
    <property name="blocking" type="bool" value="true"/>
   </properties>
  </tile>
+ <tile id="32">
+  <properties>
+   <property name="exits" value="horizontal"/>
+  </properties>
+ </tile>
+ <tile id="33">
+  <properties>
+   <property name="exits" value="horizontal"/>
+  </properties>
+ </tile>
+ <tile id="34">
+  <properties>
+   <property name="exits" value="left"/>
+  </properties>
+ </tile>
+ <tile id="35">
+  <properties>
+   <property name="exits" value="right"/>
+  </properties>
+ </tile>
+ <tile id="36">
+  <properties>
+   <property name="exits" value="not_right"/>
+  </properties>
+ </tile>
+ <tile id="40">
+  <properties>
+   <property name="exits" value="vertical"/>
+  </properties>
+ </tile>
+ <tile id="41">
+  <properties>
+   <property name="exits" value="vertical"/>
+  </properties>
+ </tile>
+ <tile id="42">
+  <properties>
+   <property name="exits" value="up"/>
+  </properties>
+ </tile>
+ <tile id="43">
+  <properties>
+   <property name="exits" value="down"/>
+  </properties>
+ </tile>
+ <tile id="48">
+  <properties>
+   <property name="exits" value="corner_ul"/>
+  </properties>
+ </tile>
+ <tile id="49">
+  <properties>
+   <property name="exits" value="corner_ur"/>
+  </properties>
+ </tile>
+ <tile id="50">
+  <properties>
+   <property name="exits" value="not_up"/>
+  </properties>
+ </tile>
+ <tile id="56">
+  <properties>
+   <property name="exits" value="corner_dl"/>
+  </properties>
+ </tile>
+ <tile id="57">
+  <properties>
+   <property name="exits" value="corner_dr"/>
+  </properties>
+ </tile>
+ <tile id="58">
+  <properties>
+   <property name="exits" value="not_down"/>
+  </properties>
+ </tile>
+ <tile id="59">
+  <properties>
+   <property name="exits" value="not_left"/>
+  </properties>
+ </tile>
  <wangsets>
   <wangset name="Roads" type="edge" tile="-1">
    <wangcolor name="Dark roads" color="#ff0000" tile="-1" probability="1"/>

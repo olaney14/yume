@@ -1,0 +1,11 @@
+{
+    "animation": {
+        "type": "follow",
+        "center": 13,
+        "axes": "vertical",
+        "speed": 4
+    },
+    "walk_behind": false,
+    "height": "0",
+    "solid": false
+}

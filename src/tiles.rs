@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use sdl2::{render::{Canvas, TextureCreator, RenderTarget}, rect::Rect};
 use serde_derive::{Deserialize, Serialize};
-use crate::texture::Texture;
+use crate::{game::Direction, texture::Texture};
 
 #[derive(Debug)]
 pub struct Tileset<'a> {
@@ -79,7 +79,76 @@ pub enum SpecialTile {
     Step(String, f32),
     NoRain,
     SpeedMod(i32),
-    Ladder
+    Ladder,
+    Exits(TileExits)
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum TileExits {
+    Up,
+    Down,
+    Left,
+    Right,
+    Horizontal,
+    Vertical,
+    NotUp,
+    NotDown,
+    NotLeft,
+    NotRight,
+    ULCorner,
+    URCorner,
+    DLCorner,
+    DRCorner,
+    All,
+    None
+}
+
+impl TileExits {
+    pub fn parse(from: &str) -> Self {
+        match from.to_lowercase().as_str() {
+            "up" | "top" => Self::Up,
+            "down" | "bottom" => Self::Down,
+            "left" => Self::Left,
+            "right" => Self::Right,
+            "horizontal" | "horiz" | "x" => Self::Horizontal,
+            "vertical" | "vert" | "y" => Self::Vertical,
+            "notup" | "not_up" | "nottop" | "not_top" => Self::NotUp,
+            "notdown" | "not_down" | "notbottom" | "not_bottom" => Self::NotDown,
+            "notleft" | "not_left" => Self::NotLeft,
+            "notright" | "not_right" => Self::NotRight,
+            "any" | "all" => Self::All,
+            "none" => Self::None,
+            "corner_ul" => Self::ULCorner,
+            "corner_ur" => Self::URCorner,
+            "corner_dl" => Self::DLCorner,
+            "corner_dr" => Self::DRCorner,
+            _ => {
+                eprintln!("Unknown tile exits `{}`", from);
+                Self::All
+            }
+        }
+    }
+
+    pub fn can_pass(&self, direction: &Direction) -> bool {
+        match self {
+            Self::Up => matches!(direction, Direction::Up),
+            Self::Down => matches!(direction, Direction::Down),
+            Self::Left => matches!(direction, Direction::Left),
+            Self::Right => matches!(direction, Direction::Right),
+            Self::Horizontal => matches!(direction, Direction::Left | Direction::Right),
+            Self::Vertical => matches!(direction, Direction::Up | Direction::Down),
+            Self::All => true,
+            Self::None => false,
+            Self::NotUp => !matches!(direction, Direction::Up),
+            Self::NotDown => !matches!(direction, Direction::Down),
+            Self::NotLeft => !matches!(direction, Direction::Left),
+            Self::NotRight => !matches!(direction, Direction::Right),
+            Self::ULCorner => matches!(direction, Direction::Down | Direction::Right),
+            Self::URCorner => matches!(direction, Direction::Down | Direction::Left),
+            Self::DLCorner => matches!(direction, Direction::Up | Direction::Right),
+            Self::DRCorner => matches!(direction, Direction::Up | Direction::Left),
+        }
+    }
 }
 
 pub struct Tilemap {
