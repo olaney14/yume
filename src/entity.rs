@@ -264,9 +264,9 @@ impl Entity {
     }
 
     pub fn get_height(&self, player_y: i32) -> i32 {
-        if player_y < self.y && self.walk_behind {
-            return self.height + 1;
-        }
+        // if player_y < self.y && self.walk_behind {
+        //     return self.height + 1;
+        // }
 
         return self.height;
     }

@@ -104,7 +104,7 @@ fn main() {
     song.default_volume = MAIN_MENU_MUSIC_VOLUME;
     song.dirty = true;
     world.song = Some(song);
-    world.onload(&sink);
+    world.onload(&player, &sink);
     if let Some(def) = world.default_pos {
         player.set_x(def.0 * 16);
         player.set_y(def.1 * 16);
@@ -303,7 +303,7 @@ fn main() {
                         }
                     }
                     
-                    world.onload(&sink);
+                    //world.onload(&player, &sink);
                 } else {
                     world.reset();
                     world.transition_context.take_screenshot = true;
@@ -321,7 +321,7 @@ fn main() {
                     song.default_volume = MAIN_MENU_MUSIC_VOLUME;
                     song.dirty = true;
                     world.song = Some(song);
-                    world.onload(&sink);
+                    //world.onload(&player, &sink);
 
                     ui.menu_state.current_menu = MenuType::MainMenu;
                     ui.open = true;
@@ -338,6 +338,8 @@ fn main() {
             if let Some(y) = warp_pos.y.get(Some(&player), Some(&world)) {
                 player.set_y(y * 16);
             }
+
+            world.onload(&player, &sink);
 
             if !skip_end {
                 player.frozen = false;

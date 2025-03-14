@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, ops::Rem, str::FromStr, task::Poll, time::Instant};
 
 use json::JsonValue;
+use rand::Rng;
 
 use crate::{entity::Entity, game::Direction, particles::ParticleEmitter, player::Player, world::{self, Interaction, World}};
 
@@ -215,7 +216,8 @@ impl Ai for MoveStraight {
 
 pub enum PathfinderType {
     AStar,
-    WalkTowards
+    WalkTowards,
+    Erratic
 }
 
 impl PathfinderType {
@@ -223,6 +225,7 @@ impl PathfinderType {
         match input.to_lowercase().as_str() {
             "astar" | "a_star" | "a*" => return Some(Self::AStar),
             "walk_towards" | "walktowards" => return Some(Self::WalkTowards),
+            "erratic" => return Some(Self::Erratic),
             _ => return None
         }
     }
@@ -230,7 +233,8 @@ impl PathfinderType {
     pub fn initialize(&self, world: &World) -> Pathfinder {
         match self {
             Self::AStar => return Pathfinder::a_star(world),
-            Self::WalkTowards => return Pathfinder::walk_towards()
+            Self::WalkTowards => return Pathfinder::walk_towards(),
+            Self::Erratic => return Pathfinder::erratic()
         }
     }
 }
@@ -266,7 +270,7 @@ pub struct AnimateOnInteract {
 impl Ai for Chaser {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         let player_pos = player.get_standing_tile();
-        let player_in_range = manhattan_dist(player_pos.0, player_pos.1, entity.collision_x().max(0) as u32 / 16, entity.collision_y().max(0) as u32 / 16) <= self.detection_radius;
+        let player_in_range = looped_manhattan_distance(player_pos.0, player_pos.1, entity.collision_x().max(0) as u32 / 16, entity.collision_y().max(0) as u32 / 16, world.width, world.height) <= self.detection_radius;
 
         if !self.init {
             self.init = true;
@@ -314,14 +318,26 @@ impl Ai for Chaser {
             if !entity.movement.as_ref().unwrap().moving {
                 let x = (entity.collision_x() / 16).rem_euclid(world.width as i32) as u32;
                 let y = (entity.collision_y() / 16).rem_euclid(world.height as i32) as u32;
-                if let Some(direction) = self.pathfinder.as_mut().unwrap().get_polled().as_mut().unwrap()
-                    .poll(x, y, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list) {
-                    let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
-                    entity.walk(direction, world, player, entity_list);
-                    if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
-                        world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                if player_in_range {
+                    if let Some(direction) = self.pathfinder.as_mut().unwrap().get_polled().as_mut().unwrap()
+                        .poll(x, y, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list) {
+                        let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
+                        entity.walk(direction, world, player, entity_list);
+                        if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
+                            world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                        }
+                        self.last_walk_pos = walk_pos;
                     }
-                    self.last_walk_pos = walk_pos;
+                } else {
+                    if let Some(direction) = self.pathfinder.as_mut().unwrap().get_polled().as_mut().unwrap()
+                        .idle(x, y, 0, player, world, entity_list) {
+                        let walk_pos = (entity.collision_x() / 16, entity.collision_y() / 16);
+                        entity.walk(direction, world, player, entity_list);
+                        if entity.would_bump_player(direction, player) && self.last_walk_pos != walk_pos {
+                            world.player_bump(entity.collision_x() / 16, entity.collision_y() / 16);
+                        }
+                        self.last_walk_pos = walk_pos;
+                    }
                 }
             }
         }
@@ -603,6 +619,12 @@ impl Pathfinder {
         ))
     }
 
+    pub fn erratic() -> Self {
+        Self::Polled(Box::new(
+            ErraticPathfinder {}
+        ))
+    }
+
     pub fn is_polled(&self) -> bool {
         matches!(self, Self::Polled(..))
     }
@@ -634,6 +656,9 @@ pub trait CalculatedPathfinder {
 
 pub trait PolledPathfinder {
     fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction>;
+    fn idle(&mut self, x: u32, y: u32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+        None
+    }
 }
 
 pub fn manhattan_dist(x0: u32, y0: u32, x1: u32, y1: u32) -> u32 {
@@ -879,6 +904,10 @@ pub fn looped_y_distance(y0: u32, y1: u32, height: u32) -> u32 {
     y0.abs_diff(y1).min(ybase0).min(ybase1)
 }
 
+pub fn looped_manhattan_distance(x0: u32, y0: u32, x1: u32, y1: u32, width: u32, height: u32) -> u32 {
+    looped_x_distance(x0, x1, width) + looped_y_distance(y0, y1, height)
+} 
+
 pub struct WalkTowardsPathfinder;
 
 impl PolledPathfinder for WalkTowardsPathfinder {
@@ -926,5 +955,49 @@ impl PolledPathfinder for WalkTowardsPathfinder {
         }
         
         return Some(suggested_direction);
+    }
+}
+
+pub struct ErraticPathfinder {
+
+}
+
+impl PolledPathfinder for ErraticPathfinder {
+    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+        // taken from above
+        let diff_x = looped_x_distance(x0, x1 as u32, world.width);
+        let diff_y = looped_y_distance(y0, y1 as u32, world.height);
+
+        let mut suggested_direction;
+
+        if diff_x > diff_y {
+            if diff_x == 0 { return None; }
+            let mut direction;
+            if (x1 - x0 as i32) > 0 { direction = Direction::Right; }
+            else { direction = Direction::Left; }
+            if diff_x != x1.abs_diff(x0 as i32) { direction = direction.flipped() }
+            suggested_direction = direction;
+        } else {
+            if diff_y == 0 { return None; }
+            let mut direction;
+            if (y1 - y0 as i32) > 0 { direction = Direction::Down; }
+            else { direction = Direction::Up; }
+            if diff_y != y1.abs_diff(y0 as i32) { direction = direction.flipped() }
+            suggested_direction = direction;
+        }
+
+        if rand::thread_rng().gen_range(0.0..1.0) < 0.1 {
+            suggested_direction = rand::thread_rng().gen::<Direction>();
+        }
+
+        return Some(suggested_direction);
+    }
+
+    fn idle(&mut self, x: u32, y: u32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+        if rand::thread_rng().gen_range(0.0..1.0) < 0.005 {
+            return Some(rand::thread_rng().gen::<Direction>());
+        }
+
+        None
     }
 }

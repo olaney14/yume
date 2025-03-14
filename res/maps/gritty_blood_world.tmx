@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="80" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="80" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="5">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/battlefield.ogg"/>
@@ -8,6 +8,10 @@
   <property name="tint" value="0,0,0,70"/>
  </properties>
  <tileset firstgid="1" source="tilesets/gritty_blood_world.tsx"/>
+ <tileset firstgid="129" source="tilesets/worker_normal.tsx"/>
+ <tileset firstgid="141" source="entity/worker_bloodied1.tsx"/>
+ <tileset firstgid="153" source="entity/worker_bloodied2.tsx"/>
+ <tileset firstgid="165" source="entity/worker_bloodied3.tsx"/>
  <imagelayer id="4" name="image">
   <image source="../textures/image/flames.png" width="510" height="554"/>
   <properties>
@@ -276,4 +280,26 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="5" name="entitiew">
+  <object id="1" gid="133" x="320" y="48" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/dir_move_down.json"/>
+   </properties>
+  </object>
+  <object id="2" gid="145" x="336" y="64" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/dir_move_down.json"/>
+   </properties>
+  </object>
+  <object id="3" gid="157" x="304" y="64" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/dir_move_down.json"/>
+   </properties>
+  </object>
+  <object id="4" gid="169" x="288" y="80" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/dir_move_down.json"/>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

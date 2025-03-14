@@ -1,0 +1,28 @@
+{
+	"ai": {
+		"type": "chaser",
+		"speed": 1,
+		"detection_radius": 20,
+        "pathfinder": "erratic"
+	},
+	"animation": {
+		"type": "directional",
+		"up": 0,
+		"down": 1,
+		"left": 2,
+		"right": 3,
+		"frames": 3,
+		"speed": 4,
+		"repeat": "cycle",
+		"on_move": true
+	},
+	"collider": {
+		"x": 0,
+		"y": 16,
+		"w": 16,
+		"h": 16
+	},
+	"height": "0",
+	"solid": true,
+	"walk_behind": false
+}

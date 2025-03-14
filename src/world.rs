@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, f32::consts::PI, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, f32::consts::PI, path::PathBuf, rc::Rc};
 
 use json::JsonValue;
 use rand::Rng;
@@ -89,6 +89,9 @@ pub struct World<'a> {
     pub screen_events: HashMap<String, ScreenEvent<'a>>,
     pub running_screen_event: Option<String>,
     pub pre_event_song: Option<Song>,
+
+    pub entity_draw_order: Vec<Vec<usize>>,
+    pub player_draw_slot: Option<usize>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -152,7 +155,9 @@ impl<'a> World<'a> {
             particle_textures: ParticleTextures::new(),
             running_screen_event: None,
             screen_events: HashMap::new(),
-            pre_event_song: None
+            pre_event_song: None,
+            entity_draw_order: Vec::new(),
+            player_draw_slot: None
         }
     }
 
@@ -202,7 +207,9 @@ impl<'a> World<'a> {
             particle_textures: ParticleTextures::new(),
             running_screen_event: None,
             screen_events: HashMap::new(),
-            pre_event_song: None
+            pre_event_song: None,
+            entity_draw_order: Vec::new(),
+            player_draw_slot: None
         }
     }
 
@@ -249,7 +256,7 @@ impl<'a> World<'a> {
         self.interactions.push(Interaction::Walk(x, y));
     }
 
-    pub fn onload(&mut self, sink: &Sink) {
+    pub fn onload(&mut self, player: &Player, sink: &Sink) {
         if let Some(song) = &mut self.song {
             song.play(sink);
         } else {
@@ -262,6 +269,8 @@ impl<'a> World<'a> {
                 }
             }
         }
+
+        self.find_entity_draw_order(player);
     }
 
     pub fn reset(&mut self) {
@@ -551,7 +560,67 @@ impl<'a> World<'a> {
                     }
                 }
             }
+
+            self.find_entity_draw_order(player);
         }
+    }
+
+    fn find_entity_draw_order(&mut self, player: &Player) {
+        let mut entity_ids_by_layer = Vec::new();
+
+        for layer in self.layer_min..=self.layer_max {
+            let mut layer_ids = Vec::new();
+            for (i, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
+                if entity.get_height(player.y) == layer {
+                    layer_ids.push(i);
+                }
+            }
+
+            entity_ids_by_layer.push(layer_ids);
+        }
+
+        self.entity_draw_order = entity_ids_by_layer.into_iter().map(|mut ids| { 
+            ids.sort_by(|a, b| {
+                let a_pos = self.entities.as_ref().unwrap().get(*a).unwrap().get_standing_tile();
+                let b_pos = self.entities.as_ref().unwrap().get(*b).unwrap().get_standing_tile();
+
+                if a_pos.1 < b_pos.1 {
+                    return Ordering::Less
+                } else if a_pos.1 > b_pos.1 {
+                    return Ordering::Greater
+                } else if a_pos.0 > b_pos.0 {
+                    return Ordering::Less
+                } else if a_pos.0 < b_pos.0 {
+                    return Ordering::Greater
+                }
+
+                Ordering::Equal
+            }); 
+            ids
+        }).collect();
+
+        let mut draw_player = self.entity_draw_order.get((player.layer - self.layer_min) as usize).unwrap().len();
+        // if draw_player > 0 {
+        //     draw_player -= 1;
+        // }
+
+        for (i, entity_id) in self.entity_draw_order.get((player.layer - self.layer_min) as usize).unwrap().iter().enumerate() {
+            let entity = self.entities.as_ref().unwrap().get(*entity_id).unwrap();
+            let entity_pos = (entity.collision_x(), entity.collision_y());
+            let player_pos = (player.x, player.y + 16);
+            //let entity_pos = entity.get_standing_tile();
+            //let player_pos = player.get_standing_tile();
+
+            if player_pos.1 < entity_pos.1 {
+                draw_player = i;
+                break;
+            } else if entity_pos.1 == player_pos.1 && player_pos.0 <= entity_pos.0 {
+                draw_player = i;
+                break;
+            }
+        }
+
+        self.player_draw_slot = Some(draw_player);
     }
 
     pub fn apply_set_entity_properties(&mut self, entity: &mut Entity, player: &Player) {
@@ -578,6 +647,8 @@ impl<'a> World<'a> {
     }
 
     pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+        let mut player_drawn = false;
+
         for height in self.layer_min..=self.layer_max {
 
             for image_layer in self.image_layers.iter() {
@@ -596,19 +667,39 @@ impl<'a> World<'a> {
                 }
             }
 
-            for (_, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
-                if entity.draw && entity.get_height(player.y) == height {
-                    self.draw_entity(canvas, entity, false, state);
-                }
+            // for (_, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
+            //     if entity.draw && entity.get_height(player.y) == height {
+            //         self.draw_entity(canvas, entity, false, state);
+            //     }
 
-                if let Some(emitter) = &entity.particle_emitter {
-                    if emitter.height == height {
+            //     if let Some(emitter) = &entity.particle_emitter {
+            //         if emitter.height == height {
+            //             emitter.draw(canvas, self, state);
+            //         }
+            //     }
+            // }
+
+            let entity_ids = self.entity_draw_order.get((height - self.layer_min) as usize);
+            if let Some(entity_ids) = entity_ids {
+                for (i, id) in entity_ids.iter().enumerate() {
+                    if height == player.layer && i == self.player_draw_slot.unwrap() {
+                        player_drawn = true;
+                        player.draw(canvas, state);
+                    }
+
+                    let entity = self.entities.as_ref().unwrap().get(*id).unwrap();
+    
+                    if entity.draw {
+                        self.draw_entity(canvas, entity, false, state);
+                    }
+    
+                    if let Some(emitter) = &entity.particle_emitter {
                         emitter.draw(canvas, self, state);
                     }
                 }
             }
 
-            if player.layer == height && self.draw_player {
+            if player.layer == height && self.draw_player && !player_drawn {
                 player.draw(canvas, state);
             }
         }
@@ -703,8 +794,9 @@ impl<'a> World<'a> {
     }
 
     pub fn draw_looping<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
-        for height in self.layer_min..=self.layer_max {
+        let mut player_drawn = false;
 
+        for height in self.layer_min..=self.layer_max {
             for image_layer in self.image_layers.iter() {
                 if image_layer.draw && image_layer.height == height {
                     image_layer.draw(canvas, state);
@@ -721,19 +813,39 @@ impl<'a> World<'a> {
                 }
             }
 
-            for entity in self.entities.as_ref().unwrap().iter() {
-                if entity.draw && entity.get_height(player.y) == height {
-                    self.draw_entity(canvas, entity, true, state);
-                }
+            // for entity in self.entities.as_ref().unwrap().iter() {
+            //     if entity.draw && entity.get_height(player.y) == height {
+            //         self.draw_entity(canvas, entity, true, state);
+            //     }
                 
-                if let Some(emitter) = &entity.particle_emitter {
-                    if emitter.height == height {
+            //     if let Some(emitter) = &entity.particle_emitter {
+            //         if emitter.height == height {
+            //             emitter.draw(canvas, self, state);
+            //         }
+            //     }
+            // }
+
+            let entity_ids = self.entity_draw_order.get((height - self.layer_min) as usize);
+            if let Some(entity_ids) = entity_ids {
+                for (i, id) in entity_ids.iter().enumerate() {
+                    if height == player.layer && i == self.player_draw_slot.unwrap() {
+                        player_drawn = true;
+                        player.draw(canvas, state);
+                    }
+
+                    let entity = self.entities.as_ref().unwrap().get(*id).unwrap();
+    
+                    if entity.draw {
+                        self.draw_entity(canvas, entity, true, state);
+                    }
+    
+                    if let Some(emitter) = &entity.particle_emitter {
                         emitter.draw(canvas, self, state);
                     }
                 }
             }
 
-            if player.layer == height && self.draw_player {
+            if player.layer == height && self.draw_player && !player_drawn {
                 player.draw(canvas, state);
             }
         }
