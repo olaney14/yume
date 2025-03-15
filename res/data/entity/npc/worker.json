@@ -22,6 +22,27 @@
 		"w": 16,
 		"h": 16
 	},
+	"actions": [{
+		"trigger": "bump",
+		"action": [{
+			"type": "warp",
+			"map": "$warp_map",
+			"pos": {
+				"x": "$warp_x",
+				"y": "$warp_y"
+			},
+			"transition": { 
+				"type": "pixelate",
+				"music": true,
+				"speed": 2,
+				"hold": 16
+			}
+		},
+		{
+			"type": "play",
+			"sound": "shriek"
+		}]
+	}],
 	"height": "0",
 	"solid": true,
 	"walk_behind": false

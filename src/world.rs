@@ -584,6 +584,10 @@ impl<'a> World<'a> {
                 let a_pos = self.entities.as_ref().unwrap().get(*a).unwrap().get_standing_tile();
                 let b_pos = self.entities.as_ref().unwrap().get(*b).unwrap().get_standing_tile();
 
+                if self.entities.as_ref().unwrap().get(*a).unwrap().walk_over {
+                    return Ordering::Less;
+                }
+
                 if a_pos.1 < b_pos.1 {
                     return Ordering::Less
                 } else if a_pos.1 > b_pos.1 {
@@ -610,6 +614,10 @@ impl<'a> World<'a> {
             let player_pos = (player.x, player.y + 16);
             //let entity_pos = entity.get_standing_tile();
             //let player_pos = player.get_standing_tile();
+
+            if entity.walk_over {
+                continue;
+            }
 
             if player_pos.1 < entity_pos.1 {
                 draw_player = i;

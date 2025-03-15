@@ -321,7 +321,7 @@ impl<'a> World<'a> {
                                     x: object.x as i32,
                                     y: object.y as i32 - world.tilesets[*tileset_id].tile_height as i32,
                                     draw: true,
-                                    walk_behind: true,
+                                    walk_over: false,
                                     ai: None,
                                     animator: None,
                                     movement: None,
@@ -344,13 +344,14 @@ impl<'a> World<'a> {
                                 if let Some(prop) = properties.get("height") { if let PropertyValue::IntValue(height) = prop { entity.height = *height; } }
                                 if let Some(prop) = properties.get("solid") { if let PropertyValue::BoolValue(solid) = prop { entity.solid = *solid; } }
                                 if let Some(prop) = properties.get("draw") { if let PropertyValue::BoolValue(draw) = prop { entity.draw = *draw; } }
-                                if let Some(prop) = properties.get("walk_behind") { if let PropertyValue::BoolValue(walk_behind) = prop { 
-                                    entity.walk_behind = *walk_behind; 
+                                if let Some(prop) = properties.get("walk_over") { if let PropertyValue::BoolValue(walk_over) = prop { 
+                                    entity.walk_over = *walk_over; 
                                     
-                                    // The entity is raised one layer for drawing above the player
-                                    // and if the entity is in the top layer, it would otherwise not be drawn
-                                    // so the world's depth is changed to accommodate
-                                    world.layer_max = world.layer_max.max(entity.height + 1);
+                                    // nah
+                                    // // The entity is raised one layer for drawing above the player
+                                    // // and if the entity is in the top layer, it would otherwise not be drawn
+                                    // // so the world's depth is changed to accommodate
+                                    // world.layer_max = world.layer_max.max(entity.height + 1);
                                 } }
                                 if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider)?) } }
                                 if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai)?)?) } }

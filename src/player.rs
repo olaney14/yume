@@ -423,7 +423,7 @@ impl<'a> Player<'a> {
                 if !force {
                     self.animation_info.frame = 1;
                 }
-            } else {
+            } else if !self.blocked_by_exit_tile(direction, world) {
                 let pos = self.get_standing_tile();
                 let target_pos = (pos.0 as i32 + direction.x(), pos.1 as i32 + direction.y());
 
@@ -563,16 +563,33 @@ impl<'a> Player<'a> {
         }
 
         // Check exit tiles
+        // let special_tiles = world.get_special_in_layer(self.layer, pos.0, pos.1);
+        // for special in special_tiles.iter() {
+        //     if let SpecialTile::Exits(exits) = special {
+        //         if !exits.can_pass(&direction) {
+        //             return false;
+        //         }
+        //     }
+        // }
+        if self.blocked_by_exit_tile(direction, world) {
+            return false;
+        }
+
+        return !world.get_collision_at_tile(target_pos.0 as u32, target_pos.1 as u32, self.layer);
+    }
+
+    pub fn blocked_by_exit_tile(&self, direction: Direction, world: &World) -> bool {
+        let pos = self.get_standing_tile();
         let special_tiles = world.get_special_in_layer(self.layer, pos.0, pos.1);
         for special in special_tiles.iter() {
             if let SpecialTile::Exits(exits) = special {
                 if !exits.can_pass(&direction) {
-                    return false;
+                    return true;
                 }
             }
         }
 
-        return !world.get_collision_at_tile(target_pos.0 as u32, target_pos.1 as u32, self.layer);
+        false
     }
 
     pub fn check_stair_diag(&mut self, direction: Direction, world: &World) -> i32 {
