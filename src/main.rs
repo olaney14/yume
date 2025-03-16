@@ -157,7 +157,7 @@ fn main() {
         }
         canvas.fill_rect(Rect::new(0, 0, 640, 480)).unwrap();
 
-        debug.update(&input, &mut world, &mut player, &mut sfx, &texture_creator);
+        debug.update(&input, &mut world, &mut player, &mut sfx);
         ui.update(&input, &mut player, &mut world, &save_info, &sink, &mut sfx);
 
         if world.special_context.write_save_to_pending {
@@ -262,7 +262,7 @@ fn main() {
             ui.menu_state.menu_screenshot = false;
         }
 
-        debug.draw(&mut canvas, &ui, &player, &world, &render_state);
+        debug.draw(&mut canvas, &ui, &player, &render_state);
 
         canvas.present();
 

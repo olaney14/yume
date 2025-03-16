@@ -14,7 +14,7 @@
 				},
 				"transition": {
 					"type": "fade",
-					"speed": 8,
+					"speed": 2,
 					"hold": 16
 				}
 			},

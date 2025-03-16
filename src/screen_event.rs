@@ -1,4 +1,4 @@
-use std::{fs, path::{Path, PathBuf}};
+use std::{fs, path::PathBuf};
 
 use sdl2::{keyboard::Keycode, pixels::Color, rect::Rect, render::{Canvas, RenderTarget, TextureCreator}};
 

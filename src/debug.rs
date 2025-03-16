@@ -1,7 +1,7 @@
 use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, collections::{HashMap, LinkedList}};
 
 use rfd::FileDialog;
-use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget, TextureCreator}};
+use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
 
 use crate::{audio::SoundEffectBank, effect, game::{Input, IntProperty, LevelPropertyType, RenderState, WarpPos}, player::Player, transitions::{Transition, TransitionType}, ui::{Font, Ui}, world::World};
 
@@ -99,7 +99,7 @@ fn f3_combo(input: &Input, key: Keycode) -> bool {
 }
 
 impl<'a> Debug<'a> {
-    pub fn update<T>(&mut self, input: &Input, world: &mut World, player: &mut Player, sfx: &mut SoundEffectBank, creator: &TextureCreator<T>) {
+    pub fn update(&mut self, input: &Input, world: &mut World, player: &mut Player, sfx: &mut SoundEffectBank) {
         
         // F3 + M - Load map
         if f3_combo(input, Keycode::M) {
@@ -218,7 +218,7 @@ impl<'a> Debug<'a> {
         }
     }
 
-    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui, player: &Player, world: &World, state: &RenderState) {
+    pub fn draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, ui: &Ui, player: &Player, state: &RenderState) {
         if self.enable_profiling {
             self.profiler.past_frames.push_front(self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO));
             if self.profiler.past_frames.len() >= FRAME_AVG_SAMPLE {

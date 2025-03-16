@@ -1,10 +1,10 @@
-use std::{collections::VecDeque, fmt::Debug, mem, path::PathBuf};
+use std::{collections::VecDeque, fmt::Debug};
 
-use json::{iterators::Members, JsonValue};
+use json::JsonValue;
 use rand::{distributions::uniform::SampleUniform, Rng};
-use sdl2::{rect::Rect, render::{Canvas, RenderTarget, TextureCreator}};
+use sdl2::{rect::Rect, render::{Canvas, RenderTarget}};
 
-use crate::{game::RenderState, texture::{self, Texture}, world::World};
+use crate::{game::RenderState, world::World};
 
 #[derive(Debug)]
 pub enum ParticleValue<T: SampleUniform + Copy + PartialOrd> {

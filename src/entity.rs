@@ -263,11 +263,7 @@ impl Entity {
         Rect::new(self.x + self.collider.x, self.y + self.collider.y, self.collider.width(), self.collider.height()).has_intersection(other) && self.solid
     }
 
-    pub fn get_height(&self, player_y: i32) -> i32 {
-        // if player_y < self.y && self.walk_behind {
-        //     return self.height + 1;
-        // }
-
+    pub fn get_height(&self) -> i32 {
         return self.height;
     }
 
@@ -479,6 +475,27 @@ impl Entity {
         // if target_tile == player.occupied_tile {
         //     return false;
         // }
+
+        return !world.collide_entity(target_rect, player, self.height, entity_list);
+    }
+
+    // TODO: replace can_move_in_direction with this
+    pub fn can_move_in_direction_looping(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
+        let pos = self.get_standing_tile();
+        let target_tile = (
+            (pos.0 as i32 + direction.x()).max(0) as u32,
+            (pos.1 as i32 + direction.y()).max(0) as u32,
+        );
+        let mut target_rect = self.collider;
+        target_rect.x += self.x + direction.x() * 16;
+        target_rect.y += self.y + direction.y() * 16;
+
+        let x_boundary = target_rect.x < 0 || target_rect.x + target_rect.w > world.width as i32 * 16;
+        let y_boundary = target_rect.y < 0 || target_rect.y + target_rect.h > world.height as i32 * 16;
+
+        if (!world.loop_horizontal() && x_boundary) || (!world.loop_vertical() && y_boundary) {
+            return false;
+        }
 
         return !world.collide_entity(target_rect, player, self.height, entity_list);
     }

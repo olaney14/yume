@@ -1,0 +1,28 @@
+{
+	"ai": {
+		"type": "bird",
+		"speed": 16
+	},
+	"animation": {
+		"type": "directional",
+		"up": 0,
+		"down": 1,
+		"left": 2,
+		"right": 3,
+		"frames": 3,
+		"speed": 4,
+		"repeat": "cycle",
+		"on_move": true
+	},
+	"actions": [{
+        "trigger": ["bump", "use"],
+        "action": {
+            "type": "play",
+            "sound": "raven_call",
+            "speed": 0.25,
+			"volume": 2.0
+        }
+	}],
+	"height": "0",
+	"solid": true
+}

@@ -1,0 +1,11 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 8,
+		"length": 8,
+		"speed": 4,
+		"repeat": "loop"
+	},
+	"height": "1",
+	"solid": false
+}

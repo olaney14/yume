@@ -1,9 +1,9 @@
-use std::{collections::VecDeque, ops::Rem, str::FromStr, task::Poll, time::Instant};
+use std::{collections::VecDeque, str::FromStr};
 
 use json::JsonValue;
 use rand::Rng;
 
-use crate::{entity::Entity, game::Direction, particles::ParticleEmitter, player::Player, world::{self, Interaction, World}};
+use crate::{entity::Entity, game::Direction, player::Player, world::{self, Interaction, World}};
 
 pub enum AnimationAdvancementType {
     Cycle(i32),
@@ -267,6 +267,12 @@ pub struct AnimateOnInteract {
     side: Option<Direction>
 }
 
+pub struct Bird {
+    pub speed: u32,
+    init: bool,
+    cur_direction: Direction
+}
+
 impl Ai for Chaser {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         let player_pos = player.get_standing_tile();
@@ -291,7 +297,7 @@ impl Ai for Chaser {
             if player_in_range && self.needs_recalculation && !entity.movement.as_ref().unwrap().moving {
                 self.needs_recalculation = false;
                 let mut pathfinder_container = self.pathfinder.take().unwrap();
-                let mut pathfinder = pathfinder_container.get_calculated().unwrap();
+                let pathfinder = pathfinder_container.get_calculated().unwrap();
                 let x = (entity.collision_x() / 16).rem_euclid(world.width as i32) as u32;
                 let y = (entity.collision_y() / 16).rem_euclid(world.height as i32) as u32;
                 if pathfinder.pathfind_to(x, y, player.x / 16, (player.y + 16) / 16, 0, player, world, entity_list).is_ok() {
@@ -348,6 +354,8 @@ impl Ai for Pushable {
     fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
         if !self.init {
             self.init = true;
+            entity.init_movement();
+            entity.movement.as_mut().unwrap().speed = self.speed;
         }
 
         if entity.interaction.is_some() {
@@ -355,6 +363,31 @@ impl Ai for Pushable {
                 let direction = entity.interaction.as_ref().unwrap().1.flipped();
                 entity.walk(direction, world, player, entity_list);
                 entity.interaction = None;
+            }
+        }
+    }
+}
+
+impl Ai for Bird {
+    fn act(&mut self, entity: &mut Entity, world: &mut World, player: &Player, entity_list: &Vec<Entity>) {
+        if !self.init {
+            self.init = true;
+            entity.init_movement();
+            entity.movement.as_mut().unwrap().speed = self.speed;
+            self.cur_direction = if rand::thread_rng().gen::<bool>() {Direction::Left} else {Direction::Right};
+        }
+
+        if !entity.movement.as_ref().unwrap().moving {
+            if rand::thread_rng().gen_range(0.0..1.0) < 0.025 {
+                if rand::thread_rng().gen::<bool>() {
+                    entity.walk(Direction::Up, world, player, entity_list);
+                } else {
+                    entity.walk(Direction::Down, world, player, entity_list);
+                }
+            } else if entity.can_move_in_direction_looping(self.cur_direction, world, player, entity_list) {
+                entity.walk(self.cur_direction, world, player, entity_list);
+            } else {
+                self.cur_direction = self.cur_direction.flipped();
             }
         }
     }
@@ -484,6 +517,14 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                     side
                 }
             ));
+        },
+        "bird" => {
+            let speed = parsed["speed"].as_u32().unwrap_or(2);
+            return Ok(Box::new(Bird {
+                cur_direction: Direction::Left,
+                init: false,
+                speed
+            }));
         }
         _ => return Err("Unknown ai type")
     }
@@ -911,7 +952,7 @@ pub fn looped_manhattan_distance(x0: u32, y0: u32, x1: u32, y1: u32, width: u32,
 pub struct WalkTowardsPathfinder;
 
 impl PolledPathfinder for WalkTowardsPathfinder {
-    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, _: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
         let diff_x = looped_x_distance(x0, x1 as u32, world.width);
         let diff_y = looped_y_distance(y0, y1 as u32, world.height);
 
@@ -963,7 +1004,7 @@ pub struct ErraticPathfinder {
 }
 
 impl PolledPathfinder for ErraticPathfinder {
-    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+    fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, _: i32, _: &Player, world: &mut World, _: &Vec<Entity>) -> Option<Direction> {
         // taken from above
         let diff_x = looped_x_distance(x0, x1 as u32, world.width);
         let diff_y = looped_y_distance(y0, y1 as u32, world.height);
@@ -993,7 +1034,7 @@ impl PolledPathfinder for ErraticPathfinder {
         return Some(suggested_direction);
     }
 
-    fn idle(&mut self, x: u32, y: u32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+    fn idle(&mut self, _: u32, _: u32, _: i32, _: &Player, _: &mut World, _: &Vec<Entity>) -> Option<Direction> {
         if rand::thread_rng().gen_range(0.0..1.0) < 0.005 {
             return Some(rand::thread_rng().gen::<Direction>());
         }

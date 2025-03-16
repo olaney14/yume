@@ -14,7 +14,8 @@
 				},
 				"transition": { 
 					"type": "fade",
-					"music": false
+					"music": false,
+					"speed": 2
 				}
 			},
 			"delay": 16

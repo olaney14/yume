@@ -155,10 +155,10 @@
   </object>
   <object id="15" gid="12" x="208" y="640" width="16" height="16">
    <properties>
-    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
-    <property name="warp_map" value="marmol.tmx"/>
-    <property name="warp_x" type="int" value="22"/>
-    <property name="warp_y" type="int" value="24"/>
+    <property name="file" value="res/data/entity/entrances/warp.json"/>
+    <property name="warp_map" value="knife_world.tmx"/>
+    <property name="warp_x" type="int" value="15"/>
+    <property name="warp_y" type="int" value="26"/>
    </properties>
   </object>
   <object id="16" gid="3" x="880" y="800" width="16" height="16">

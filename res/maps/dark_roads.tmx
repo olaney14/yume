@@ -159,7 +159,7 @@
    </properties>
   </object>
  </objectgroup>
- <objectgroup id="6" name="guide">
+ <objectgroup id="6" name="guide" visible="0">
   <object id="2" gid="38" x="512" y="272" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/hidden_blood_spot.json"/>
@@ -1497,7 +1497,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="5" name="guide" width="96" height="64" opacity="0.25">
+ <layer id="5" name="guide" width="96" height="64" visible="0" opacity="0.25">
   <properties>
    <property name="draw" type="bool" value="false"/>
   </properties>

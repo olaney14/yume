@@ -36,12 +36,8 @@ const MINIFONT_FONT_HEIGHT: u32 = 5;
 const MINIFONT_FONT_SPACING_HORIZ: u32 = 1;
 const MINIFONT_FONT_SPACING_VERT: u32 = 1;
 
-const FONT_VINES: &str = "res/textures/ui/fonts/vines.png";
-
 const BUTTONS_MAIN: u32 = 5;
 const BUTTONS_TITLE: u32 = 3;
-
-const SFX_VOLUME: f32 = 0.7;
 
 const MAIN_MENU_WIDTH: u32 = 5;
 const MAIN_MENU_HEIGHT: u32 = 4;

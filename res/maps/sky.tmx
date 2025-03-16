@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="4">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="7">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/shiver.mp3"/>
@@ -10,6 +10,7 @@
  <tileset firstgid="175" source="entity/nexus_doors.tsx"/>
  <tileset firstgid="199" source="tilesets/library.tsx"/>
  <tileset firstgid="325" source="tilesets/flowers.tsx"/>
+ <tileset firstgid="361" source="entity/raven.tsx"/>
  <imagelayer id="4" name="sky">
   <image source="../textures/image/sky.png" width="128" height="128"/>
   <properties>
@@ -90,6 +91,21 @@
     <property name="warp_map" value="flower_field.tmx"/>
     <property name="warp_x" type="int" value="48"/>
     <property name="warp_y" type="int" value="55"/>
+   </properties>
+  </object>
+  <object id="4" gid="370" x="128" y="304" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/npc/raven.json"/>
+   </properties>
+  </object>
+  <object id="5" gid="370" x="288" y="128" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/npc/raven.json"/>
+   </properties>
+  </object>
+  <object id="6" gid="370" x="272" y="464" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/npc/raven.json"/>
    </properties>
   </object>
  </objectgroup>

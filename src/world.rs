@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, collections::HashMap, f32::consts::PI, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, path::PathBuf, rc::Rc};
 
 use json::JsonValue;
 use rand::Rng;
@@ -571,7 +571,7 @@ impl<'a> World<'a> {
         for layer in self.layer_min..=self.layer_max {
             let mut layer_ids = Vec::new();
             for (i, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
-                if entity.get_height(player.y) == layer {
+                if entity.get_height() == layer {
                     layer_ids.push(i);
                 }
             }
@@ -718,7 +718,7 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
-        self.post_draw(canvas, player, state);
+        self.post_draw(canvas, state);
 
         // if self.transition.is_some() {
         //     let mut transition = self.transition.take().unwrap();
@@ -727,7 +727,7 @@ impl<'a> World<'a> {
         // }
     }
 
-    pub fn post_draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
+    pub fn post_draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
         let mut rng = rand::thread_rng();
 
         if self.raindrops.enabled {
@@ -773,7 +773,7 @@ impl<'a> World<'a> {
                 });
             }
 
-            for (i, snow) in self.snow.snow.iter_mut().enumerate() {
+            for snow in self.snow.snow.iter_mut() {
                 snow.lifetime -= 1;
                 if snow.lifetime == 0 {
                     continue;
@@ -864,7 +864,7 @@ impl<'a> World<'a> {
             canvas.fill_rect(None).unwrap();
         }
 
-        self.post_draw(canvas, player, state);
+        self.post_draw(canvas, state);
     }
 
     pub fn draw_transitions<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, player: &Player, state: &RenderState) {
@@ -910,8 +910,7 @@ impl<'a> World<'a> {
                         (orig_x - 1, orig_y - 1), 
                         (orig_x + state.screen_extents.0 as i32 / 16 + 1, orig_y + state.screen_extents.1 as i32 / 16 + 2), 
                     state);
-                },
-                _ => ()
+                }
             }
 
         } else {
