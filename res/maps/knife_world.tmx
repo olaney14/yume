@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="60" height="60" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="24">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="60" height="60" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="25">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/Marketpossture.ogg"/>
@@ -10,6 +10,7 @@
  <tileset firstgid="1" source="tilesets/knife_world.tsx"/>
  <tileset firstgid="129" source="entity/knives.tsx"/>
  <tileset firstgid="153" source="tilesets/sticks.tsx"/>
+ <tileset firstgid="173" source="entity/worker_bloodied3.tsx"/>
  <layer id="1" name="floor" width="60" height="60">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -253,6 +254,14 @@
     <property name="warp_map" value="sticks.tmx"/>
     <property name="warp_x" type="int" value="14"/>
     <property name="warp_y" type="int" value="38"/>
+   </properties>
+  </object>
+  <object id="24" gid="177" x="608" y="800" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/worker.json"/>
+    <property name="warp_map" value="dark_roads.tmx"/>
+    <property name="warp_x" type="int" value="59"/>
+    <property name="warp_y" type="int" value="43"/>
    </properties>
   </object>
  </objectgroup>
