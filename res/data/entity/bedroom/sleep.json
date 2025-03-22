@@ -37,7 +37,13 @@
             "type": "play",
             "sound": "bed",
             "volume": 0.5
-        }]
+        },
+		{
+			"type": "set",
+			"in": "world",
+			"val": "new_session",
+			"to": true
+		}]
 	}],
 	"height": "0",
 	"solid": true,

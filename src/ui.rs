@@ -88,7 +88,7 @@ impl MenuState {
     }
 
     pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sfx: &mut SoundEffectBank) {
-        if input.get_just_pressed(Keycode::X) {
+        if input.get_just_pressed(Keycode::X) && !input.get_pressed(Keycode::F3) {
             match self.current_menu {
                 MenuType::Effects | MenuType::Quit | MenuType::Special | MenuType::Me => {
                     if matches!(self.current_menu, MenuType::Effects) { self.button_id = 0; }
@@ -459,7 +459,7 @@ impl<'a> Ui<'a> {
             world.special_context.save_game = false;
         }
         
-        if input.get_just_pressed(Keycode::X) && self.effect_get.is_none() {
+        if input.get_just_pressed(Keycode::X) && !input.get_pressed(Keycode::F3) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
                 match self.menu_state.current_menu {

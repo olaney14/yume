@@ -48,7 +48,8 @@ pub struct Player<'a> {
     pub speed_mod: i32,
     pub on_ladder: bool,
     pub waking_up: bool,
-    pub waking_up_timer: u32
+    pub waking_up_timer: u32,
+    pub random: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -261,7 +262,8 @@ impl<'a> Player<'a> {
             move_delay_timer: 0,
             on_ladder: false,
             waking_up: false,
-            waking_up_timer: 0
+            waking_up_timer: 0,
+            random: 0.0
         };
 
         player.load_effect_textures(creator);

@@ -8,11 +8,11 @@
  <tileset firstgid="1" source="entity/doors.tsx"/>
  <tileset firstgid="16" source="entity/nexus_doors.tsx"/>
  <tileset firstgid="40" source="entity/misc_entities.tsx"/>
- <imagelayer id="2" name="nexus_image" offsetx="64" offsety="64">
-  <image source="../textures/image/nexus.png" width="256" height="256"/>
+ <imagelayer id="2" name="nexus_image" offsetx="-136" offsety="-138">
+  <image source="../textures/image/nexus_background1.png" width="640" height="640"/>
   <properties>
-   <property name="x" type="int" value="64"/>
-   <property name="y" type="int" value="64"/>
+   <property name="x" type="int" value="-136"/>
+   <property name="y" type="int" value="-138"/>
   </properties>
  </imagelayer>
  <layer id="1" name="Tile Layer 1" width="24" height="24">
@@ -44,7 +44,7 @@
 </data>
  </layer>
  <objectgroup id="3" name="objects">
-  <object id="4" gid="19" x="304" y="192" width="16" height="32">
+  <object id="4" gid="19" x="320" y="192" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -62,7 +62,7 @@
     <property name="warp_y" type="int" value="8"/>
    </properties>
   </object>
-  <object id="9" gid="31" x="176" y="96" width="16" height="32">
+  <object id="9" gid="31" x="176" y="48" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -97,7 +97,7 @@
     <property name="warp_y" type="int" value="4"/>
    </properties>
   </object>
-  <object id="13" gid="37" x="176" y="304" width="16" height="32">
+  <object id="13" gid="37" x="176" y="336" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -115,7 +115,7 @@
     <property name="warp_y" type="int" value="22"/>
    </properties>
   </object>
-  <object id="14" gid="25" x="48" y="192" width="16" height="32">
+  <object id="14" gid="25" x="32" y="192" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,

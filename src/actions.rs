@@ -1,6 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use json::JsonValue;
+use rand::Rng;
 
 use crate::{ai::Animator, audio::Song, effect::Effect, entity::{Entity, VariableValue}, game::{BoolProperty, Condition, Direction, EntityPropertyType, FloatProperty, IntProperty, LevelPropertyType, PlayerPropertyType, PropertyLocation, QueuedLoad, StringProperty, WarpPos}, player::Player, transitions::Transition, world::{QueuedEntityAction, World}};
 
@@ -30,7 +31,8 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "remove" => { return RemoveEntityAction::parse(parsed); },
         "lay_down_in_place" => { return LayDownInPlaceAction::parse(parsed); },
         "move_player" => { return MovePlayerAction::parse(parsed); },
-        "play_event" => { return ScreenEventAction::parse(parsed); }
+        "play_event" => { return ScreenEventAction::parse(parsed); },
+        "random" => { return RandomAction::parse(parsed); }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -383,6 +385,7 @@ impl Action for SetPropertyAction {
                     LevelPropertyType::BackgroundR => { world.background_color.r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
                     LevelPropertyType::Paused => { world.paused = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     LevelPropertyType::SpecialSaveGame => { world.special_context.save_game = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    LevelPropertyType::NewSession => { world.special_context.new_session = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() }
                 }
             },
             PropertyLocation::Entity(prop) => {
@@ -871,5 +874,105 @@ impl ScreenEventAction {
 impl Action for ScreenEventAction {
     fn act(&self, _: &mut Player, world: &mut World) {
         world.running_screen_event = Some(self.event.clone());
+    }
+}
+
+pub enum RandomActionType {
+    Select,
+    Chance(f32)
+}
+
+impl RandomActionType {
+    pub fn parse(from: &str) -> Self {
+        match from {
+            "select" => Self::Select,
+            "chance" => Self::Chance(0.0),
+            _ => {
+                eprintln!("Unknown random mode {}", from);
+                Self::Chance(0.5)
+            }
+        }
+    }
+}
+
+pub enum RandomSource {
+    Pure,
+    Level,
+    Session,
+    Save
+}
+
+impl RandomSource {
+    pub fn parse(from: &str) -> Self {
+        match from {
+            "level" | "world" => Self::Level,
+            "pure" => Self::Pure,
+            "session" => Self::Session,
+            "save" => Self::Save,
+            _ => {
+                eprintln!("Unknown random source {}", from);
+                Self::Session
+            }
+        }
+    }
+}
+
+pub struct RandomAction {
+    pub actions: Vec<Box<dyn Action>>,
+    pub mode: RandomActionType,
+    pub source: RandomSource
+}
+
+impl RandomAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let source = RandomSource::parse(parsed["source"].as_str().unwrap_or(""));
+        let mut mode = RandomActionType::parse(parsed["mode"].as_str().unwrap_or("default"));
+
+        let mut actions = Vec::new();
+
+        match mode {
+            RandomActionType::Chance(ref mut chance) => {
+                actions.push(parse_action(&parsed["action"]).unwrap());
+                *chance = parsed["chance"].as_f32().unwrap_or(0.5).clamp(0.0, 1.0);
+            },
+            RandomActionType::Select => {
+                for action in parsed["actions"].members() {
+                    actions.push(parse_action(action).unwrap());
+                }
+            }
+        }
+        
+        Ok(Box::new(
+                    Self {
+                        actions,
+                        mode,
+                        source
+                    }
+                ))
+    }
+
+    pub fn poll_rand(&self, player: &Player, world: &World) -> f32 {
+        match self.source {
+            RandomSource::Level => world.random.level_random,
+            RandomSource::Pure => rand::thread_rng().gen_range(0.0..1.0),
+            RandomSource::Save => player.random,
+            RandomSource::Session => world.random.session_random
+        }
+    }
+}
+
+impl Action for RandomAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        match self.mode {
+            RandomActionType::Chance(chance) => {
+                if self.poll_rand(player, world) < chance {
+                    self.actions[0].act(player, world);
+                }
+            },
+            RandomActionType::Select => {
+                let index = (self.poll_rand(player, world) * self.actions.len() as f32) as usize;
+                self.actions[index].act(player, world);
+            }
+        }
     }
 }

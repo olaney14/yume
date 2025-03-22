@@ -40,6 +40,26 @@ pub struct QueuedEntityAction {
     pub multiple_action_id: Option<usize>
 }
 
+#[derive(Clone)]
+pub struct RandomState {
+    pub level_random: f32,
+    pub session_random: f32
+}
+
+impl RandomState {
+    pub fn new() -> Self {
+        Self {
+            level_random: rand::thread_rng().gen_range(0.0..1.0),
+            session_random: rand::thread_rng().gen_range(0.0..1.0)
+        }
+    }
+
+    pub fn level(mut self) -> Self {
+        self.level_random = rand::thread_rng().gen_range(0.0..1.0);
+        self
+    }
+}
+
 pub struct World<'a> {
     pub layers: Vec<Layer>,
     pub image_layers: Vec<ImageLayer<'a>>,
@@ -91,7 +111,8 @@ pub struct World<'a> {
     pub pre_event_song: Option<Song>,
 
     pub entity_draw_order: Vec<Vec<usize>>,
-    pub player_draw_slot: Option<usize>
+    pub player_draw_slot: Option<usize>,
+    pub random: RandomState
 }
 
 #[derive(Serialize, Deserialize)]
@@ -157,7 +178,8 @@ impl<'a> World<'a> {
             screen_events: HashMap::new(),
             pre_event_song: None,
             entity_draw_order: Vec::new(),
-            player_draw_slot: None
+            player_draw_slot: None,
+            random: RandomState::new()
         }
     }
 
@@ -209,7 +231,8 @@ impl<'a> World<'a> {
             screen_events: HashMap::new(),
             pre_event_song: None,
             entity_draw_order: Vec::new(),
-            player_draw_slot: None
+            player_draw_slot: None,
+            random: old.random.clone().level()
         }
     }
 
@@ -559,6 +582,11 @@ impl<'a> World<'a> {
                         self.song.as_mut().unwrap().dirty = true;
                     }
                 }
+            }
+
+            if self.special_context.new_session {
+                self.random.session_random = rand::thread_rng().gen_range(0.0..1.0);
+                self.special_context.new_session = false;
             }
 
             self.find_entity_draw_order(player);
@@ -1408,7 +1436,8 @@ pub struct SpecialContext {
     pub multiple_action_index: Option<usize>,
 
     /// if the map visited on the next map is the same map, actually reload it from file instead of just keeping it
-    pub reload_on_warp: bool
+    pub reload_on_warp: bool,
+    pub new_session: bool,
 }
 
 struct Raindrop {
@@ -1468,7 +1497,8 @@ impl SpecialContext {
             deferred_entity_actions: Vec::new(),
             entity_removal_queue: Vec::new(),
             multiple_action_index: None,
-            reload_on_warp: false
+            reload_on_warp: false,
+            new_session: false
         }
     }
 }

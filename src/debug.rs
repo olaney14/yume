@@ -198,6 +198,13 @@ impl<'a> Debug<'a> {
             sfx.play("click-21156");
         }
 
+        // F3 + X - Print random values
+        if f3_combo(input, Keycode::X) {
+            println!("Level: {}", world.random.level_random);
+            println!("Session: {}", world.random.session_random);
+            println!("Save: {}", player.random);
+        }
+
         if self.load_handle.is_some() {
             if self.load_handle.as_ref().unwrap().is_finished() {
                 let handle = self.load_handle.take().unwrap();

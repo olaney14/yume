@@ -1102,7 +1102,7 @@
     <property name="walk_behind" type="bool" value="true"/>
     <property name="warp_map" value="nexus.tmx"/>
     <property name="warp_x" type="int" value="11"/>
-    <property name="warp_y" type="int" value="18"/>
+    <property name="warp_y" type="int" value="20"/>
    </properties>
   </object>
   <object id="113" gid="257" x="1584" y="1520" width="16" height="16">

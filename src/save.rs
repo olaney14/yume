@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, error::Error, fs::File, path::{Path, PathBuf}};
 
+use rand::Rng;
 use sdl2::render::TextureCreator;
 use serde_derive::{Serialize, Deserialize};
 
@@ -9,7 +10,8 @@ use crate::{player::{Player, Statistics}, effect::Effect};
 pub struct SerializablePlayer {
     pub unlocked_effects: Vec<SerializableEffect>,
     pub money: u32,
-    pub stats: Statistics
+    pub stats: Statistics,
+    pub random: Option<f32>
 }
 
 impl SerializablePlayer {
@@ -21,7 +23,8 @@ impl SerializablePlayer {
         Self {
             unlocked_effects,
             money: player.money,
-            stats: player.stats.clone()
+            stats: player.stats.clone(),
+            random: Some(player.random)
         }
     }
 
@@ -30,6 +33,10 @@ impl SerializablePlayer {
         for effect in self.unlocked_effects.iter() {
             player.unlocked_effects.push(effect.to_effect());
         }
+
+        let random = self.random.unwrap_or(rand::thread_rng().gen_range(0.0..1.0));
+        player.random = random;
+
         player
     }
 }
