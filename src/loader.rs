@@ -4,7 +4,7 @@ use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
 use tiled::{Loader, Orientation, LayerType, TileLayer, PropertyValue, TilesetLocation};
 
-use crate::{actions, ai::{self, parse_animator}, audio::Song, entity::{parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, screen_event::ScreenEvent, texture::Texture, tiles::{SpecialTile, Tile, TileExits, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
+use crate::{actions::{self, MultipleAction}, ai::{self, parse_animator}, audio::Song, entity::{self, parse_trigger, Entity, TriggeredAction}, game::RenderState, particles, screen_event::ScreenEvent, texture::Texture, tiles::{SpecialTile, Tile, TileExits, Tilemap, Tileset}, world::{self, ImageLayer, Layer, World}};
 
 impl<'a> World<'a> {
     pub fn load_from_file<T>(file: &String, creator: &'a TextureCreator<T>, old_world: &mut Option<World<'a>>, state: &RenderState) -> Result<World<'a>, Box<dyn std::error::Error>> {
@@ -327,7 +327,8 @@ impl<'a> World<'a> {
                                     movement: None,
                                     interaction: None,
                                     variables: Rc::new(RefCell::new(HashMap::new())),
-                                    particle_emitter: None
+                                    particle_emitter: None,
+                                    killable: false
                                 };
 
                                 let mut properties = object.properties.clone();
@@ -352,6 +353,19 @@ impl<'a> World<'a> {
                                     // // and if the entity is in the top layer, it would otherwise not be drawn
                                     // // so the world's depth is changed to accommodate
                                     // world.layer_max = world.layer_max.max(entity.height + 1);
+                                } }
+                                if let Some(prop) = properties.get("killable") { if let PropertyValue::BoolValue(killable) = prop { 
+                                    entity.killable = *killable; 
+
+                                    entity.actions.push(TriggeredAction {
+                                        run_on_next_loop: false,
+                                        trigger: entity::Trigger::Use,
+                                        action: Box::new(MultipleAction {
+                                            actions: vec![
+                                                
+                                            ]
+                                        })
+                                    });
                                 } }
                                 if let Some(prop) = properties.get("collider") { if let PropertyValue::StringValue(collider) = prop { entity.collider = parse_rect(&json::parse(collider)?) } }
                                 if let Some(prop) = properties.get("ai") { if let PropertyValue::StringValue(ai) = prop { entity.ai = Some(ai::parse_ai(&json::parse(ai)?)?) } }

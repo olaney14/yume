@@ -233,6 +233,7 @@ pub struct Entity {
     pub interaction: Option<(Interaction, Direction)>,
     pub variables: Rc<RefCell<HashMap<String, VariableValue>>>,
     pub particle_emitter: Option<ParticleEmitter>,
+    pub killable: bool
 }
 
 // TODO looping movement for entities
@@ -255,7 +256,8 @@ impl Entity {
             y: 0,
             interaction: None,
             variables: Rc::new(RefCell::new(HashMap::new())),
-            particle_emitter: None
+            particle_emitter: None,
+            killable: false
         }
     }
 
