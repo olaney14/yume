@@ -1,0 +1,28 @@
+{
+    "actions": [{
+        "trigger": "onload",
+        "action": {
+            "type": "random",
+            "source": "session",
+            "mode": "select",
+            "actions": [{
+                "type": "set_layer_visible",
+                "name": "bg0",
+                "visible": true
+            },
+            {
+                "type": "set_layer_visible",
+                "name": "bg1",
+                "visible": true
+            },
+            {
+                "type": "set_layer_visible",
+                "name": "bg2",
+                "visible": true
+            }]
+        }
+    }],
+    "solid": false,
+    "walk_behind": false,
+    "draw": false
+}

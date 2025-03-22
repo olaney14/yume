@@ -32,7 +32,8 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "lay_down_in_place" => { return LayDownInPlaceAction::parse(parsed); },
         "move_player" => { return MovePlayerAction::parse(parsed); },
         "play_event" => { return ScreenEventAction::parse(parsed); },
-        "random" => { return RandomAction::parse(parsed); }
+        "random" => { return RandomAction::parse(parsed); },
+        "set_layer_visible" => { return SetLayerVisibleAction::parse(parsed) }
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -974,5 +975,35 @@ impl Action for RandomAction {
                 self.actions[index].act(player, world);
             }
         }
+    }
+}
+
+pub struct SetLayerVisibleAction {
+    pub layer: String,
+    pub setting: bool
+}
+
+impl SetLayerVisibleAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        let name = parsed["name"].as_str().unwrap();
+        let visible = parsed["visible"].as_bool().unwrap();
+
+        Ok(Box::new(Self {
+            layer: name.to_string(),
+            setting: visible
+        }))
+    }
+}
+
+impl Action for SetLayerVisibleAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        for layer in world.image_layers.iter_mut() {
+            if layer.name == self.layer {
+                layer.draw = self.setting;
+                return;
+            }
+        }
+
+        eprintln!("No layer `{}` found", self.layer);
     }
 }

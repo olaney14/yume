@@ -1287,7 +1287,8 @@ pub struct ImageLayer<'a> {
     pub parallax_x: i32,
     pub parallax_y: i32,
     /// True - divide, False - multiply
-    pub parallax_mode: bool
+    pub parallax_mode: bool,
+    pub name: String
 }
 
 impl<'a> ImageLayer<'a> {
@@ -1308,7 +1309,8 @@ impl<'a> ImageLayer<'a> {
             timer_y: 0,
             parallax_mode: true,
             parallax_x: 1,
-            parallax_y: 1
+            parallax_y: 1,
+            name: "Image Layer".to_string()
         }
     }
 

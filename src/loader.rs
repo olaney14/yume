@@ -367,7 +367,7 @@ impl<'a> World<'a> {
                                                 // TODO:::: THIS
                                                 // TODO:::: THIS
                                                 // TODO:::: THIS
-                                                
+
                                             ]
                                         })
                                     });
@@ -450,6 +450,8 @@ impl<'a> World<'a> {
                         if let Some(prop) = layer.properties.get("parallax_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_x = *i; } };
                         if let Some(prop) = layer.properties.get("parallax_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.parallax_y = *i; } };
                         if let Some(prop) = layer.properties.get("height") { if let PropertyValue::IntValue(i) = prop { world_image_layer.height = *i; } };
+                        if let Some(prop) = layer.properties.get("draw") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.draw = *b } }
+                        world_image_layer.name = layer.name.clone();
                         if world_image_layer.height > world.layer_max {
                             world.layer_max = world_image_layer.height;
                         }
