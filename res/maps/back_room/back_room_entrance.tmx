@@ -2,6 +2,20 @@
 <map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="20" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="1">
  <properties>
   <property name="clamp_camera" type="bool" value="true"/>
+  <property name="edges">{
+	&quot;left&quot;: {
+		&quot;type&quot;: &quot;warp&quot;,
+		&quot;map&quot;: &quot;back_room/back_room.tmx&quot;,
+		&quot;pos&quot;: { 
+			&quot;x&quot;: 95, 
+			&quot;y&quot;: 25
+		},
+		&quot;transition&quot;: {
+			&quot;type&quot;: &quot;fade&quot;,
+			&quot;music&quot;: false
+		}
+	}
+}</property>
   <property name="music" value="res/audio/music/wonderland0.ogg"/>
   <property name="music_speed" type="float" value="1"/>
   <property name="music_volume" type="float" value="0.5"/>

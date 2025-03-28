@@ -1497,7 +1497,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="5" name="guide" width="96" height="64" visible="0" opacity="0.25">
+ <layer id="5" name="guide" width="96" height="64" opacity="0.25">
   <properties>
    <property name="draw" type="bool" value="false"/>
   </properties>
