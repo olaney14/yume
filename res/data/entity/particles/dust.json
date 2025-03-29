@@ -1,0 +1,20 @@
+{
+	"particles": {
+		"lifetime": [50, 60],
+		"velocity": [[-0.1, 0.1], [-0.1, 0.5]],
+        "stagnate": 1.1,
+		"acceleration": [0, 0],
+		"tx_coord": [0, 0],
+		"tx_vel": [[1, 2], [1, 2]],
+		"freq": 8,
+		"pos_offset": [[-64, 64], [-64, 64]],
+		"size": [1, 1],
+		"texture": "dust.png",
+		"height": 0,
+		"freq_rand": 4
+	},
+	"draw": false,
+	"height": "0",
+	"solid": false,
+	"walk_behind": false
+}

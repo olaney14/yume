@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.5" tiledversion="2021.03.23" name="overgrown_towers" tilewidth="16" tileheight="16" tilecount="40" columns="4">
- <image source="../../textures/tiles/overgrown_towers.png" width="64" height="160"/>
+<tileset version="1.10" tiledversion="1.11.0" name="overgrown_towers" tilewidth="16" tileheight="16" tilecount="72" columns="4">
+ <image source="../../textures/tiles/overgrown_towers.png" width="64" height="288"/>
  <tile id="22">
   <properties>
    <property name="blocking" type="bool" value="true"/>

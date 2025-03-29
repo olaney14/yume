@@ -173,6 +173,7 @@
   <object id="4" gid="33" x="848" y="240" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="walk_over" type="bool" value="true"/>
     <property name="warp_map" value="overgrown_tower.tmx"/>
     <property name="warp_x" type="int" value="19"/>
     <property name="warp_y" type="int" value="48"/>
