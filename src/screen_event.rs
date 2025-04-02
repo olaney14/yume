@@ -6,7 +6,8 @@ use crate::{audio::SoundEffectBank, game::{Input, RenderState}, texture::Texture
 
 enum Continue {
     Use,
-    Wait(u32)
+    Wait(u32),
+    Manual(bool)
 }
 
 struct ScreenEventStep {
@@ -26,7 +27,9 @@ enum ScreenEventStepType {
     None,
     Mute(u32),
     Unmute(u32),
-    Song { song: String, volume: f32, speed: f32 }
+    Song { song: String, volume: f32, speed: f32 },
+    SlideCamera { x: i32, y: i32, speed: u32, dx: i32, dy: i32 },
+    ReturnCamera { speed: u32, dx: i32, dy: i32 }
 }
 
 pub struct ScreenEvent<'a> {
@@ -51,6 +54,29 @@ pub struct ScreenEvent<'a> {
     pub has_changed_song: bool
 }
 
+fn slide_camera(tx: i32, ty: i32, dx: i32, dy: i32, state: &mut RenderState) -> bool {
+    let init_diff = (state.camera_slide_offset.0 - tx, state.camera_slide_offset.1 - ty);
+
+    state.camera_slide_offset.0 += dx;
+    state.camera_slide_offset.1 += dy;
+
+    let final_diff = (state.camera_slide_offset.0 - tx, state.camera_slide_offset.1 - ty);
+
+    if init_diff.0.signum() != final_diff.0.signum() {
+        state.camera_slide_offset.0 = tx;
+    }
+
+    if init_diff.1.signum() != final_diff.1.signum() {
+        state.camera_slide_offset.1 = ty;
+    }
+
+    if state.camera_slide_offset.0 == tx && state.camera_slide_offset.1 == ty {
+        return true;
+    }
+
+    false
+}
+
 impl<'a> ScreenEvent<'a> {
     pub fn reset(&mut self) {
         self.timer = 0;
@@ -62,7 +88,7 @@ impl<'a> ScreenEvent<'a> {
         self.has_changed_song = false;
     } 
 
-    pub fn tick(&mut self, sfx: &mut SoundEffectBank, input: &Input) -> bool {
+    pub fn tick(&mut self, sfx: &mut SoundEffectBank, input: &Input, state: &mut RenderState) -> bool {
         if input.get_just_pressed(Keycode::X) && self.can_exit {
             return false;
         }
@@ -84,8 +110,13 @@ impl<'a> ScreenEvent<'a> {
                 self.timer = time;
             }
 
+            if let Continue::Manual(ref mut b) = self.steps[self.current_step].cont {
+                *b = false;
+            }
+
             // Events that run once instantly
-            match &self.steps[self.current_step].step_type {
+            // or just init here
+            match &mut self.steps[self.current_step].step_type {
                 ScreenEventStepType::PlaySound { sound, volume, speed } => {
                     sfx.play_ex(sound, *speed, *volume);
                 },
@@ -106,6 +137,14 @@ impl<'a> ScreenEvent<'a> {
                 },
                 ScreenEventStepType::Song{ song, volume, speed} => {
                     self.set_song = Some((song.clone(), *volume, *speed));
+                },
+                ScreenEventStepType::SlideCamera { x, y, speed, dx, dy } => {
+                    *dx = (*x - state.camera_slide_offset.0).signum() * *speed as i32;
+                    *dy = (*y - state.camera_slide_offset.1).signum() * *speed as i32;
+                },
+                ScreenEventStepType::ReturnCamera { speed, dx, dy } => {
+                    *dx = -(state.camera_slide_offset.0).signum() * *speed as i32;
+                    *dy = -(state.camera_slide_offset.1).signum() * *speed as i32;
                 }
                 _ => ()
             }
@@ -128,6 +167,20 @@ impl<'a> ScreenEvent<'a> {
             ScreenEventStepType::ShowGame(time) => {
                 self.fade_alpha = (self.timer as f32 - 1.0) / *time as f32;
             },
+            ScreenEventStepType::SlideCamera { x, y, speed: _, dx, dy } => {
+                if slide_camera(*x, *y, *dx, *dy, state) {
+                    if let Continue::Manual(ref mut b) = self.steps[self.current_step].cont {
+                        *b = true;
+                    }
+                }
+            },
+            ScreenEventStepType::ReturnCamera { speed: _, dx, dy } => {
+                if slide_camera(0, 0, *dx, *dy, state) {
+                    if let Continue::Manual(ref mut b) = self.steps[self.current_step].cont {
+                        *b = true;
+                    }
+                }
+            }
             _ => ()
         }
 
@@ -144,7 +197,8 @@ impl<'a> ScreenEvent<'a> {
             },
             Continue::Wait(_) => {
                 self.timer == 0
-            }
+            },
+            Continue::Manual(b) => b
         }
     }
 
@@ -286,6 +340,20 @@ impl<'a> ScreenEvent<'a> {
                     token += 4;
                     ScreenEventStepType::Animate { from, to, speed }
                 },
+                "slide_camera" => {
+                    let x = line[token + 1].trim().parse::<i32>().expect("Expected i32 x offset for camera after slide_camera");
+                    let y = line[token + 2].trim().parse::<i32>().expect("Expected i32 y offset for camera after slide_camera");
+                    let speed = line[token + 3].trim().parse::<u32>().expect("Expected u32 camera speed after x and y offset");
+                    cont = Continue::Manual(false);
+                    token += 4;
+                    ScreenEventStepType::SlideCamera { x, y, speed, dx: 0, dy: 0 }
+                },
+                "return_camera" => {
+                    let speed = line[token + 1].trim().parse::<u32>().expect("Expected u32 speed after return_camera");
+                    cont = Continue::Manual(false);
+                    token += 2;
+                    ScreenEventStepType::ReturnCamera { speed, dx: 0, dy: 0 }
+                }
                 _ => {
                     eprintln!("Warning: Unknown event step `{}`", line[token].trim());
                     token += 1;
@@ -303,7 +371,7 @@ impl<'a> ScreenEvent<'a> {
                     "until" => {
                         token += 1;
                         match step_type {
-                            ScreenEventStepType::HideGame(_) | ScreenEventStepType::ShowGame(_) => {
+                            ScreenEventStepType::HideGame(_) | ScreenEventStepType::ShowGame(_) | ScreenEventStepType::ReturnCamera { .. } | ScreenEventStepType::SlideCamera { .. } => {
                                 // break here to prevent bad data from being parsed
                                 eprintln!("`until` is not valid with this step type");
                                 break;

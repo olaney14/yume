@@ -1,0 +1,7 @@
+# freeze true
+# can_exit false
+
+hidden
+slide_camera 0 100 1
+wait until use
+return_camera 1

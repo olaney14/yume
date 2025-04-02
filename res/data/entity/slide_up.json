@@ -1,0 +1,14 @@
+{
+	"actions": [{
+		"trigger": {
+			"type": "use"
+		},
+		"action": {
+			"type": "play_event",
+            "event": "slide_view"
+		}
+	}],
+	"height": "0",
+    "draw": false,
+	"solid": false
+}

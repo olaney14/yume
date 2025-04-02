@@ -966,8 +966,8 @@ impl<'a> Player<'a> {
         } else {
             self.animation_info.get_frame_pos()
         };
-        let x;
-        let y;
+        let mut x;
+        let mut y;
         
         if state.clamp.0 {
             x = self.x + state.offset.0;
@@ -980,6 +980,11 @@ impl<'a> Player<'a> {
         } else {
             y = (state.screen_extents.1 as i32 / 2) - 16;
         }
+
+        // x += state.player_offset.0;
+        // y += state.player_offset.1;
+        x += state.camera_slide_offset.0;
+        y += state.camera_slide_offset.1;
 
         self.pre_draw(canvas, (x, y), state);
         if !self.animation_override_controller.active {

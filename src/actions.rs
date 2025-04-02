@@ -33,7 +33,8 @@ pub fn parse_action(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
         "move_player" => { return MovePlayerAction::parse(parsed); },
         "play_event" => { return ScreenEventAction::parse(parsed); },
         "random" => { return RandomAction::parse(parsed); },
-        "set_layer_visible" => { return SetLayerVisibleAction::parse(parsed) }
+        "set_layer_visible" => { return SetLayerVisibleAction::parse(parsed) },
+        "unfreeze" => { return UnfreezeAction::parse(parsed) },
         _ => {
             return Err(format!("Unknown action \"{}\"", parsed["type"].as_str().unwrap()));
         }
@@ -576,6 +577,12 @@ impl MultipleAction {
     }
 }
 
+// TODO: Nested is just a band aid fix plz fix
+
+// STILL TODO: the middle branch is not c alling unfreeze
+
+// IDEA: Remove slide camera action, move it all to screen events
+
 impl Action for MultipleAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(index) = world.special_context.multiple_action_index {
@@ -1005,5 +1012,57 @@ impl Action for SetLayerVisibleAction {
         }
 
         eprintln!("No layer `{}` found", self.layer);
+    }
+}
+
+// struct SlideCameraAction {
+//     direction: bool,
+//     x: i32,
+//     y: i32,
+//     speed: u32
+// }
+
+
+// impl SlideCameraAction {
+//     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+//         let direction = parsed["direction"].as_bool().unwrap_or(true);
+//         let x = parsed["x"].as_i32().expect("Expected `x` offset in camera slide action");
+//         let y = parsed["y"].as_i32().expect("Expected `y` offset in camera slide action");
+//         let speed = parsed["speed"].as_u32().unwrap_or(1);
+
+//         Ok(Box::new(Self {
+//             direction,
+//             speed,
+//             x,
+//             y
+//         }))
+//     }
+// }
+
+// impl Action for SlideCameraAction {
+//     fn act(&self, player: &mut Player, world: &mut World) {
+//         world.special_context.camera_slide = true;
+//         if self.direction {
+//             world.special_context.camera_slide_target = (self.x, self.y);
+//         } else {
+//             world.special_context.camera_slide_target = (0, 0);
+//             world.special_context.camera_slide_offset = (self.x, self.y);
+//         }
+//         world.special_context.camera_slide_speed = self.speed;
+//     }
+// }
+
+struct UnfreezeAction;
+
+impl UnfreezeAction {
+    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+        Ok(Box::new(Self))
+    }
+}
+
+impl Action for UnfreezeAction {
+    fn act(&self, player: &mut Player, world: &mut World) {
+        player.frozen_time = 0;
+        player.frozen = false;
     }
 }

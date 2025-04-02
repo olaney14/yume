@@ -87,15 +87,12 @@ fn main() {
     let mut ui = Ui::new(&PathBuf::from(MAIN_MENU_THEME), Some(MAIN_MENU_FONT), &texture_creator);
     //ui.init(&mut sfx);
 
-    //let mut save_info = SaveInfo::create_new().expect("baha");
-    //let mut save_info = SaveInfo::read().expect("failed to read or open save data");
     let mut save_info = SaveInfo::read_or_create_new().expect("failed to read or create save data, the .saves file may be missing or corrupted");
 
     let mut player = Player::new(&texture_creator);
-    //player.unlocked_effects.push(effect::Effect::Speed);
+
     let mut input = Input::new();
-    // CHANGED
-    // let mut world = World::load_from_file(&START_MAP.to_owned(), &texture_creator, &mut None);
+
     let mut world = World::new(&texture_creator, &render_state);
     let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
     song.default_speed = MAIN_MENU_MUSIC_SPEED;
@@ -125,9 +122,6 @@ fn main() {
         enable_debug_overlay: false,
         mini_font: Font::new_mini(Texture::from_file(&PathBuf::from(ui::MINIFONT_PATH), &texture_creator).expect("failed to load debug font"))
     };
-
-    //let new_save = SaveData::create(&player);
-    //new_save.save(0, &PathBuf::from("saves/0.save"), &mut save_info).expect("error saving new file");
 
     'mainloop: loop {
         for event in events.poll_iter() {
@@ -190,26 +184,21 @@ fn main() {
             if !world.paused {
                 player.update(&input, &mut world, &mut sfx);
             }
-            world.update(&mut player, &mut sfx, &sink, &input);
+            world.update(&mut player, &mut sfx, &sink, &input, &mut render_state);
             if player.effect_just_changed {
                 player.effect_just_changed = false;
             }
         }
 
         if input.get_just_pressed(Keycode::F4) {
-            //println!("scale");
             if render_state.fullscreen {
                 canvas.set_scale(2.0, 2.0).unwrap();
-                //render_state.update_zoom(2.0, 2.0);
                 canvas.window_mut().set_fullscreen(FullscreenType::Off).unwrap();
             } else {
                 canvas.set_scale(4.0, 4.0).unwrap();
                 canvas.window_mut().set_fullscreen(FullscreenType::Desktop).unwrap();
-                //render_state.update_zoom(4.0, 4.0);
                 canvas.set_clip_rect(Rect::new(0, 0, render_state.screen_dims.0 / 2, render_state.screen_dims.1 / 2));
                 let window_size = canvas.window().size();
-                // dbg!(window_size);
-                // dbg!(render_state.screen_dims);
                 canvas.set_viewport(Rect::new(
                     (window_size.0 / 2 - (render_state.screen_dims.0)) as i32 / 4,
                     (window_size.1 / 2 - (render_state.screen_dims.1)) as i32 / 4,
@@ -222,6 +211,36 @@ fn main() {
 
         input.update();
         clamp_camera(&mut render_state, &world, &player);
+
+        // if world.special_context.camera_slide {
+        //     render_state.offset.0 += world.special_context.camera_slide_offset.0;
+        //     render_state.offset.1 += world.special_context.camera_slide_offset.1;
+
+        //     let direction_x = (world.special_context.camera_slide_target.0 - world.special_context.camera_slide_offset.0).signum();
+        //     let direction_y = (world.special_context.camera_slide_target.1 - world.special_context.camera_slide_offset.1).signum();
+
+        //     world.special_context.camera_slide_offset.0 += world.special_context.camera_slide_speed as i32 * direction_x;
+        //     world.special_context.camera_slide_offset.1 += world.special_context.camera_slide_speed as i32 * direction_y;
+        //     render_state.player_offset.0 += world.special_context.camera_slide_speed as i32 * direction_x;
+        //     render_state.player_offset.1 += world.special_context.camera_slide_speed as i32 * direction_y;
+
+        //     let direction_x1 = (world.special_context.camera_slide_target.0 - world.special_context.camera_slide_offset.0).signum();
+        //     let direction_y1 = (world.special_context.camera_slide_target.1 - world.special_context.camera_slide_offset.1).signum();
+
+        //     if direction_x != direction_x1 {
+        //         world.special_context.camera_slide_offset.0 = world.special_context.camera_slide_offset.1;
+        //     }
+
+        //     if direction_y != direction_y1 {
+        //         world.special_context.camera_slide_offset.1 = world.special_context.camera_slide_offset.1;
+        //     }
+
+        //     if direction_y != direction_y1 && direction_x != direction_x1 {
+        //         if world.special_context.camera_slide_offset.0 == 0 && world.special_context.camera_slide_offset.1 == 0 {
+        //             world.special_context.camera_slide = false;
+        //         }
+        //     }
+        // }
 
         // If the ui is not clearing the screen and a menu screenshot is not being taken
         if !ui.clear && !ui.menu_state.menu_screenshot {
@@ -401,6 +420,9 @@ fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) 
             }
         }
     }
+
+    render_state.offset.0 += render_state.camera_slide_offset.0;
+    render_state.offset.1 += render_state.camera_slide_offset.1;
 }
 
 const TICK_INTERVAL: u32 = 16;

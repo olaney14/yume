@@ -1049,7 +1049,11 @@ pub struct RenderState {
     /// Draw space screen dimensions (scaled)
     pub screen_extents: (u32, u32),
     pub clamp: (bool, bool),
-    pub fullscreen: bool
+    pub fullscreen: bool,
+
+    // pub player_offset: (i32, i32),
+
+    pub camera_slide_offset: (i32, i32)
 }
 
 impl RenderState {
@@ -1063,7 +1067,9 @@ impl RenderState {
                 (screen_dims.1 as f32 / 2.0) as u32,
             ),
             clamp: (false, false),
-            fullscreen: false
+            fullscreen: false,
+            // player_offset: (0, 0)
+            camera_slide_offset: (0, 0)
         }
     }
 
