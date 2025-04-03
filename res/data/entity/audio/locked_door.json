@@ -1,0 +1,11 @@
+{
+    "actions": [{
+        "trigger": "use",
+        "action": {
+            "type": "play",
+            "sound": "mortice-door-lock-being-locked-and-unlocked-95884",
+            "volume": 0.5,
+            "speed": 2.5
+        }
+    }]
+}
