@@ -5,7 +5,7 @@
         "axes": "horizontal",
         "speed": 4
     },
-    "walk_behind": false,
+    "walk_over": true,
     "height": "0",
     "solid": false
-}
+} 

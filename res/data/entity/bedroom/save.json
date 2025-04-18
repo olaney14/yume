@@ -22,9 +22,9 @@
 		},
 		"action": {
 			"type": "change_song",
-			"volume": 0.3,
-			"speed": 0.7,
-			"song": "res/audio/music/chaconne.ogg"
+			"volume": 0.2,
+			"speed": 0.9,
+			"song": "res/audio/music/subahibi0.ogg"
 		}
 	}],
 	"draw": false,
