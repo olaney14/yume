@@ -376,7 +376,8 @@ fn main() {
         unsafe {
             let time = time_left(next_time);
             SDL_Delay(time);
-            next_time += TICK_INTERVAL;
+            // next_time += TICK_INTERVAL;
+            next_time = SDL_GetTicks() + TICK_INTERVAL;
         }
     }
 }
