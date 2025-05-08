@@ -21,6 +21,15 @@ pub struct DirectionalAnimationData {
     pub advance: AnimationAdvancementType
 }
 
+pub struct LeftRightAnimationData {
+    pub frames_per_direction: u32,
+    pub left: u32,
+    pub right: u32,
+    pub direction: Direction,
+    pub last_horizontal_direction: Direction,
+    pub advance: AnimationAdvancementType
+}
+
 pub struct FollowAnimationData {
     pub follow_vec: (i32, i32),
     pub easing: u32,
@@ -33,6 +42,7 @@ pub enum AnimationFrameData {
     FrameSequence{start: u32, idle: u32, len: u32, advance: AnimationAdvancementType},
     Directional(DirectionalAnimationData),
     Follow(FollowAnimationData),
+    LeftRight(LeftRightAnimationData)
 }
 
 pub struct Animator {
@@ -54,7 +64,8 @@ impl Animator {
             AnimationFrameData::SingleFrame(frame) => { *frame },
             AnimationFrameData::FrameSequence { start, .. } => { *start },
             AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) },
-            AnimationFrameData::Follow(data) => { data.center }
+            AnimationFrameData::Follow(data) => { data.center },
+            AnimationFrameData::LeftRight(data) => { data.left * data.frames_per_direction + (data.frames_per_direction / 2) }
         };
 
         Self {
@@ -74,7 +85,8 @@ impl Animator {
             AnimationFrameData::SingleFrame(frame) => { *frame },
             AnimationFrameData::FrameSequence { start, .. } => { *start },
             AnimationFrameData::Directional(data) => { data.down * data.frames_per_direction + (data.frames_per_direction / 2) },
-            AnimationFrameData::Follow(data) => { data.center }
+            AnimationFrameData::Follow(data) => { data.center },
+            AnimationFrameData::LeftRight(data) => { data.left * data.frames_per_direction + (data.frames_per_direction / 2) }
         };
 
         self.frame = beginning_frame;
@@ -94,6 +106,11 @@ impl Animator {
                         *direction = 1;
                     },
                     _ => ()
+                }
+            },
+            AnimationFrameData::LeftRight(data) => {
+                if let AnimationAdvancementType::Cycle(ref mut dir) = data.advance {
+                    *dir = 1;
                 }
             }
             _ => ()
@@ -129,6 +146,38 @@ impl Animator {
                         Direction::Up => data.up,
                         Direction::Left => data.left,
                         Direction::Right => data.right
+                    };
+
+                    match &mut data.advance {
+                        AnimationAdvancementType::Loop => {
+                            self.frame += 1;
+                            if self.frame == ((row + 1) * data.frames_per_direction as u32) {
+                                self.frame = row * data.frames_per_direction as u32;
+                            }
+                        },
+                        AnimationAdvancementType::Cycle(direction) => {
+                            let advanced = self.frame as i32 + *direction;
+                            if advanced <= (row * data.frames_per_direction as u32) as i32 || advanced >= ((row + 1) * data.frames_per_direction as u32) as i32 - 1 {
+                                *direction *= -1;
+                            }
+                            self.frame = advanced as u32;
+                        }
+                    }
+                },
+                AnimationFrameData::LeftRight(data) => {
+                    match data.direction {
+                        Direction::Left | Direction::Right => data.last_horizontal_direction = data.direction,
+                        _ => ()
+                    }
+
+                    let row = match data.direction {
+                        Direction::Left => data.left,
+                        Direction::Right => data.right,
+                        _ => match data.last_horizontal_direction {
+                            Direction::Left => data.left,
+                            Direction::Right => data.right,
+                            _ => unreachable!()
+                        }
                     };
 
                     match &mut data.advance {
@@ -615,6 +664,33 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 }
             )
         },
+        "leftright" | "left_right" => {
+            let left = parsed["left"].as_u32().unwrap_or(0);
+            let right = parsed["right"].as_u32().unwrap_or(1);
+            if !parsed["frames"].is_number() { return Err("No frames length specified for directional sequence (leftright)"); }
+            let frames = parsed["frames"].as_u32().unwrap();
+            let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
+
+            return Ok(
+                Animator {
+                    frame: left * frames + (frames / 2),
+                    speed,
+                    tileset,
+                    tileset_width: Some(tileset_width),
+                    timer: speed as i32,
+                    frame_data: AnimationFrameData::LeftRight(LeftRightAnimationData {
+                        advance: repeat,
+                        direction: Direction::Left,
+                        frames_per_direction: frames,
+                        left,
+                        right,
+                        last_horizontal_direction: Direction::Left
+                    }),
+                    on_move,
+                    manual
+                }
+            )
+        },
         "follow" => {
             let center = parsed["center"].as_u32().expect("Expected u32 for follow animation center.");
             let axes = world::Axis::parse(parsed["axes"].as_str().expect("Expected string for follow animation axes.")).expect("Could not parse axes for follow animation");
@@ -999,9 +1075,7 @@ impl PolledPathfinder for WalkTowardsPathfinder {
     }
 }
 
-pub struct ErraticPathfinder {
-
-}
+pub struct ErraticPathfinder;
 
 impl PolledPathfinder for ErraticPathfinder {
     fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, _: i32, _: &Player, world: &mut World, _: &Vec<Entity>) -> Option<Direction> {

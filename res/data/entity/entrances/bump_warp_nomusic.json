@@ -10,11 +10,12 @@
 					"x": "$warp_x",
 					"y": "$warp_y"
 				},
-				"transition": { 
-					"type": "fade",
-					"speed": 2,
+				"transition": {
+                    "type": "fade",
+                    "music": false,
+                    "speed": 2,
 					"hold": 16
-				}
+                }
 			},
 			"delay": 16
 		}

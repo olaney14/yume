@@ -4,6 +4,7 @@
   <property name="music" value="res/audio/music/rustbell.ogg"/>
   <property name="music_speed" type="float" value="1"/>
   <property name="music_volume" type="float" value="0.75"/>
+  <property name="tint" value="0,0,0,127"/>
  </properties>
  <tileset firstgid="1" source="../tilesets/snow_city.tsx"/>
  <tileset firstgid="353" source="../entity/misc_entities_1x2.tsx"/>

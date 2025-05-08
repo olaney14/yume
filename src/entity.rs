@@ -296,6 +296,17 @@ impl Entity {
                     } * data.frames_per_direction + 1
                 }
             }
+
+            if let AnimationFrameData::LeftRight(data) = &mut animator.frame_data {
+                if data.direction != direction {
+                    data.direction = direction;
+                    match direction {
+                        Direction::Left => animator.frame = data.left * data.frames_per_direction + 1,
+                        Direction::Right => animator.frame = data.right * data.frames_per_direction + 1,
+                        _ => ()
+                    }
+                }
+            }
         }
 
         if self.can_move_in_direction(direction, world, player, entity_list) {

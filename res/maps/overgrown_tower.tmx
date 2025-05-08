@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="13">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="15">
  <properties>
   <property name="default_pos" value="19,48"/>
   <property name="music" value="res/audio/music/oliver.ogg"/>
@@ -8,6 +8,19 @@
  <tileset firstgid="1" source="tilesets/overgrown_towers.tsx"/>
  <tileset firstgid="73" source="entity/lizard.tsx"/>
  <tileset firstgid="81" source="entity/lamppost.tsx"/>
+ <imagelayer id="9" name="stars">
+  <image source="../textures/image/stars2.png" width="128" height="128"/>
+  <properties>
+   <property name="delay_x" type="int" value="8"/>
+   <property name="delay_y" type="int" value="8"/>
+   <property name="height" type="int" value="0"/>
+   <property name="looping" type="bool" value="true"/>
+   <property name="parallax_x" type="int" value="4"/>
+   <property name="parallax_y" type="int" value="4"/>
+   <property name="scroll_x" type="int" value="0"/>
+   <property name="scroll_y" type="int" value="0"/>
+  </properties>
+ </imagelayer>
  <layer id="2" name="cliff" width="64" height="64">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -263,7 +276,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,28,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,0,0,0,0,33,33,33,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,33,0,0,33,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,0,33,0,0,0,0,0,0,0,0,33,0,0,0,0,33,33,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,33,0,0,33,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,0,33,0,0,28,0,0,28,0,0,33,0,0,0,0,33,33,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,33,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -349,6 +362,22 @@
     <property name="warp_map" value="back_room/back_room_staircase.tmx"/>
     <property name="warp_x" type="int" value="39"/>
     <property name="warp_y" type="int" value="25"/>
+   </properties>
+  </object>
+  <object id="13" gid="32" x="784" y="816" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/entrances/bump_warp_nomusic.json"/>
+    <property name="warp_map" value="overgrown_tower2.tmx"/>
+    <property name="warp_x" type="int" value="11"/>
+    <property name="warp_y" type="int" value="15"/>
+   </properties>
+  </object>
+  <object id="14" gid="32" x="832" y="816" width="16" height="16">
+   <properties>
+    <property name="file" value="res/data/entity/entrances/bump_warp_nomusic.json"/>
+    <property name="warp_map" value="overgrown_tower.tmx"/>
+    <property name="warp_x" type="int" value="49"/>
+    <property name="warp_y" type="int" value="50"/>
    </properties>
   </object>
  </objectgroup>

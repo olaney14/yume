@@ -1,0 +1,35 @@
+{
+    "ai": {
+        "type": "wander",
+        "frequency": 50,
+        "delay": 150,
+        "speed": 2,
+        "move_delay": 1
+    },
+	"animation": {
+		"type": "leftright",
+		"left": 0,
+		"right": 1,
+		"frames": 3,
+		"speed": 4,
+		"repeat": "cycle",
+		"on_move": true
+	},
+	"collider": {
+		"x": 0,
+		"y": 16,
+		"w": 32,
+		"h": 16
+	},
+	"actions": [{
+		"trigger": "use",
+		"action": {
+			"type": "play",
+			"sound": "pinch",
+            "speed": 0.125,
+            "volume": 0.5
+		}
+	}],
+	"height": "0",
+	"solid": true
+}
