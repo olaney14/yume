@@ -50,6 +50,7 @@ pub struct Player<'a> {
     pub waking_up: bool,
     pub waking_up_timer: u32,
     pub random: f32,
+    pub unlocked_songs: Vec<(String, Vec<f32>)>
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -263,7 +264,8 @@ impl<'a> Player<'a> {
             on_ladder: false,
             waking_up: false,
             waking_up_timer: 0,
-            random: 0.0
+            random: 0.0,
+            unlocked_songs: Vec::new()
         };
 
         player.load_effect_textures(creator);
@@ -277,6 +279,19 @@ impl<'a> Player<'a> {
         self.effect_textures.insert(Effect::Fire, Texture::from_file(&PathBuf::from("res/textures/player/fire.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Bat, Texture::from_file(&PathBuf::from("res/textures/player/bat.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Security, Texture::from_file(&PathBuf::from("res/textures/player/security.png"), creator).unwrap());
+    }
+
+    pub fn unlock_song(&mut self, name: String, speed: f32) {
+        for song in self.unlocked_songs.iter_mut() {
+            if song.0 == name {
+                if !song.1.contains(&speed) {
+                    song.1.push(speed);
+                }
+                return;
+            }
+        }
+
+        self.unlocked_songs.push((name, vec![speed]));
     }
 
     pub fn stash_last_effect(&mut self) {
@@ -659,13 +674,17 @@ impl<'a> Player<'a> {
         return self.unlocked_effects.contains(effect);
     }
     
-    pub fn on_level_transition(&mut self) {
+    pub fn on_level_transition(&mut self, world: &mut World) {
         if self.animation_override_controller.lay_down_animation {
             self.animation_override_controller.lay_down_animation = false;
             self.animation_override_controller.active = false;
             //self.facing = Direction::Down;
             self.look_in_direction(Direction::Down);
             self.disable_player_input = false;
+        }
+
+        if world.song.is_some() {
+            self.unlock_song(world.song.as_ref().unwrap().name.clone(), world.song.as_ref().unwrap().speed);
         }
     }
     

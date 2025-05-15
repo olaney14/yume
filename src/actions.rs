@@ -387,6 +387,7 @@ impl Action for SetPropertyAction {
                     LevelPropertyType::BackgroundR => { world.background_color.r = IntProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap().clamp(0, 255) as u8 },
                     LevelPropertyType::Paused => { world.paused = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     LevelPropertyType::SpecialSaveGame => { world.special_context.save_game = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
+                    LevelPropertyType::SpecialMusicMenu => { world.special_context.open_music_menu = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() },
                     LevelPropertyType::NewSession => { world.special_context.new_session = BoolProperty::parse(&self.val).unwrap().get(Some(&player), Some(&world)).unwrap() }
                 }
             },
@@ -452,6 +453,8 @@ impl Action for ChangeSongAction {
             }  
         }
         world.song = current_song_opt;
+
+        player.unlock_song(world.song.as_ref().unwrap().name.clone(), world.song.as_ref().unwrap().speed);
     }
 }
 

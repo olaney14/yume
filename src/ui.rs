@@ -3,7 +3,7 @@ use std::{path::PathBuf, collections::HashMap};
 use rodio::Sink;
 use sdl2::{render::{RenderTarget, Canvas, TextureCreator}, rect::Rect, keyboard::Keycode, pixels::Color};
 
-use crate::{audio::SoundEffectBank, effect::Effect, game::{Input, IntProperty, LevelPropertyType, QueuedLoad, RenderState, WarpPos}, player::{self, Player}, save::SaveInfo, texture::Texture, tiles::Tileset, transitions::{Transition, TransitionType}, world::World};
+use crate::{audio::{Song, SoundEffectBank}, effect::Effect, game::{Input, IntProperty, LevelPropertyType, QueuedLoad, RenderState, WarpPos}, player::{self, Player}, save::SaveInfo, texture::Texture, tiles::Tileset, transitions::{Transition, TransitionType}, world::World};
 
 const MENU_FRAME_TOP_RIGHT: u32 = 0;
 const MENU_FRAME_TOP: u32 = 1;
@@ -55,7 +55,9 @@ pub enum MenuType {
     SaveConfirm,
 
     /// True - save, False - load
-    SaveLoad(bool)
+    SaveLoad(bool),
+
+    MusicPlayer
 }
 
 pub struct MenuState {
@@ -68,7 +70,8 @@ pub struct MenuState {
     pub switch_to_main: bool,
     pub menu_should_close: bool,
     pub menu_screenshot: bool,
-    pub page_index: i32
+    pub page_index: i32,
+    pub song_variant_index: usize
 }
 
 impl MenuState {
@@ -83,7 +86,8 @@ impl MenuState {
             menu_should_close: false,
             menu_screenshot: false,
             switch_to_main: false,
-            page_index: 0
+            page_index: 0,
+            song_variant_index: 0
         }
     }
 
@@ -252,6 +256,28 @@ impl MenuState {
                         sfx.play_ex("menu_blip_affirmative", 1.0, 0.25);
                     }
                 },
+                MenuType::MusicPlayer => {
+                    if player.unlocked_songs.len() > 0 {
+                        let song = &player.unlocked_songs[(self.button_id + self.page_index * 16) as usize];
+                        let path = PathBuf::from(format!("res/audio/music/{}.ogg", song.0));
+                        
+                        if world.song.as_ref().is_some_and(|song| song.path == path) {
+                            self.song_variant_index += 1;
+                            if self.song_variant_index >= song.1.len() {
+                                self.song_variant_index = 0;
+                            }
+                            world.song.as_mut().unwrap().speed = song.1[self.song_variant_index];
+                            world.song.as_mut().unwrap().volume = 1.0;
+                            world.song.as_mut().unwrap().dirty = true;
+                        } else {
+                            world.song = Some(Song::new(path));
+                            world.song.as_mut().unwrap().volume = 1.0;
+                            world.song.as_mut().unwrap().speed = song.1[0];
+                            world.song.as_mut().unwrap().dirty = true;
+                            world.song.as_mut().unwrap().reload = true;
+                        }
+                    }
+                },
                 MenuType::SaveConfirm => {
                     if self.button_id == 0 {
                         world.special_context.write_save_to_pending = true;
@@ -389,6 +415,39 @@ impl MenuState {
                     }
                 }
             },
+            MenuType::MusicPlayer => {
+                if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
+                if input.get_just_pressed(Keycode::Down) { self.button_id += 1; }
+                if input.get_just_pressed(Keycode::Right) { self.page_index += 1; }
+                if input.get_just_pressed(Keycode::Left) { self.page_index -= 1; }
+
+                let max_button = (player.unlocked_songs.len() as i32 - (16 * self.page_index)).min(16);
+                let max_pages = player.unlocked_songs.len() / 16;
+
+                let initial_button_id = self.button_id;
+                let initial_page_id = self.page_index;
+
+                if self.button_id >= max_button {
+                    self.button_id = 0;
+                }
+                if self.button_id < 0 {
+                    self.button_id = (max_button - 1).max(0);
+                }
+                if self.page_index < 0 {
+                    self.page_index = 0;
+                }
+                if self.page_index >= max_pages as i32 {
+                    self.page_index = max_pages as i32;
+                }
+
+                if initial_page_id != self.page_index {
+                    self.song_variant_index = 0;
+                    self.button_id = 0;
+                }
+                if initial_button_id != self.button_id {
+                    self.song_variant_index = 0;
+                }
+            },
             MenuType::Special => {
                 let button_max = 1;
                 if input.get_just_pressed(Keycode::Up) { self.button_id -= 1; }
@@ -418,6 +477,8 @@ pub struct Ui<'a> {
     pub effect_get_timer: u32,
     pub player_preview_texture: Texture<'a>,
 }
+
+const SONG_VARIANT_LABELS: [&str; 11] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
 
 impl<'a> Ui<'a> {
     pub fn new<T>(theme: &PathBuf, font: Option<&str>, creator: &'a TextureCreator<T>) -> Self {
@@ -458,6 +519,13 @@ impl<'a> Ui<'a> {
             self.menu_state.button_id = 0;
             world.special_context.save_game = false;
         }
+
+        if world.special_context.open_music_menu {
+            self.show_menu(MenuType::MusicPlayer);
+            self.menu_state.close_on_x = true;
+            self.menu_state.button_id = 0;
+            world.special_context.open_music_menu = false;
+        }
         
         if input.get_just_pressed(Keycode::X) && !input.get_pressed(Keycode::F3) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
@@ -466,11 +534,17 @@ impl<'a> Ui<'a> {
                     MenuType::SaveLoad(b) => {
                         if b {
                             if let Some(song) = &mut world.song {
-                                
                                 song.default_volume = 0.0;
                                 song.volume = 0.0;
                                 song.dirty = true;
                             }
+                        }
+                    },
+                    MenuType::MusicPlayer => {
+                        if let Some(song) = &mut world.song {
+                            song.default_volume = 0.0;
+                            song.volume = 0.0;
+                            song.dirty = true;
                         }
                     }
                     _ => {
@@ -655,6 +729,39 @@ impl<'a> Ui<'a> {
                             ).unwrap();
                             y += 64;
                         }
+                    }
+
+                    if page_left && self.menu_state.selection_flash {
+                        self.theme.draw_element(canvas, 4, 32 + 64 + 24, MENU_ARROW_LEFT);
+                    }
+                    if page_right && self.menu_state.selection_flash {
+                        self.theme.draw_element(canvas, state.screen_extents.0 as i32 - (4 + 16), 32 + 64 + 24, MENU_ARROW_RIGHT);
+                    }
+                },
+                MenuType::MusicPlayer => {
+                    self.theme.draw_frame(canvas, 0, 0, state.screen_extents.0 / 16, 2);
+                    self.theme.font.draw_string(canvas, "Music Player", (11, 11));
+                    let mut y = 32;
+
+                    let buttons_on_page = (player.unlocked_songs.len() as i32 - (self.menu_state.page_index * 16)).min(16);
+                    let selected_button = (self.menu_state.page_index * 16) + self.menu_state.button_id;
+
+                    let page_left = self.menu_state.page_index > 0;
+                    let page_right = self.menu_state.page_index < ((player.unlocked_songs.len() as i32 - 1) / 3);
+
+                    for i in 0..buttons_on_page {
+                        let id = (i + self.menu_state.page_index * 16) as usize;
+                        let song = &player.unlocked_songs[id];
+                        self.theme.draw_button(canvas, 16, y, 16 * 12, song.0.as_str(), selected_button == id as i32, self.menu_state.selection_flash);
+                        if song.1.len() > 1 {
+                            let mut x = 16 + 16 * 12 + 4;
+                            for j in 0..song.1.len().min(11) {
+                                let selected = selected_button == id as i32 && self.menu_state.song_variant_index == j;
+                                self.theme.draw_button(canvas, x, y, 16, SONG_VARIANT_LABELS[j], selected, self.menu_state.selection_flash);
+                                x += 12;
+                            }
+                        }
+                        y += 12;
                     }
 
                     if page_left && self.menu_state.selection_flash {

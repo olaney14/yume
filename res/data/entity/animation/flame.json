@@ -1,0 +1,17 @@
+{
+	"animation": {
+		"type": "sequence",
+		"start": 0,
+		"length": 4,
+		"speed": 7,
+		"repeat": "cycle"
+	},
+    "collider": {
+		"x": 0,
+		"y": 16,
+		"w": 16,
+		"h": 16
+	},
+	"height": "0",
+	"solid": false
+}

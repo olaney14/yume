@@ -31,5 +31,5 @@
 	}],
 	"height": "0",
 	"solid": false,
-	"walk_behind": false
+	"walk_over": true
 }

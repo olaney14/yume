@@ -1,0 +1,17 @@
+{
+	"actions": [{
+		"trigger": "use",
+		"action": {
+			"type": "delayed",
+			"delay": 2,
+			"action": {
+				"type": "set",
+				"in": "world",
+				"val": "special_music_menu",
+				"to": true
+			}
+		}
+	}],
+	"draw": false,
+	"solid": false
+}

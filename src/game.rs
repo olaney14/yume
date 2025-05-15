@@ -255,7 +255,8 @@ pub enum LevelPropertyType {
     BackgroundR,
     BackgroundG,
     BackgroundB,
-    NewSession
+    NewSession,
+    SpecialMusicMenu
 }
 
 impl LevelPropertyType {
@@ -277,6 +278,7 @@ impl LevelPropertyType {
                 "tint_b" => Some(LevelPropertyType::TintB),
                 "tint_a" => Some(LevelPropertyType::TintA),
                 "special_save_game" => Some(LevelPropertyType::SpecialSaveGame),
+                "special_music_menu" => Some(LevelPropertyType::SpecialMusicMenu),
                 "paused" => Some(LevelPropertyType::Paused),
                 "background_r" => Some(LevelPropertyType::BackgroundR),
                 "background_g" => Some(LevelPropertyType::BackgroundG),
@@ -326,6 +328,7 @@ impl BoolProperty {
                     match prop {
                         LevelPropertyType::Paused => return Some(level.paused),
                         LevelPropertyType::SpecialSaveGame => return Some(level.special_context.save_game),
+                        LevelPropertyType::SpecialMusicMenu => return Some(level.special_context.open_music_menu),
                         LevelPropertyType::NewSession => return Some(level.special_context.new_session),
                         _ => return None
                     }

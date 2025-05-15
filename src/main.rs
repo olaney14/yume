@@ -190,6 +190,10 @@ fn main() {
             }
         }
 
+        if ui.open && matches!(ui.menu_state.current_menu, MenuType::MusicPlayer) {
+            world.update(&mut player, &mut sfx, &sink, &input, &mut render_state);
+        }
+
         if input.get_just_pressed(Keycode::F4) {
             if render_state.fullscreen {
                 canvas.set_scale(2.0, 2.0).unwrap();
@@ -366,7 +370,7 @@ fn main() {
                 ui.open = false;
             }
 
-            player.on_level_transition();
+            player.on_level_transition(&mut world);
         }
 
         if ui.menu_state.should_quit {

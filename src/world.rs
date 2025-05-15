@@ -504,7 +504,6 @@ impl<'a> World<'a> {
                 self.special_context.entity_context.x = entity.x;
                 self.special_context.entity_context.y = entity.y;
                 self.special_context.entity_context.entity_variables = Some(entity.variables.clone());
-                println!("{}: {}", action.entity_id, action.action_id);
                 entity.actions.get(action.action_id).unwrap().action.act(player, self);
                 self.special_context.delayed_run = false;
                 self.apply_set_entity_properties(&mut entity, player);
@@ -1440,7 +1439,9 @@ pub struct SpecialContext {
 
     /// if the map visited on the next map is the same map, actually reload it from file instead of just keeping it
     pub reload_on_warp: bool,
-    pub new_session: bool
+    pub new_session: bool,
+
+    pub open_music_menu: bool
 }
 
 struct Raindrop {
@@ -1501,7 +1502,8 @@ impl SpecialContext {
             entity_removal_queue: Vec::new(),
             multiple_action_index: None,
             reload_on_warp: false,
-            new_session: false
+            new_session: false,
+            open_music_menu: false
         }
     }
 }

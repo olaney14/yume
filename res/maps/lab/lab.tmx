@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="6">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="6">
  <properties>
   <property name="clamp_camera" type="bool" value="true"/>
   <property name="default_pos" value="3,56"/>
@@ -7,7 +7,7 @@
 	&quot;left&quot;: {
 		&quot;type&quot;: &quot;warp&quot;,
 		&quot;map&quot;: &quot;roads.tmx&quot;,
-		&quot;pos&quot;: { &quot;x&quot;: 41, &quot;y&quot;: 41 },
+		&quot;pos&quot;: { &quot;x&quot;: 74, &quot;y&quot;: 41 },
 		&quot;transition&quot;: {
 			&quot;type&quot;: &quot;fade&quot;,
 			&quot;music&quot;: true

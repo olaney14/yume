@@ -122,11 +122,13 @@ pub struct Song {
     pub path: PathBuf,
     pub default_speed: f32,
     pub default_volume: f32,
+    pub name: String,
 }
 
 impl Song {
     pub fn new(path: PathBuf) -> Self {
         let file = File::open(&path).expect(format!("Failed to load song {}", path.as_os_str().to_str().unwrap()).as_str());
+        let name = path.file_stem().unwrap().to_str().unwrap().to_owned();
         let source = rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite();
 
         Self {
@@ -138,7 +140,8 @@ impl Song {
             playing: false,
             default_speed: 1.0,
             default_volume: 1.0,
-            reload: false
+            reload: false,
+            name
         }
     }
 

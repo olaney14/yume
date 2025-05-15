@@ -1,4 +1,4 @@
-use std::{thread::{JoinHandle, self}, path::PathBuf, time::{Instant, Duration}, collections::{HashMap, LinkedList}};
+use std::{collections::{HashMap, LinkedList}, path::PathBuf, sync::LazyLock, thread::{self, JoinHandle}, time::{Duration, Instant}};
 
 use rfd::FileDialog;
 use sdl2::{keyboard::Keycode, render::{Canvas, RenderTarget}};
@@ -84,6 +84,82 @@ impl ProfileInfo {
         return None
     }
 }
+
+static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
+    ("01", vec![1.0]),
+    ("animated0", vec![1.0]),
+    ("atmosphere.og", vec![1.0]),
+    ("battlefield", vec![1.0]),
+    ("candle", vec![1.0]),
+    ("chaconne", vec![1.0]),
+    ("chase", vec![1.0]),
+    ("cicada", vec![1.0]),
+    ("cicadas2", vec![1.0]),
+    ("cottage", vec![1.0]),
+    ("dark2", vec![1.0]),
+    ("dawn", vec![1.0]),
+    ("detro", vec![1.0]),
+    ("divine", vec![1.0]),
+    ("dusk air", vec![1.0]),
+    ("dynamic", vec![1.0]),
+    ("elapse", vec![1.0]),
+    ("emergency", vec![1.0]),
+    ("factory_ambience", vec![1.0]),
+    ("fate", vec![1.0]),
+    ("field", vec![1.0]),
+    ("fish", vec![1.0]),
+    ("flight0", vec![1.0]),
+    ("flotation0", vec![1.0, 0.9, 0.75, 0.5]),
+    ("flotation2", vec![1.0]),
+    ("flotation3", vec![1.0]),
+    ("flotation4", vec![1.0]),
+    ("forest", vec![1.0]),
+    ("ghost", vec![1.0]),
+    ("heart", vec![1.0]),
+    ("island", vec![1.0]),
+    ("jamais", vec![1.0]),
+    ("keys", vec![1.0]),
+    ("kotomi", vec![1.0]),
+    ("limit1", vec![1.0]),
+    ("luckily", vec![0.9, 0.75]),
+    ("lullaby", vec![1.0]),
+    ("lunar", vec![1.0]),
+    ("marine", vec![0.5]),
+    ("Marketpossture", vec![0.9]),
+    ("me0", vec![1.0]),
+    ("metal", vec![1.0]),
+    ("mio", vec![1.0]),
+    ("music_box0", vec![1.0]),
+    ("nebula", vec![1.0]),
+    ("newworld", vec![1.0]),
+    ("oliver", vec![1.0]),
+    ("opposed", vec![1.0]),
+    ("organiszed", vec![1.0]),
+    ("petal", vec![1.0]),
+    ("quieter", vec![0.5, 0.1]),
+    ("rain1", vec![1.0]),
+    ("ri0", vec![1.0]),
+    ("ri1", vec![1.0]),
+    ("rolkhruusy", vec![1.0]),
+    ("rustbell", vec![1.0]),
+    ("shiver", vec![1.0]),
+    ("space", vec![1.0]),
+    ("subahibi0", vec![1.0]),
+    ("theme", vec![1.0]),
+    ("thickness1", vec![1.0]),
+    ("threshold", vec![1.0]),
+    ("travel", vec![1.0]),
+    ("tsa", vec![1.0]),
+    ("um", vec![1.0]),
+    ("unrestraint1", vec![1.0]),
+    ("valenada", vec![1.0]),
+    ("veil", vec![1.0]),
+    ("warder", vec![1.0]),
+    ("wonderland0", vec![1.0]),
+    ("wonderland1", vec![1.0]),
+    ("wonderland3", vec![1.0]),
+    ("wonderland4", vec![1.0]),
+] });
 
 pub struct Debug<'a> {
     pub load_handle: Option<JoinHandle<Option<PathBuf>>>,
@@ -203,6 +279,16 @@ impl<'a> Debug<'a> {
             println!("Level: {}", world.random.level_random);
             println!("Session: {}", world.random.session_random);
             println!("Save: {}", player.random);
+        }
+
+        // F3 + A - Unlock all songs
+        if f3_combo(input, Keycode::A) {
+            for song in ALL_SONGS.iter() {
+                for speed in song.1.iter() {
+                    player.unlock_song(song.0.to_owned(), *speed);
+                }
+            }
+            sfx.play("click-21156");
         }
 
         if self.load_handle.is_some() {
