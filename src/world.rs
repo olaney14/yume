@@ -279,7 +279,7 @@ impl<'a> World<'a> {
         self.interactions.push(Interaction::Walk(x, y));
     }
 
-    pub fn onload(&mut self, player: &Player, sink: &Sink) {
+    pub fn onload(&mut self, player: &Player, sink: &Sink, state: &RenderState) {
         if let Some(song) = &mut self.song {
             song.play(sink);
         } else {
@@ -293,7 +293,7 @@ impl<'a> World<'a> {
             }
         }
 
-        self.find_entity_draw_order(player);
+        self.find_entity_draw_order(player, state);
     }
 
     pub fn reset(&mut self) {
@@ -589,11 +589,11 @@ impl<'a> World<'a> {
                 self.special_context.new_session = false;
             }
 
-            self.find_entity_draw_order(player);
+            self.find_entity_draw_order(player, state);
         }
     }
 
-    fn find_entity_draw_order(&mut self, player: &Player) {
+    fn find_entity_draw_order(&mut self, player: &Player, state: &RenderState) {
         let mut entity_ids_by_layer = Vec::new();
 
         for layer in self.layer_min..=self.layer_max {

@@ -4,7 +4,7 @@ use json::JsonValue;
 use rand::{prelude::Distribution, distributions::Standard};
 use sdl2::keyboard::Keycode;
 
-use crate::{effect::Effect, player::Player, world::World};
+use crate::{effect::Effect, player::Player, world::{Axis, World}};
 
 pub fn offset_floor(n: i32, to: i32, offset: i32) -> i32 {
     (n as f32 / to as f32).floor() as i32 * to + (offset.abs() % to)
