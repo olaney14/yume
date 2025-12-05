@@ -15,6 +15,7 @@ rfd = "0.11"
 serde = "1.0"
 serde_derive = "1.0"
 serde_cbor = "0.10"
+mlua = { version = "0.11.5", features = ["lua54", "vendored"] }
 
 [dependencies.gl]
 git = "https://github.com/bjz/gl-rs"

@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, collections::HashMap, ffi::OsString, fs, io::Read, path::PathBuf, rc::Rc, u8};
+use std::{any::Any, cell::RefCell, collections::HashMap, ffi::OsString, fs::{self, File}, io::Read, path::PathBuf, rc::Rc, u8};
 
 use json::JsonValue;
 use sdl2::{render::{TextureCreator, TextureAccess}, pixels::{PixelFormatEnum, Color}, rect::Rect};
@@ -328,7 +328,8 @@ impl<'a> World<'a> {
                                     interaction: None,
                                     variables: Rc::new(RefCell::new(HashMap::new())),
                                     particle_emitter: None,
-                                    killable: false
+                                    killable: false,
+                                    script: None
                                 };
 
                                 let mut properties = object.properties.clone();
@@ -428,6 +429,20 @@ impl<'a> World<'a> {
                                 }
 
                                 entity.actions = actions_vec;
+
+                                if let Some(prop) = properties.get("script") {
+                                    if let PropertyValue::StringValue(path) = prop {
+                                        let path = PathBuf::from("res/scripts/").join(path);
+                                        let file = File::open(&path);
+                                        if let Ok(mut file) = file {
+                                            let mut source = String::new();
+                                            file.read_to_string(&mut source).expect("Failed to read script source");
+                                            entity.script = Some(source);
+                                        } else {
+                                            eprintln!("Script file \"{:?}\" not found", &path);
+                                        }
+                                    }
+                                }
 
                                 world.add_entity(entity);
                             }

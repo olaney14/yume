@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="36">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="38">
  <properties>
   <property name="defaultPos" value="22,14"/>
   <property name="music" value="res/audio/music/boylestem.mp3"/>
@@ -483,6 +483,11 @@
     <property name="warp_map" value="carrot_field.tmx"/>
     <property name="warp_x" type="int" value="30"/>
     <property name="warp_y" type="int" value="30"/>
+   </properties>
+  </object>
+  <object id="37" gid="99" x="336" y="256" width="16" height="16">
+   <properties>
+    <property name="script" value="test.lua"/>
    </properties>
   </object>
  </objectgroup>

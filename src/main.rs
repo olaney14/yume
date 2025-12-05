@@ -14,6 +14,8 @@ use transitions::{Transition, TransitionType};
 use ui::{Ui, MenuType, Font};
 use world::World;
 
+use crate::lua::ScriptingContext;
+
 extern crate sdl2;
 
 mod actions;
@@ -24,6 +26,7 @@ mod effect;
 mod entity;
 mod game;
 mod loader;
+mod lua;
 // mod optimize;
 mod particles;
 mod player;
@@ -101,7 +104,11 @@ fn main() {
     song.default_volume = MAIN_MENU_MUSIC_VOLUME;
     song.dirty = true;
     world.song = Some(song);
-    world.onload(&player, &sink, &render_state);
+
+    let mut scripts = ScriptingContext::new();
+
+    world.onload(&player, &sink, &render_state, &mut scripts);
+    scripts.on_load(&mut world);
     if let Some(def) = world.default_pos {
         player.set_x(def.0 * 16);
         player.set_y(def.1 * 16);
@@ -193,6 +200,8 @@ fn main() {
         if ui.open && matches!(ui.menu_state.current_menu, MenuType::MusicPlayer) {
             world.update(&mut player, &mut sfx, &sink, &input, &mut render_state);
         }
+
+        scripts.on_update(&mut world);
 
         if input.get_just_pressed(Keycode::F4) {
             if render_state.fullscreen {
@@ -362,7 +371,8 @@ fn main() {
                 player.set_y(y * 16);
             }
 
-            world.onload(&player, &sink, &render_state);
+            world.onload(&player, &sink, &render_state, &mut scripts);
+            scripts.on_load(&mut world);
 
             if !skip_end {
                 player.frozen = false;

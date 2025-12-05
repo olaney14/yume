@@ -217,6 +217,7 @@ impl VariableValue {
 }
 
 pub struct Entity {
+    /// Unique per instance
     pub id: u32,
     pub tileset: u32,
     pub height: i32,
@@ -233,7 +234,8 @@ pub struct Entity {
     pub interaction: Option<(Interaction, Direction)>,
     pub variables: Rc<RefCell<HashMap<String, VariableValue>>>,
     pub particle_emitter: Option<ParticleEmitter>,
-    pub killable: bool
+    pub killable: bool,
+    pub script: Option<String>
 }
 
 // TODO looping movement for entities
@@ -257,7 +259,8 @@ impl Entity {
             interaction: None,
             variables: Rc::new(RefCell::new(HashMap::new())),
             particle_emitter: None,
-            killable: false
+            killable: false,
+            script: None
         }
     }
 

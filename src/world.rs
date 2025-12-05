@@ -6,7 +6,7 @@ use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, player::{MenuTheme, Player}, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, lua::ScriptingContext, player::{MenuTheme, Player}, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
 
 const RAINDROPS_LIFETIME: u32 = 10;
 const RAINDROPS_PER_CYCLE: usize = 3;
@@ -279,7 +279,7 @@ impl<'a> World<'a> {
         self.interactions.push(Interaction::Walk(x, y));
     }
 
-    pub fn onload(&mut self, player: &Player, sink: &Sink, state: &RenderState) {
+    pub fn onload(&mut self, player: &Player, sink: &Sink, state: &RenderState, scripts: &mut ScriptingContext) {
         if let Some(song) = &mut self.song {
             song.play(sink);
         } else {
@@ -290,6 +290,10 @@ impl<'a> World<'a> {
                 if action.trigger.contains_trigger(&Trigger::OnLoad) {
                     action.run_on_next_loop = true;
                 }
+            }
+
+            if let Some(script) = &entity.script {
+                scripts.add_entity_script(entity.id, &script);
             }
         }
 
