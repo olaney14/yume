@@ -4,14 +4,16 @@ use rand::Rng;
 use sdl2::render::TextureCreator;
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{player::{Player, Statistics}, effect::Effect};
+use crate::{effect::Effect, player::{MenuTheme, Player, Statistics}};
 
 #[derive(Serialize, Deserialize)]
 pub struct SerializablePlayer {
     pub unlocked_effects: Vec<SerializableEffect>,
     pub money: u32,
     pub stats: Statistics,
-    pub random: Option<f32>
+    pub random: Option<f32>,
+    pub menu_themes: Option<Vec<MenuTheme>>,
+    pub cur_menu_theme: Option<usize>
 }
 
 impl SerializablePlayer {
@@ -24,7 +26,9 @@ impl SerializablePlayer {
             unlocked_effects,
             money: player.money,
             stats: player.stats.clone(),
-            random: Some(player.random)
+            random: Some(player.random),
+            menu_themes: Some(player.menu_themes.clone()),
+            cur_menu_theme: Some(player.current_theme)
         }
     }
 
@@ -36,6 +40,11 @@ impl SerializablePlayer {
 
         let random = self.random.unwrap_or(rand::thread_rng().gen_range(0.0..1.0));
         player.random = random;
+
+        let menu_themes = self.menu_themes.clone().unwrap_or(vec![MenuTheme::System]);
+        player.menu_themes = menu_themes;
+        let cur_theme= self.cur_menu_theme.unwrap_or(0);
+        player.current_theme = cur_theme;
 
         player
     }

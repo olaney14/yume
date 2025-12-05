@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="6">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="64" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="10">
  <properties>
   <property name="looping" type="bool" value="true"/>
   <property name="music" value="res/audio/music/metal.ogg"/>
@@ -9,6 +9,7 @@
  <tileset firstgid="1" source="metal.tsx"/>
  <tileset firstgid="45" source="entity/nexus_doors.tsx"/>
  <tileset firstgid="69" source="loops.tsx"/>
+ <tileset firstgid="125" source="entity/pole.tsx"/>
  <imagelayer id="5" name="image">
   <image source="../textures/image/stone_faces_blur.png" width="690" height="980"/>
   <properties>
@@ -195,6 +196,26 @@
     <property name="warp_map" value="nexus.tmx"/>
     <property name="warp_x" type="int" value="2"/>
     <property name="warp_y" type="int" value="11"/>
+   </properties>
+  </object>
+  <object id="6" gid="125" x="864" y="288" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/pole.json"/>
+   </properties>
+  </object>
+  <object id="7" gid="125" x="416" y="256" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/pole.json"/>
+   </properties>
+  </object>
+  <object id="8" gid="125" x="544" y="704" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/pole.json"/>
+   </properties>
+  </object>
+  <object id="9" gid="125" x="304" y="880" width="16" height="32">
+   <properties>
+    <property name="file" value="res/data/entity/npc/pole.json"/>
    </properties>
   </object>
  </objectgroup>

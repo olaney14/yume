@@ -50,7 +50,9 @@ pub struct Player<'a> {
     pub waking_up: bool,
     pub waking_up_timer: u32,
     pub random: f32,
-    pub unlocked_songs: Vec<(String, Vec<f32>)>
+    pub unlocked_songs: Vec<(String, Vec<f32>)>,
+    pub menu_themes: Vec<MenuTheme>,
+    pub current_theme: usize
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -223,6 +225,32 @@ impl<'a> ExtraTextures<'a> {
 //     IgnoreAll
 // }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub enum MenuTheme {
+    System,
+    Vines,
+    Lab,
+    Corrupted
+}
+
+impl MenuTheme {
+    pub fn get_theme_path(&self) -> &str {
+        match self {
+            Self::System => "res/textures/ui/themes/system.png",
+            Self::Vines => "res/textures/ui/themes/vines.png",
+            Self::Lab => "res/textures/ui/themes/lab.png",
+            Self::Corrupted => "res/textures/ui/themes/menu.png"
+        }
+    }
+
+    pub fn get_font_path(&self) -> &str {
+        match self {
+            Self::Vines => "res/textures/ui/fonts/vines/png",
+            _ => "res/textures/ui/fonts/menu.png"
+        }
+    }
+}
+
 impl<'a> Player<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>) -> Self {
         let mut player = Self {
@@ -265,7 +293,9 @@ impl<'a> Player<'a> {
             waking_up: false,
             waking_up_timer: 0,
             random: 0.0,
-            unlocked_songs: Vec::new()
+            unlocked_songs: Vec::new(),
+            menu_themes: vec![MenuTheme::System],
+            current_theme: 0
         };
 
         player.load_effect_textures(creator);

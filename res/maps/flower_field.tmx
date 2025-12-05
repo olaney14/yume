@@ -656,7 +656,7 @@
     <property name="file" value="res/data/entity/npc/raven.json"/>
    </properties>
   </object>
-  <object id="46" gid="112" x="1568" y="1280" width="16" height="16">
+  <object id="46" gid="112" x="1552" y="1328" width="16" height="16">
    <properties>
     <property name="file" value="res/data/entity/npc/fasterbird.json"/>
    </properties>

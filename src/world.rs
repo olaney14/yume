@@ -6,7 +6,7 @@ use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, player::Player, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, player::{MenuTheme, Player}, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
 
 const RAINDROPS_LIFETIME: u32 = 10;
 const RAINDROPS_PER_CYCLE: usize = 3;
@@ -601,7 +601,7 @@ impl<'a> World<'a> {
             for (i, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
                 if entity.get_height() == layer {
                     layer_ids.push(i);
-                }
+                } 
             }
 
             entity_ids_by_layer.push(layer_ids);
@@ -1441,7 +1441,10 @@ pub struct SpecialContext {
     pub reload_on_warp: bool,
     pub new_session: bool,
 
-    pub open_music_menu: bool
+    pub open_music_menu: bool,
+
+    pub unlock_menu_theme: Option<MenuTheme>,
+    pub cycle_menu_theme: bool
 }
 
 struct Raindrop {
@@ -1503,7 +1506,9 @@ impl SpecialContext {
             multiple_action_index: None,
             reload_on_warp: false,
             new_session: false,
-            open_music_menu: false
+            open_music_menu: false,
+            cycle_menu_theme: false,
+            unlock_menu_theme: None
         }
     }
 }
