@@ -21,6 +21,7 @@ extern crate sdl2;
 mod actions;
 mod ai;
 mod audio;
+mod common;
 mod debug;
 mod effect;
 mod entity;
@@ -108,7 +109,8 @@ fn main() {
     let mut scripts = ScriptingContext::new();
 
     world.onload(&player, &sink, &render_state, &mut scripts);
-    scripts.on_load(&mut world);
+    scripts.on_load();
+    // scripts.on_load(&mut world);
     if let Some(def) = world.default_pos {
         player.set_x(def.0 * 16);
         player.set_y(def.1 * 16);
@@ -201,7 +203,7 @@ fn main() {
             world.update(&mut player, &mut sfx, &sink, &input, &mut render_state);
         }
 
-        scripts.on_update(&mut world);
+        scripts.on_update(&mut world, &mut player);
 
         if input.get_just_pressed(Keycode::F4) {
             if render_state.fullscreen {
@@ -372,7 +374,7 @@ fn main() {
             }
 
             world.onload(&player, &sink, &render_state, &mut scripts);
-            scripts.on_load(&mut world);
+            scripts.on_load();
 
             if !skip_end {
                 player.frozen = false;

@@ -1,19 +1,60 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
 
-use mlua::{Table, UserData};
+use mlua::{AnyUserData, Table, UserData};
 
-use crate::{entity::Entity, world::World};
+use crate::{common::Slot, entity::Entity, game, player::Player, world::World};
 
 const UPDATE_CALLBACK: &str = "_update";
-const ONLOAD_CALLBACK: &str = "_onload";
+const ONLOAD_CALLBACK: &str = "_load";
+const ONUSE_CALLBACK: &str = "_use";
+const ONBUMP_CALLBACK: &str = "_bump";
+const ONWALK_CALLBACK: &str = "_walk";
+
+pub enum InteractionType {
+    Use,
+    Walk,
+    Bump
+}
+
+// Update is not included since it is always called regardless of context
+enum Callback {
+    OnLoad,
+    Interact { id: u32, kind: InteractionType, direction: String }
+}
 
 pub struct ScriptingContext {
     lua: mlua::Lua,
     entity_scripts: HashMap<u32, Table>,
-    world_script: Option<Table>
+    world_script: Option<Table>,
+    world: LuaWorld,
+    callback_queue: Vec<Callback>
 }
 
 impl ScriptingContext {
+    /// world -> script context
+    fn sync(&mut self, world: &mut World, player: &mut Player) {
+        self.world.width = world.width;
+        self.world.height = world.height;
+
+        self.world.entities.clear();
+
+        for entity in world.entities.as_ref().unwrap().iter() {
+            self.world.entities.push(LuaEntity::from_entity(entity));
+        }
+    }
+
+    /// script edits -> world
+    fn replicate(&mut self, world: &mut World, player: &mut Player) {
+        let mut entity_list = world.entities.take().unwrap();
+        let mut placeholder = Some(Entity::new());
+        for i in 0..entity_list.len() {
+            let mut entity = std::mem::replace(entity_list.get_mut(i).unwrap(), placeholder.take().unwrap());
+            self.world.entities[i].replicate(&mut entity, player, &entity_list, world);
+            placeholder = Some(std::mem::replace(entity_list.get_mut(i).unwrap(), entity));
+        }
+        world.entities = Some(entity_list);
+    }
+
     pub fn add_entity_script(&mut self, id: u32, source: &str) {
         // TODO: Proper error handling on invalid script
 
@@ -33,94 +74,202 @@ impl ScriptingContext {
         self.entity_scripts.insert(id, script_env);
     }
 
-    pub fn on_update(&mut self, world: &mut World) {
+    fn call_interact(&mut self, function: &str, id: u32, direction: String, world: &mut World) {
         self.lua.scope(|scope| {
-            let entities_size = world.entities.as_ref().unwrap().len();
-            let entity_ids: Vec<u32> = world.entities.as_ref().unwrap().iter().map(|e| e.id).collect();
+            let target_index = world.entities.as_ref().unwrap()
+                .iter().enumerate()
+                .map(|e| (e.0, e.1.id))
+                .filter(|(ix, eid)| *eid == id).next();
 
-            let world_wrapper = WorldWrapper { world };
-            let lua_world_userdata = scope.create_userdata(world_wrapper).unwrap();
-            // let mut placeholder = Some(Entity::new());
-            for i in 0..entities_size {
-                let id: u32 = entity_ids[i];
-                let script_env = self.entity_scripts.get(&id);
+            let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
 
-                if let Some(script_env) = script_env {
-                    if let Ok(func) = script_env.get::<mlua::Function>(UPDATE_CALLBACK) {
-                        // If the entity has a script and a valid update function
-                        // let mut entity = std::mem::replace(world_wrapper.world.entities.as_mut().unwrap().get_mut(i).unwrap(), placeholder.take().unwrap());
-                        // let entity_ref = world.entities.as_mut().unwrap().get_mut(i).unwrap();
-                        // let entity_wrapper = EntityWrapper { entity: entity_ref };
-                        // let lua_entity_userdata = scope.create_userdata(entity_wrapper).unwrap();
+            if let Some((ix, eid)) = target_index {
+                if let Some(script_env) = self.entity_scripts.get(&eid) {
+                    if let Ok(func) = script_env.get::<mlua::Function>(function) {
+                        let entity_userdata = scope.create_userdata(
+                            world_userdata.borrow_scoped::<LuaWorld, LuaEntity>(|world| {
+                                world.entities[ix].clone()
+                            }).unwrap()
+                        ).unwrap();
 
-                        // TODO: proper runtime error handling
-                        func.call::<()>((&lua_world_userdata, id)).unwrap();
-
-                        // placeholder = Some(std::mem::replace(world_wrapper.world.entities.as_mut().unwrap().get_mut(i).unwrap(), entity));
+                        // TODO: I believe we need to get this info back and assign the entity to it to actually see any mutation
+                        func.call::<()>((world_userdata.clone(), entity_userdata, direction));
                     }
-                }  
+                }
             }
 
             Ok(())
         }).unwrap();
     }
 
-    pub fn on_load(&mut self, world: &mut World) {
+    fn call_all(&mut self, function: &str, world: &mut World) {
         self.lua.scope(|scope| {
             let entities_size = world.entities.as_ref().unwrap().len();
             let entity_ids: Vec<u32> = world.entities.as_ref().unwrap().iter().map(|e| e.id).collect();
 
-            let world_wrapper = WorldWrapper { world };
-            let lua_world_userdata = scope.create_userdata(world_wrapper).unwrap();
-            for i in 0..entities_size {
-                let id: u32 = entity_ids[i];
-                let script_env = self.entity_scripts.get(&id);
+            let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
 
-                if let Some(script_env) = script_env {
-                    if let Ok(func) = script_env.get::<mlua::Function>(ONLOAD_CALLBACK) {
-                        // TODO: proper runtime error handling
-                        func.call::<()>((&lua_world_userdata, id)).unwrap();
+            for i in 0..entities_size {
+                if let Some(script_env) = self.entity_scripts.get(&entity_ids[i]) {
+                    if let Ok(func) = script_env.get::<mlua::Function>(function) {
+                        let entity_userdata = scope.create_userdata(
+                            world_userdata.borrow_scoped::<LuaWorld, LuaEntity>(|world| { 
+                                world.entities[i].clone() 
+                            }).unwrap()
+                        ).unwrap();
+
+                        func.call::<()>((world_userdata.clone(), entity_userdata));
                     }
-                }  
+                }
             }
 
             Ok(())
         }).unwrap();
+    }
+
+    pub fn on_load(&mut self) {
+        self.callback_queue.push(Callback::OnLoad);
+    }
+
+    fn on_interact(&mut self, id: u32, kind: InteractionType, direction: game::Direction) {
+        self.callback_queue.push(Callback::Interact { id, kind: kind, direction: direction.to_string() });
+    }
+
+    pub fn on_update(&mut self, world: &mut World, player: &mut Player) {        
+        for (kind, from, id) in std::mem::take(&mut world.special_context.push_interaction_to_scripts) {
+            self.on_interact(id, kind, from);
+        }
+        
+        self.sync(world, player);
+
+        let callbacks = std::mem::take(&mut self.callback_queue);
+        for callback in callbacks.into_iter() {
+            match callback {
+                Callback::OnLoad => self.call_all(ONLOAD_CALLBACK, world),
+                Callback::Interact { id, kind, direction } => {
+                    match kind {
+                        InteractionType::Use => self.call_interact(ONUSE_CALLBACK, id, direction, world),
+                        InteractionType::Bump => self.call_interact(ONBUMP_CALLBACK, id, direction, world),
+                        InteractionType::Walk => self.call_interact(ONWALK_CALLBACK, id, direction, world),
+                    }
+                }
+            }
+        }
+
+        self.call_all(UPDATE_CALLBACK, world);
+
+        self.replicate(world, player);
     }
 
     pub fn new() -> Self {
         Self {
             lua: mlua::Lua::new(),
             entity_scripts: HashMap::new(),
-            world_script: None
+            world_script: None,
+            world: LuaWorld::default(),
+            callback_queue: Vec::new()
         }
     }
 }
 
-struct WorldWrapper<'a, 'w> {
-    world: &'a mut World<'w>
+#[derive(Default)]
+struct LuaWorld {
+    width: u32, // readonly write once
+    height: u32, // readonly write once
+    background_color: Color, // read/write replicated
+    tint: Color, // read/write replicated
+    level_random: f32, // readonly replicated
+    session_random: f32, // readonly write once
+    entities: Vec<LuaEntity>, // read/write, no direct removal or addition, replicated
+    // flags: HashMap<String, i32> // i'll only add this once i need it because i forgot what it does
+    // global_flags: HashMap<String, i32>, ^ but // read/write through methods, replicated
+    // i believe these flags are remnants of the previous JSON-based scripting system and might just need to be deprecated
+    raindrops: bool, // read/write replicated
+    snow: bool, // ^
+    // this might be dangerous if it pauses script updates too check that
+    paused: bool, // ^
+
+    // Lua methods to be implemented in UserData trait impl
+    // all of these need to handle errors by printing warnings to the console instead of crashing
+    // get_tile/tiles?() // These are a little complicated, there are tile layers, tilesets to consider
+    // set_tile() // i.e. how might the script know which tile id means what? which layer to return tiles from? much to consider
+    // queue_load() // needs a transition type, world path
 }
 
-// Update this is never yused beasdcue its abd and abd anmd bad
-// /// This is only ever used for scripted entities on themselves
-// struct EntityWrapper<'a> {
-//     entity: &'a mut Entity
-// }
+#[derive(Clone)]
+struct LuaEntity {
+    id: u32,
+    // this is engine terminology for the layer the entity is on
+    height: i32, // read/write replicated
+    draw: bool, // ^
+    solid: bool, // ^
+    x: i32, // ^
+    y: i32, // ^
+    moving: bool, // ^
+    walk: Option<game::Direction>
 
-impl UserData for WorldWrapper<'_, '_> {
+    // Methods
+    // walk() take in direction
+    // remove()
+}
+
+impl LuaEntity {
+    pub fn from_entity(entity: &Entity) -> Self {
+        Self {
+            id: entity.id,
+            height: entity.height,
+            draw: entity.draw,
+            solid: entity.solid,
+            x: entity.x,
+            y: entity.y,
+            moving: entity.movement.as_ref().map_or(false, |m| m.moving),
+            walk: None
+        }
+    }
+
+    pub fn replicate(&mut self, entity: &mut Entity, player: &Player, entity_list: &Vec<Entity>, world: &mut World) {
+        entity.height = self.height;
+        entity.draw = self.draw;
+        entity.solid = self.solid;
+        entity.x = self.x;
+        entity.y = self.y;
+        
+        if let Some(walk) = self.walk {
+            entity.walk(walk, world, player, entity_list);
+        }
+        self.walk = None;
+    }
+}
+
+impl UserData for LuaWorld {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method_mut("test", |_, this, ()| {
-            this.world.snow.enabled = true;
+        methods.add_method("width", |_, this, ()| {
+            Ok(this.width)
+        });
+        methods.add_method("height", |_, this, ()| {
+            Ok(this.width)
+        });
+    }
+}
+
+impl UserData for LuaEntity {
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method_mut("walk", |_, this, direction: String| {
+            if let Ok(direction) = game::Direction::from_str(&direction) {
+                this.walk = Some(direction);
+            }
+
             Ok(())
         });
     }
 }
 
-// impl UserData for EntityWrapper<'_> {
-//     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
-//         methods.add_method_mut("test", |_, this, ()| {
-//             this.entity.draw = !this.entity.draw;
-//             Ok(())
-//         });
-//     }
-// }
+#[derive(Default)]
+struct Color {
+
+}
+
+#[derive(Default)]
+struct Vec2i {
+
+}

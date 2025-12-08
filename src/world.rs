@@ -6,7 +6,7 @@ use rodio::Sink;
 use sdl2::{render::{Canvas, RenderTarget, Texture, TextureCreator, TextureAccess}, rect::{Rect, Point}, pixels::{Color, PixelFormatEnum}};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, lua::ScriptingContext, player::{MenuTheme, Player}, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
+use crate::{actions::Action, audio::{Song, SoundEffectBank}, effect::Effect, entity::{Entity, Trigger, VariableValue}, game::{self, BoolProperty, Direction, EntityPropertyType, Input, IntProperty, QueuedLoad, RenderState}, lua::{self, ScriptingContext}, player::{MenuTheme, Player}, screen_event::ScreenEvent, texture, tiles::{SpecialTile, Tile, Tilemap, Tileset}, transitions::{Transition, TransitionTextures}};
 
 const RAINDROPS_LIFETIME: u32 = 10;
 const RAINDROPS_PER_CYCLE: usize = 3;
@@ -449,6 +449,12 @@ impl<'a> World<'a> {
                 let point = inter.get_pos();
                 for (i, entity) in self.entities.as_mut().unwrap().iter_mut().enumerate() {
                     if Rect::new(entity.collider.x + entity.x, entity.collider.y + entity.y, entity.collider.width(), entity.collider.height()).contains_point(Point::new(point.0 * 16 + 8, point.1 * 16 + 8)) {
+                        let kind = match inter {
+                            Interaction::Bump(..) => lua::InteractionType::Bump,
+                            Interaction::Walk(..) => lua::InteractionType::Walk,
+                            Interaction::Use(..) => lua::InteractionType::Use
+                        };
+                        self.special_context.push_interaction_to_scripts.push((kind, player.facing.flipped(), entity.id));
                         entity.interaction = Some(
                             (inter.clone(), player.facing.flipped())
                         );
@@ -1448,7 +1454,8 @@ pub struct SpecialContext {
     pub open_music_menu: bool,
 
     pub unlock_menu_theme: Option<MenuTheme>,
-    pub cycle_menu_theme: bool
+    pub cycle_menu_theme: bool,
+    pub push_interaction_to_scripts: Vec<(lua::InteractionType, Direction, u32)>
 }
 
 struct Raindrop {
@@ -1512,7 +1519,8 @@ impl SpecialContext {
             new_session: false,
             open_music_menu: false,
             cycle_menu_theme: false,
-            unlock_menu_theme: None
+            unlock_menu_theme: None,
+            push_interaction_to_scripts: Vec::new()
         }
     }
 }

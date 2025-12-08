@@ -972,6 +972,17 @@ impl FromStr for Direction {
     }
 }
 
+impl ToString for Direction {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Down => "down".to_string(),
+            Self::Up => "up".to_string(),
+            Self::Left => "left".to_string(),
+            Self::Right => "right".to_string()
+        }
+    }
+}
+
 impl Distribution<Direction> for Standard {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Direction {
         match rng.gen_range(0..4) {

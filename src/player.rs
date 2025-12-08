@@ -934,7 +934,8 @@ impl<'a> Player<'a> {
             self.movement_check(input, world, false);
             if input.get_just_pressed(Keycode::Z) {
                 let pos = self.get_standing_tile();
-                world.interactions.push(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));
+                world.player_use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y());
+                // world.interactions.push(crate::world::Interaction::Use(pos.0 as i32 + self.facing.x(), pos.1 as i32 + self.facing.y()));
                 if self.animation_override_controller.sit_animation {
                     self.disable_player_input = false;
                     self.animation_override_controller.sit_animation = false;
