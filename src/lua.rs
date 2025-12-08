@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
 
-use mlua::{AnyUserData, Table, UserData};
+use mlua::{AnyUserData, Table, UserData, Value};
 
 use crate::{common::Slot, entity::Entity, game, player::Player, world::World};
 
@@ -19,7 +19,7 @@ pub enum InteractionType {
 // Update is not included since it is always called regardless of context
 enum Callback {
     OnLoad,
-    Interact { id: u32, kind: InteractionType, direction: String }
+    Interact { id: u32, kind: InteractionType, direction: game::Direction }
 }
 
 pub struct ScriptingContext {
@@ -74,7 +74,7 @@ impl ScriptingContext {
         self.entity_scripts.insert(id, script_env);
     }
 
-    fn call_interact(&mut self, function: &str, id: u32, direction: String, world: &mut World) {
+    fn call_interact(&mut self, function: &str, id: u32, direction: game::Direction, world: &mut World) {
         let target_index = world.entities.as_ref().unwrap()
             .iter().enumerate()
             .map(|e| (e.0, e.1.id))
@@ -88,8 +88,13 @@ impl ScriptingContext {
                     self.lua.scope(|scope| {
                         let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
                         let entity_userdata = scope.create_userdata_ref_mut(&mut entity).unwrap();
+
+                        // this one should be valid forever
+                        let direction_userdata = self.lua.create_userdata(direction).unwrap();
                         
-                        func.call::<()>((world_userdata, entity_userdata, direction));
+                        if let Err(e) = func.call::<()>((world_userdata, entity_userdata, direction_userdata)) {
+                            eprintln!("{}", e);
+                        }
 
                         Ok(())
                     }).unwrap();
@@ -110,10 +115,12 @@ impl ScriptingContext {
                     let mut entity = std::mem::take(&mut self.world.entities[i]);
 
                     self.lua.scope(|scope| {
-                        let world_userdata = scope.create_any_userdata_ref_mut(&mut self.world).unwrap();
-                        let entity_userdata = scope.create_any_userdata_ref_mut(&mut entity).unwrap();
+                        let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
+                        let entity_userdata = scope.create_userdata_ref_mut(&mut entity).unwrap();
 
-                        func.call::<()>((world_userdata, entity_userdata));
+                        if let Err(e) = func.call::<()>((world_userdata, entity_userdata)) {
+                            eprintln!("{}", e);
+                        }
 
                         Ok(())
                     }).unwrap();
@@ -129,7 +136,7 @@ impl ScriptingContext {
     }
 
     fn on_interact(&mut self, id: u32, kind: InteractionType, direction: game::Direction) {
-        self.callback_queue.push(Callback::Interact { id, kind: kind, direction: direction.to_string() });
+        self.callback_queue.push(Callback::Interact { id, kind: kind, direction });
     }
 
     pub fn on_update(&mut self, world: &mut World, player: &mut Player) {        
@@ -159,8 +166,18 @@ impl ScriptingContext {
     }
 
     pub fn new() -> Self {
+        let lua = mlua::Lua::new();
+
+        let directions = lua.create_table().unwrap();
+        directions.set("Up", lua.create_userdata(game::Direction::Up).unwrap()).unwrap();
+        directions.set("Down", lua.create_userdata(game::Direction::Down).unwrap()).unwrap();
+        directions.set("Left", lua.create_userdata(game::Direction::Left).unwrap()).unwrap();
+        directions.set("Right", lua.create_userdata(game::Direction::Right).unwrap()).unwrap();
+
+        lua.globals().set("Direction", directions).unwrap();
+
         Self {
-            lua: mlua::Lua::new(),
+            lua,
             entity_scripts: HashMap::new(),
             world_script: None,
             world: LuaWorld::default(),
@@ -251,13 +268,22 @@ impl UserData for LuaWorld {
 
 impl UserData for LuaEntity {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method_mut("walk", |_, this, direction: String| {
-            if let Ok(direction) = game::Direction::from_str(&direction) {
-                this.walk = Some(direction);
+        methods.add_method_mut("walk", |_, this, direction: AnyUserData| {
+            if let Ok(direction) = direction.borrow::<game::Direction>() {
+                this.walk = Some(*direction);
             }
 
             Ok(())
         });
+        
+        // methods.add_method_mut("walk", |_, this, ()| {
+        //     // if let Ok(direction) = direction.borrow::<game::Direction>() {
+        //     //     this.walk = Some(*direction);
+        //     // }
+        //     this.walk = Some(game::Direction::Up);
+
+        //     Ok(())
+        // });
     }
 }
 
@@ -269,4 +295,18 @@ struct Color {
 #[derive(Default, Debug, Clone)]
 struct Vec2i {
 
+}
+
+impl UserData for game::Direction {
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("flipped", |lua, this, ()| {
+            let flipped = this.flipped();
+            
+            Ok(lua.create_userdata(flipped))
+        });
+
+        methods.add_method("tostring", |lua, this, ()| {
+            Ok(this.to_string())
+        });
+    }
 }

@@ -23,7 +23,12 @@ end
 
 function _use(world, this, direction)
     print("Hello from use! Frame is " .. tostring(frame))
-    this:walk(flip(direction))
+    -- print("World: " .. tostring(world))
+    -- print("This: " .. tostring(this))
+    -- print("Direction: " .. tostring(direction))
+
+    this:walk(direction:flipped())
+    -- this:walk()
 end
 
 function _walk(world, this, direction)
