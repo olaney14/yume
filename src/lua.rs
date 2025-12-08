@@ -75,56 +75,53 @@ impl ScriptingContext {
     }
 
     fn call_interact(&mut self, function: &str, id: u32, direction: String, world: &mut World) {
-        self.lua.scope(|scope| {
-            let target_index = world.entities.as_ref().unwrap()
-                .iter().enumerate()
-                .map(|e| (e.0, e.1.id))
-                .filter(|(ix, eid)| *eid == id).next();
+        let target_index = world.entities.as_ref().unwrap()
+            .iter().enumerate()
+            .map(|e| (e.0, e.1.id))
+            .filter(|(ix, eid)| *eid == id).next();
 
-            let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
+        if let Some((ix, eid)) = target_index {
+            if let Some(script_env) = self.entity_scripts.get(&eid) {
+                if let Ok(func) = script_env.get::<mlua::Function>(function) {
+                    let mut entity = std::mem::take(&mut self.world.entities[ix]);
 
-            if let Some((ix, eid)) = target_index {
-                if let Some(script_env) = self.entity_scripts.get(&eid) {
-                    if let Ok(func) = script_env.get::<mlua::Function>(function) {
-                        let entity_userdata = scope.create_userdata(
-                            world_userdata.borrow_scoped::<LuaWorld, LuaEntity>(|world| {
-                                world.entities[ix].clone()
-                            }).unwrap()
-                        ).unwrap();
+                    self.lua.scope(|scope| {
+                        let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
+                        let entity_userdata = scope.create_userdata_ref_mut(&mut entity).unwrap();
+                        
+                        func.call::<()>((world_userdata, entity_userdata, direction));
 
-                        // TODO: I believe we need to get this info back and assign the entity to it to actually see any mutation
-                        func.call::<()>((world_userdata.clone(), entity_userdata, direction));
-                    }
+                        Ok(())
+                    }).unwrap();
+
+                    self.world.entities[ix] = entity;
                 }
             }
-
-            Ok(())
-        }).unwrap();
+        }
     }
 
     fn call_all(&mut self, function: &str, world: &mut World) {
-        self.lua.scope(|scope| {
-            let entities_size = world.entities.as_ref().unwrap().len();
-            let entity_ids: Vec<u32> = world.entities.as_ref().unwrap().iter().map(|e| e.id).collect();
+        let entities_size = world.entities.as_ref().unwrap().len();
+        let entity_ids: Vec<u32> = world.entities.as_ref().unwrap().iter().map(|e| e.id).collect();
 
-            let world_userdata = scope.create_userdata_ref_mut(&mut self.world).unwrap();
+        for i in 0..entities_size {
+            if let Some(script_env) = self.entity_scripts.get(&entity_ids[i]) {
+                if let Ok(func) = script_env.get::<mlua::Function>(function) {
+                    let mut entity = std::mem::take(&mut self.world.entities[i]);
 
-            for i in 0..entities_size {
-                if let Some(script_env) = self.entity_scripts.get(&entity_ids[i]) {
-                    if let Ok(func) = script_env.get::<mlua::Function>(function) {
-                        let entity_userdata = scope.create_userdata(
-                            world_userdata.borrow_scoped::<LuaWorld, LuaEntity>(|world| { 
-                                world.entities[i].clone() 
-                            }).unwrap()
-                        ).unwrap();
+                    self.lua.scope(|scope| {
+                        let world_userdata = scope.create_any_userdata_ref_mut(&mut self.world).unwrap();
+                        let entity_userdata = scope.create_any_userdata_ref_mut(&mut entity).unwrap();
 
-                        func.call::<()>((world_userdata.clone(), entity_userdata));
-                    }
+                        func.call::<()>((world_userdata, entity_userdata));
+
+                        Ok(())
+                    }).unwrap();
+
+                    self.world.entities[i] = entity;
                 }
             }
-
-            Ok(())
-        }).unwrap();
+        }
     }
 
     pub fn on_load(&mut self) {
@@ -172,7 +169,7 @@ impl ScriptingContext {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct LuaWorld {
     width: u32, // readonly write once
     height: u32, // readonly write once
@@ -196,7 +193,7 @@ struct LuaWorld {
     // queue_load() // needs a transition type, world path
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 struct LuaEntity {
     id: u32,
     // this is engine terminology for the layer the entity is on
@@ -264,12 +261,12 @@ impl UserData for LuaEntity {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 struct Color {
 
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 struct Vec2i {
 
 }
