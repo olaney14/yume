@@ -279,12 +279,15 @@ impl<'a> World<'a> {
         self.interactions.push(Interaction::Walk(x, y));
     }
 
-    pub fn onload(&mut self, player: &Player, sink: &Sink, state: &RenderState, scripts: &mut ScriptingContext) {
+    pub fn onload(&mut self, player: &Player, sink: &Sink, scripts: &mut ScriptingContext) {
         if let Some(song) = &mut self.song {
             song.play(sink);
         } else {
             sink.set_volume(0.0);
         }
+
+        scripts.clear();
+
         for entity in self.entities.as_mut().unwrap().iter_mut() {
             for action in &mut entity.actions {
                 if action.trigger.contains_trigger(&Trigger::OnLoad) {
@@ -293,11 +296,11 @@ impl<'a> World<'a> {
             }
 
             if let Some(script) = &entity.script {
-                scripts.add_entity_script(entity.id, &script);
+                scripts.add_entity_script(entity.tiled_id, &script);
             }
         }
 
-        self.find_entity_draw_order(player, state);
+        self.find_entity_draw_order(player);
     }
 
     pub fn reset(&mut self) {
@@ -454,7 +457,7 @@ impl<'a> World<'a> {
                             Interaction::Walk(..) => lua::InteractionType::Walk,
                             Interaction::Use(..) => lua::InteractionType::Use
                         };
-                        self.special_context.push_interaction_to_scripts.push((kind, player.facing.flipped(), entity.id));
+                        self.special_context.push_interaction_to_scripts.push((kind, player.facing.flipped(), entity.tiled_id));
                         entity.interaction = Some(
                             (inter.clone(), player.facing.flipped())
                         );
@@ -599,11 +602,11 @@ impl<'a> World<'a> {
                 self.special_context.new_session = false;
             }
 
-            self.find_entity_draw_order(player, state);
+            self.find_entity_draw_order(player);
         }
     }
 
-    fn find_entity_draw_order(&mut self, player: &Player, state: &RenderState) {
+    fn find_entity_draw_order(&mut self, player: &Player) {
         let mut entity_ids_by_layer = Vec::new();
 
         for layer in self.layer_min..=self.layer_max {
@@ -617,14 +620,20 @@ impl<'a> World<'a> {
             entity_ids_by_layer.push(layer_ids);
         }
 
+        // TODO: Horizontal position does not matter
+        // Cache positions instead of recalculating them each comparison
         self.entity_draw_order = entity_ids_by_layer.into_iter().map(|mut ids| { 
             ids.sort_by(|a, b| {
-                let a_pos = self.entities.as_ref().unwrap().get(*a).unwrap().get_standing_tile();
-                let b_pos = self.entities.as_ref().unwrap().get(*b).unwrap().get_standing_tile();
-
                 if self.entities.as_ref().unwrap().get(*a).unwrap().walk_over {
                     return Ordering::Less;
                 }
+
+                if self.entities.as_ref().unwrap().get(*b).unwrap().walk_over {
+                    return Ordering::Greater;
+                }
+
+                let a_pos = self.entities.as_ref().unwrap().get(*a).unwrap().get_standing_tile();
+                let b_pos = self.entities.as_ref().unwrap().get(*b).unwrap().get_standing_tile();
 
                 if a_pos.1 < b_pos.1 {
                     return Ordering::Less
@@ -648,14 +657,15 @@ impl<'a> World<'a> {
 
         for (i, entity_id) in self.entity_draw_order.get((player.layer - self.layer_min) as usize).unwrap().iter().enumerate() {
             let entity = self.entities.as_ref().unwrap().get(*entity_id).unwrap();
+            
+            if entity.walk_over {
+                continue;
+            }
+            
             let entity_pos = (entity.collision_x(), entity.collision_y());
             let player_pos = (player.x, player.y + 16);
             //let entity_pos = entity.get_standing_tile();
             //let player_pos = player.get_standing_tile();
-
-            if entity.walk_over {
-                continue;
-            }
 
             if player_pos.1 < entity_pos.1 {
                 draw_player = i;
@@ -1113,6 +1123,7 @@ impl<'a> World<'a> {
         if let Some(tileset) = try_tileset {
             if let Some(layer) = self.get_mut_layer_by_name(layer) {
                 layer.map.set_tile(x, y, Tile::new(tile, tileset)).unwrap();
+                self.special_context.tiles_dirty = true;
             }
         }
         
@@ -1455,7 +1466,8 @@ pub struct SpecialContext {
 
     pub unlock_menu_theme: Option<MenuTheme>,
     pub cycle_menu_theme: bool,
-    pub push_interaction_to_scripts: Vec<(lua::InteractionType, Direction, u32)>
+    pub push_interaction_to_scripts: Vec<(lua::InteractionType, Direction, u32)>,
+    pub tiles_dirty: bool,
 }
 
 struct Raindrop {
@@ -1520,7 +1532,8 @@ impl SpecialContext {
             open_music_menu: false,
             cycle_menu_theme: false,
             unlock_menu_theme: None,
-            push_interaction_to_scripts: Vec::new()
+            push_interaction_to_scripts: Vec::new(),
+            tiles_dirty: true
         }
     }
 }

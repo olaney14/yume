@@ -1,27 +1,25 @@
 local frame = 0
 
-function _update(world, this)
+---@param world World
+---@param this Entity
+---@param player Player
+function _update(world, this, player)
     frame = frame + 1
     -- print(world:width())
 end
 
-function _load(world, this)
+---@param world World
+---@param this Entity
+---@param player Player
+function _load(world, this, player)
     print("Hello from load! Frame is " .. tostring(frame))
 end
 
-local function flip(direction)
-    if direction == "up" then
-        return "down"
-    elseif direction == "down" then
-        return "up"
-    elseif direction == "left" then
-        return "right"
-    else 
-        return "left"
-    end
-end
-
-function _use(world, this, direction)
+---@param world World
+---@param this Entity
+---@param player Player
+---@param direction Direction
+function _use(world, this, player, direction)
     print("Hello from use! Frame is " .. tostring(frame))
     -- print("World: " .. tostring(world))
     -- print("This: " .. tostring(this))
@@ -31,10 +29,18 @@ function _use(world, this, direction)
     -- this:walk()
 end
 
-function _walk(world, this, direction)
+---@param world World
+---@param this Entity
+---@param player Player
+---@param direction Direction
+function _walk(world, this, player, direction)
     print("Hello from walk! Frame is " .. tostring(frame))
 end
 
-function _bump(world, this, direction)
+---@param world World
+---@param this Entity
+---@param player Player
+---@param direction Direction
+function _bump(world, this, player, direction)
     print("Hello from bump! Frame is " .. tostring(frame))
 end

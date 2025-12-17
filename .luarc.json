@@ -1,0 +1,9 @@
+{
+    "workspace.library": [
+        "res/scripts/api"
+    ],
+    "diagnostics.disable": [
+        "undefined-global",
+        "lowercase-global"
+    ]
+}

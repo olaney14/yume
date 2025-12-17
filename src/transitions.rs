@@ -23,18 +23,8 @@ pub enum TransitionType {
 }
 
 impl TransitionType {
-    pub fn parse(json: &JsonValue) -> Option<Self> {
-        let kind;
-
-        if json.is_string() {
-            kind = json.as_str().unwrap();
-        } else if json.is_object() {
-            kind = json["type"].as_str().unwrap();
-        } else {
-            return None;
-        }
-
-        match kind {
+    pub fn from_string(s: &str) -> Option<Self> {
+        match s {
             "fade" => Some(Self::Fade),
             "fade_to_color" => Some(Self::FadeToColor(0, 0, 0)),
             "music_only" => Some(Self::MusicOnly),
@@ -49,6 +39,20 @@ impl TransitionType {
             "player_fall" => Some(Self::PlayerFall),
             _ => None
         }
+    }
+
+    pub fn parse(json: &JsonValue) -> Option<Self> {
+        let kind;
+
+        if json.is_string() {
+            kind = json.as_str().unwrap();
+        } else if json.is_object() {
+            kind = json["type"].as_str().unwrap();
+        } else {
+            return None;
+        }
+
+        Self::from_string(kind)
     }
 }
 

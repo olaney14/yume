@@ -53,7 +53,7 @@ impl Effect {
         }
     }
 
-    // in theory we could have 4294967295 effects
+    // TODO: make this work
     pub fn order(&self) -> u32 {
         use Effect::*;
         match self {

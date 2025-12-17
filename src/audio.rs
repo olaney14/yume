@@ -21,7 +21,6 @@ impl SoundEffectBank {
 
     fn try_insert_sfx_with_extension(&mut self, name: &str, ext: &str, speed: f32, volume: f32) -> Result<(), Box<dyn Error>> {
         let file = File::open(PathBuf::from(format!("res/audio/sfx/{}.{}", name, ext)))?;
-        //let file = File::open(PathBuf::from("res/audio/sfx/step6_walk.wav"))?;
         let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
         self.sound_effects.insert(name.to_string(), SoundEffect {
             speed, volume, source
@@ -65,17 +64,6 @@ impl SoundEffectBank {
             }
         }
     }
-
-    // #[deprecated]
-    // pub fn load(&mut self, name: &String, volume: f32, speed: f32) {
-    //     if let Ok(file) = File::open(PathBuf::from("res/audio/sfx/".to_owned() + name + ".mp3")) {
-    //         let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
-
-    //         self.sound_effects.insert(name.clone(), SoundEffect { speed, volume, source });
-    //     } else {
-    //         eprintln!("Could not load sound effect {}", name);
-    //     }
-    // }
 }
 
 pub struct SoundEffect {
@@ -85,17 +73,6 @@ pub struct SoundEffect {
 }
 
 impl SoundEffect {
-    pub fn new(path: PathBuf) -> Self {
-        let file = File::open(&path).expect(format!("Failed to load song {}", path.as_os_str().to_str().unwrap()).as_str());
-        let source = rodio::Decoder::new(BufReader::new(file)).unwrap().buffered();
-
-        Self {
-            speed: 1.0,
-            volume: 1.0,
-            source
-        }
-    }
-
     pub fn play(&self, output_handle: &Arc<OutputStreamHandle>) {
         self.play_ex(output_handle, self.speed, self.volume);
     }

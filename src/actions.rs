@@ -487,37 +487,31 @@ impl Action for PrintAction {
     }
 }
 
-pub enum AnimationFrameTarget {
-    This,
-    Other(IntProperty)
-}
-
 pub struct SetAnimationFrameAction {
     pub frame: IntProperty,
-    pub target: AnimationFrameTarget
+    // pub target: AnimationFrameTarget
 }
 
 impl SetAnimationFrameAction {
     pub fn parse(json: &JsonValue) -> Result<Box<dyn Action>, String> {
         let frame = IntProperty::parse(&json["val"]);
-        let target = if json["target"].is_string() {
-            match json["target"].as_str().unwrap() {
-                "self" | "this" => Some(AnimationFrameTarget::This),
-                _ => None
-            }
-        } else {
-            if let Some(prop) = IntProperty::parse(&json["target"]) {
-                Some(AnimationFrameTarget::Other(prop))
-            } else {
-                None
-            }
-        };
+        // let target = if json["target"].is_string() {
+        //     match json["target"].as_str().unwrap() {
+        //         "self" | "this" => Some(AnimationFrameTarget::This),
+        //         _ => None
+        //     }
+        // } else {
+        //     if let Some(prop) = IntProperty::parse(&json["target"]) {
+        //         Some(AnimationFrameTarget::Other(prop))
+        //     } else {
+        //         None
+        //     }
+        // };
 
         if !frame.is_some() { return Err(String::from("Error parsing frame for set_animation_frame action frame")); }
-        if !target.is_some() { return Err(String::from("Error parsing set_animation_frame action target")); }
+        // if !target.is_some() { return Err(String::from("Error parsing set_animation_frame action target")); }
         Ok(Box::new(Self {
                             frame: frame.unwrap(),
-                            target: target.unwrap()
                         }))
     }
 }
@@ -527,24 +521,24 @@ impl SetAnimationFrameAction {
 impl Action for SetAnimationFrameAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(frame) = self.frame.get(Some(player), Some(world)) {
-            let target = match &self.target {
-                AnimationFrameTarget::This => {
-                    if !world.special_context.entity_context.entity_call {
-                        eprintln!("Warning: attemped set_animation_frame action on `this` without a valid caller");
-                        None
-                    } else {
-                        let id = world.special_context.entity_context.id;
-                        world.entities.as_mut().unwrap().get_mut(id as usize)
-                    }
-                },
-                AnimationFrameTarget::Other(id) => {
-                    if let Some(id) = id.get(Some(player), Some(world)) {
-                        world.entities.as_mut().unwrap().get_mut(id as usize)
-                    } else {
-                        None
-                    }
-                }
-            };
+            // let target = match &self.target {
+            //     AnimationFrameTarget::This => {
+            //         if !world.special_context.entity_context.entity_call {
+            //             eprintln!("Warning: attemped set_animation_frame action on `this` without a valid caller");
+            //             None
+            //         } else {
+            //             let id = world.special_context.entity_context.id;
+            //             world.entities.as_mut().unwrap().get_mut(id as usize)
+            //         }
+            //     },
+            //     AnimationFrameTarget::Other(id) => {
+            //         if let Some(id) = id.get(Some(player), Some(world)) {
+            //             world.entities.as_mut().unwrap().get_mut(id as usize)
+            //         } else {
+            //             None
+            //         }
+            //     }
+            // };
 
             world.defer_entity_action(Box::new(move |entity: &mut Entity| {
                 entity.animator = Some(Animator::new(crate::ai::AnimationFrameData::SingleFrame(frame as u32), entity.tileset, 0));
@@ -1006,7 +1000,7 @@ impl SetLayerVisibleAction {
 }
 
 impl Action for SetLayerVisibleAction {
-    fn act(&self, player: &mut Player, world: &mut World) {
+    fn act(&self, _: &mut Player, world: &mut World) {
         for layer in world.image_layers.iter_mut() {
             if layer.name == self.layer {
                 layer.draw = self.setting;
@@ -1058,13 +1052,13 @@ impl Action for SetLayerVisibleAction {
 struct UnfreezeAction;
 
 impl UnfreezeAction {
-    pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
+    pub fn parse(_: &JsonValue) -> Result<Box<dyn Action>, String> {
         Ok(Box::new(Self))
     }
 }
 
 impl Action for UnfreezeAction {
-    fn act(&self, player: &mut Player, world: &mut World) {
+    fn act(&self, player: &mut Player, _: &mut World) {
         player.frozen_time = 0;
         player.frozen = false;
     }

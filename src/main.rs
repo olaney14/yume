@@ -108,7 +108,7 @@ fn main() {
 
     let mut scripts = ScriptingContext::new();
 
-    world.onload(&player, &sink, &render_state, &mut scripts);
+    world.onload(&player, &sink, &mut scripts);
     scripts.on_load();
     // scripts.on_load(&mut world);
     if let Some(def) = world.default_pos {
@@ -373,7 +373,7 @@ fn main() {
                 player.set_y(y * 16);
             }
 
-            world.onload(&player, &sink, &render_state, &mut scripts);
+            world.onload(&player, &sink, &mut scripts);
             scripts.on_load();
 
             if !skip_end {

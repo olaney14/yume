@@ -39,7 +39,7 @@ pub struct FollowAnimationData {
 
 pub enum AnimationFrameData {
     SingleFrame(u32),
-    FrameSequence{start: u32, idle: u32, len: u32, advance: AnimationAdvancementType},
+    FrameSequence{start: u32, len: u32, advance: AnimationAdvancementType},
     Directional(DirectionalAnimationData),
     Follow(FollowAnimationData),
     LeftRight(LeftRightAnimationData)
@@ -294,7 +294,6 @@ pub struct Chaser {
     pub pathfinder: Option<Pathfinder>,
     pub following_path: bool,
     pub init: bool,
-    pub path_max: u32,
     pub detection_radius: u32,
     needs_recalculation: bool,
     player_last_pos: (u32, u32),
@@ -513,7 +512,6 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
         },
         "chaser" => {
             let speed = parsed["speed"].as_u32().unwrap_or(1);
-            let path_max = parsed["path_max"].as_u32().unwrap_or(ASTAR_MAX_STEPS);
             let detection_radius = parsed["detection_radius"].as_u32().unwrap_or(16);
             let pathfinder = parsed["pathfinder"].as_str().unwrap_or("walk_towards");
             return Ok(Box::new(
@@ -525,7 +523,6 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                     init: false,
                     needs_recalculation: true,
                     detection_radius,
-                    path_max,
                     player_last_pos: (0, 0),
                     last_walk_pos: (0, 0)
                 }
@@ -625,8 +622,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 tileset,
                 timer: speed as i32,
                 frame_data: AnimationFrameData::FrameSequence { 
-                    start, 
-                    idle: parsed["idle"].as_u32().unwrap_or((2 * start + length) / 2),
+                    start,
                     len: length, 
                     advance: repeat 
                 },
@@ -742,9 +738,9 @@ impl Pathfinder {
         ))
     }
 
-    pub fn is_polled(&self) -> bool {
-        matches!(self, Self::Polled(..))
-    }
+    // pub fn is_polled(&self) -> bool {
+    //     matches!(self, Self::Polled(..))
+    // }
 
     pub fn is_calculated(&self) -> bool {
         matches!(self, Self::Calculated(..))
@@ -773,7 +769,7 @@ pub trait CalculatedPathfinder {
 
 pub trait PolledPathfinder {
     fn poll(&mut self, x0: u32, y0: u32, x1: i32, y1: i32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction>;
-    fn idle(&mut self, x: u32, y: u32, height: i32, player: &Player, world: &mut World, entity_list: &Vec<Entity>) -> Option<Direction> {
+    fn idle(&mut self, _x: u32, _y: u32, _height: i32, _player: &Player, _world: &mut World, _entity_list: &Vec<Entity>) -> Option<Direction> {
         None
     }
 }
@@ -1060,7 +1056,7 @@ impl PolledPathfinder for WalkTowardsPathfinder {
                     if diff_y == 0 { return None; }
                     if (y1 - y0 as i32) > 0 { suggested_direction = Direction::Up }
                     else { suggested_direction = Direction::Down }
-                    if y1.abs_diff(y0 as i32) != diff_x { suggested_direction = suggested_direction.flipped() }
+                    if y1.abs_diff(y0 as i32) != diff_y { suggested_direction = suggested_direction.flipped() }
                 },
                 _ => {
                     if diff_x == 0 { return None; }

@@ -1,5 +1,6 @@
-use std::{collections::HashMap, rc::Rc, cell::RefCell};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use json::JsonValue;
 use sdl2::rect::Rect;
 
 use crate::{actions::Action, ai::{Ai, AnimationFrameData, Animator}, game::{BoolProperty, Direction, FloatProperty, IntProperty, StringProperty}, particles::ParticleEmitter, player::{self, Player}, world::{self, Interaction, World}};
@@ -217,8 +218,10 @@ impl VariableValue {
 }
 
 pub struct Entity {
-    /// Unique per instance
+    /// Not unique
     pub id: u32,
+    /// Unique
+    pub tiled_id: u32,
     pub tileset: u32,
     pub height: i32,
     pub walk_over: bool,
@@ -235,15 +238,16 @@ pub struct Entity {
     pub variables: Rc<RefCell<HashMap<String, VariableValue>>>,
     pub particle_emitter: Option<ParticleEmitter>,
     pub killable: bool,
-    pub script: Option<String>
+    pub script: Option<String>,
+    // if this causes performance issues it should be immutable and copying once is fine
+    pub script_properties: HashMap<String, JsonValue>
 }
 
-// TODO looping movement for entities
-// TODO continuous movement for entities
 impl Entity {
     pub fn new() -> Self {
         Self {
             id: 0,
+            tiled_id: 0,
             tileset: 0,
             height: 0,
             walk_over: false,
@@ -260,7 +264,8 @@ impl Entity {
             variables: Rc::new(RefCell::new(HashMap::new())),
             particle_emitter: None,
             killable: false,
-            script: None
+            script: None,
+            script_properties: HashMap::new()
         }
     }
 
@@ -475,11 +480,11 @@ impl Entity {
 
     // taken from Player
     pub fn can_move_in_direction(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
-        let pos = self.get_standing_tile();
-        let target_tile = (
-            (pos.0 as i32 + direction.x()).max(0) as u32,
-            (pos.1 as i32 + direction.y()).max(0) as u32,
-        );
+        // let pos = self.get_standing_tile();
+        // let target_tile = (
+        //     (pos.0 as i32 + direction.x()).max(0) as u32,
+        //     (pos.1 as i32 + direction.y()).max(0) as u32,
+        // );
         let mut target_rect = self.collider;
         target_rect.x += self.x + direction.x() * 16;
         target_rect.y += self.y + direction.y() * 16;
@@ -497,11 +502,11 @@ impl Entity {
 
     // TODO: replace can_move_in_direction with this
     pub fn can_move_in_direction_looping(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
-        let pos = self.get_standing_tile();
-        let target_tile = (
-            (pos.0 as i32 + direction.x()).max(0) as u32,
-            (pos.1 as i32 + direction.y()).max(0) as u32,
-        );
+        // let pos = self.get_standing_tile();
+        // let target_tile = (
+        //     (pos.0 as i32 + direction.x()).max(0) as u32,
+        //     (pos.1 as i32 + direction.y()).max(0) as u32,
+        // );
         let mut target_rect = self.collider;
         target_rect.x += self.x + direction.x() * 16;
         target_rect.y += self.y + direction.y() * 16;

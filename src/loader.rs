@@ -329,7 +329,9 @@ impl<'a> World<'a> {
                                     variables: Rc::new(RefCell::new(HashMap::new())),
                                     particle_emitter: None,
                                     killable: false,
-                                    script: None
+                                    script: None,
+                                    tiled_id: object.id(),
+                                    script_properties: HashMap::new()
                                 };
 
                                 let mut properties = object.properties.clone();
@@ -440,6 +442,21 @@ impl<'a> World<'a> {
                                             entity.script = Some(source);
                                         } else {
                                             eprintln!("Script file \"{:?}\" not found", &path);
+                                        }
+                                    }
+                                }
+
+                                if let Some(prop) = properties.get("meta") {
+                                    if let PropertyValue::StringValue(src) = prop {
+                                        match json::parse(src) {
+                                            Ok(parsed) => {
+                                                for (key, value) in parsed.entries() {
+                                                    entity.script_properties.insert(key.to_string(), value.clone());
+                                                }
+                                            },
+                                            Err(e) => {
+                                                eprintln!("Error parsing script properties: {e}");
+                                            }
                                         }
                                     }
                                 }

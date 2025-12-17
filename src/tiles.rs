@@ -159,7 +159,7 @@ pub struct Tilemap {
     pub special: Vec<Option<SpecialTile>>
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Tile {
     pub id: i32,
     pub tileset: i32,

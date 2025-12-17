@@ -23,11 +23,9 @@ impl<T: SampleUniform + Copy + PartialOrd + Debug> ParticleValue<T> {
     }
 }
 
-#[derive(Debug)]
 pub struct ParticleEmitter {
     pub texture: String,
     pub pos: (i32, i32),
-    pub height: i32,
     pub particles: VecDeque<Particle>,
     pub pos_offset: (ParticleValue<f32>, ParticleValue<f32>),
     pub init_vel: (ParticleValue<f32>, ParticleValue<f32>),
@@ -259,7 +257,6 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
     let texture_path = if !json["texture"].is_null() { json["texture"].as_str().expect("failed to parse particle emitter texture") } else { "missing.png" };
     let size = if !json["size"].is_null() { parse_u32_pair(&json["size"]).expect("failed to parse particle property `size`") } else { (1, 1) };
     //let texture = texture::Texture::from_file(&PathBuf::from("res/textures/particle/").join(texture_path), creator).expect("failed to load particle texture");
-    let height = if !json["height"].is_null() { json["height"].as_i32().unwrap() } else { 0 };
     let freq_rand = if !json["freq_rand"].is_null() { json["freq_rand"].as_i32().unwrap().abs() } else { 0 };
     let stagnate = if !json["stagnate"].is_null() { parse_particle_f32(&json["stagnate"]).expect("failed to parse particle property `stagnate`") } else { DEFAULT_STAGNATE };
 
@@ -276,7 +273,6 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
         texture: texture_path.to_owned(),
         timer: 0,
         size,
-        height,
         freq_rand,
         stagnate
     };

@@ -37,7 +37,6 @@ pub struct Player<'a> {
     pub effect_just_changed: bool,
     pub money: u32,
     pub stats: Statistics,
-    pub save_slot: u32,
     pub dreaming: bool,
     pub disable_player_input: bool,
     pub last_effect: Option<Effect>,
@@ -233,6 +232,7 @@ pub enum MenuTheme {
     Corrupted
 }
 
+// TODO: menu themes changable
 impl MenuTheme {
     pub fn get_theme_path(&self) -> &str {
         match self {
@@ -278,7 +278,6 @@ impl<'a> Player<'a> {
             effect_just_changed: false,
             stats: Statistics::new(),
             money: 0,
-            save_slot: 0,
             dreaming: false,
             disable_player_input: false,
             last_effect: None,
@@ -1065,27 +1064,4 @@ impl<'a> Player<'a> {
             ).unwrap();
         }
     }
-
-    // pub fn draw_looping<T: RenderTarget>(&self, canvas: &mut Canvas<T>, _state: &RenderState) {
-    //     let source = self.animation_info.get_frame_pos();
-    //     self.pre_draw(canvas, (self.x, self.y), _state);
-    //     if self.current_effect.is_some() {
-    //         if let Some(texture) = self.effect_textures.get(self.current_effect.as_ref().unwrap()) {
-    //             canvas.copy(&texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-    //         } else {
-    //             canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-    //         }
-    //     } else {
-    //         canvas.copy(&self.texture.texture, Rect::new(source.0 as i32, source.1 as i32, 16, 32), Rect::new(self.x, self.y, 16, 32)).unwrap();
-    //     }
-    //     self.post_draw(canvas, (self.x, self.y), _state);
-
-    //     if self.animation_info.effect_switch_animation > 0 {
-    //         let frame = 8 - self.animation_info.effect_switch_animation;
-    //         canvas.copy(&self.effects_texture.texture, 
-    //             Rect::new(48 * frame as i32, 0, 48, 48),
-    //             Rect::new(self.x - 24 + 8, self.y - 24 + 16, 48, 48) 
-    //         ).unwrap();
-    //     }
-    // }
 }
