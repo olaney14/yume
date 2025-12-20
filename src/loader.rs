@@ -194,6 +194,7 @@ impl<'a> World<'a> {
                                                     entity.tileset = tile.tileset_index() as u32;
                                                     entity.id = tile.id();
                                                     entity.draw = true;
+                                                    entity.walk_over = true;
                                                     world.add_entity(entity);
                                                 },
                                                 Err(e) => {

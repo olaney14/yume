@@ -81,6 +81,7 @@ impl<'a> ScreenEvent<'a> {
     pub fn reset(&mut self) {
         self.timer = 0;
         self.current_step = 0;
+        self.current_frame = 0;
         self.running = false;
         self.ticks = 0;
         self.init = true;
@@ -90,6 +91,7 @@ impl<'a> ScreenEvent<'a> {
 
     pub fn tick(&mut self, sfx: &mut SoundEffectBank, input: &Input, state: &mut RenderState) -> bool {
         if input.get_just_pressed(Keycode::X) && self.can_exit {
+            self.reset();
             return false;
         }
 
@@ -193,7 +195,7 @@ impl<'a> ScreenEvent<'a> {
     pub fn cont(&self, input: &Input) -> bool {
         match self.steps[self.current_step].cont {
             Continue::Use => {
-                input.get_just_pressed(Keycode::Z)
+                input.get_just_pressed(Keycode::Z) || (!self.can_exit && input.get_just_pressed(Keycode::X))
             },
             Continue::Wait(_) => {
                 self.timer == 0

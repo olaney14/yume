@@ -217,13 +217,6 @@ impl<'a> ExtraTextures<'a> {
     }
 }
 
-// enum MovementIgnoreParams {
-//     None,
-//     IgnoreWorld,
-//     IgnoreFrozen,
-//     IgnoreAll
-// }
-
 #[derive(Serialize, Deserialize, Clone)]
 pub enum MenuTheme {
     System,

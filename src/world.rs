@@ -723,18 +723,6 @@ impl<'a> World<'a> {
                 }
             }
 
-            // for (_, entity) in self.entities.as_ref().unwrap().iter().enumerate() {
-            //     if entity.draw && entity.get_height(player.y) == height {
-            //         self.draw_entity(canvas, entity, false, state);
-            //     }
-
-            //     if let Some(emitter) = &entity.particle_emitter {
-            //         if emitter.height == height {
-            //             emitter.draw(canvas, self, state);
-            //         }
-            //     }
-            // }
-
             let entity_ids = self.entity_draw_order.get((height - self.layer_min) as usize);
             if let Some(entity_ids) = entity_ids {
                 for (i, id) in entity_ids.iter().enumerate() {
@@ -767,12 +755,6 @@ impl<'a> World<'a> {
         }
 
         self.post_draw(canvas, state);
-
-        // if self.transition.is_some() {
-        //     let mut transition = self.transition.take().unwrap();
-        //     transition.draw(canvas, self);
-        //     self.transition = Some(transition);
-        // }
     }
 
     pub fn post_draw<T: RenderTarget>(&mut self, canvas: &mut Canvas<T>, state: &RenderState) {
@@ -1567,9 +1549,6 @@ pub struct TransitionContext<'a> {
 
 impl<'a> TransitionContext<'a> {
     pub fn new<T>(creator: &'a TextureCreator<T>, state: &RenderState) -> Self {
-        // world.render_texture = Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, world.width * 16, world.height * 16).expect("failed to create render texture for looping level"));
-        // world.render_texture.as_mut().unwrap().set_blend_mode(sdl2::render::BlendMode::Blend);
-
         Self {
             screenshot: Some(creator.create_texture(Some(PixelFormatEnum::RGBA8888), TextureAccess::Target, state.screen_extents.0, state.screen_extents.1).expect("failed to create render texture for transitions")),
             take_screenshot: false

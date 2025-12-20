@@ -92,7 +92,7 @@ impl MenuState {
     }
 
     pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sfx: &mut SoundEffectBank) {
-        if input.get_just_pressed(Keycode::X) && !input.get_pressed(Keycode::F3) {
+        if (input.get_just_pressed(Keycode::X) || input.get_just_pressed(Keycode::Escape)) && !input.get_pressed(Keycode::F3) {
             match self.current_menu {
                 MenuType::Effects | MenuType::Quit | MenuType::Special | MenuType::Me => {
                     if matches!(self.current_menu, MenuType::Effects) { self.button_id = 0; }
@@ -184,13 +184,11 @@ impl MenuState {
                     match self.button_id {
                         0 => {
                             // Yes
-                            //self.should_quit = true;
                             self.current_menu = MenuType::MainMenu;
                             self.button_id = 2;
 
                             self.menu_should_close = true;
                             self.close_on_x = false;
-                            //world.paused = false;
 
                             world.queued_load = Some(QueuedLoad {
                                 map: String::new(),
@@ -295,30 +293,6 @@ impl MenuState {
                             player.waking_up_timer = player::WAKE_UP_TIMER_MAX;
 
                             self.menu_should_close = true;
-
-                            // self.menu_should_close = true;
-                            // sfx.play_ex("song1", 1.5, 0.5);
-
-                            // 11, 6
-                            // world.queued_load = Some(
-                            //     crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
-                            //         x: IntProperty::Level(LevelPropertyType::DefaultX),
-                            //         y: IntProperty::Level(LevelPropertyType::DefaultY)
-                            //     } }
-                            // );
-                            // world.queued_load = Some(
-                            //     crate::game::QueuedLoad { map: "res/maps/bedroom.tmx".to_string(), pos: WarpPos {
-                            //         x: IntProperty::Int(11),
-                            //         y: IntProperty::Int(6)
-                            //     } }
-                            // );
-                            // world.transition = Some(
-                            //     Transition::new(TransitionType::GridCycle, 1, 1, true, 5, false)
-                            // );
-                            // world.global_flags.insert("start_in_bed".to_string(), 1);
-
-                            // player.dreaming = false;
-                            // player.remove_effect();
                         } else {
                             sfx.play("menu_blip_error");
                         }
@@ -376,15 +350,9 @@ impl MenuState {
                 if input.get_just_pressed(Keycode::Right) { self.page_index += 1; }
                 if input.get_just_pressed(Keycode::Left) { self.page_index -= 1; }
 
-                //let button_max = save_info.files.len() as i32;
-                //let button_max_load = ((save_info.files.len() - 1) % 3) as i32;
                 let button_max_load = (save_info.files.len() as i32 - (3 * self.page_index)).min(3);
                 let page_max_load = (save_info.files.len() as i32 - 1).max(0) / 3;
-                //let button_max_save = button_max_load + 1;
                 let button_max_save = (save_info.files.len() as i32 - (3 * self.page_index) + 1).min(3);
-                // if self.page_index != 0 {
-                //     button_max_save = (1 + button_max_save).min(3);
-                // }
                 let page_max_save = (save_info.files.len() / 3) as i32;
         
                 if b { // Save
@@ -506,12 +474,6 @@ impl<'a> Ui<'a> {
         self.effect_get_timer = 128;
     }
 
-    // pub fn init(&self, sfx: &mut SoundEffectBank) {
-    //     sfx.load(&String::from("menu_blip_affirmative"), SFX_VOLUME, 1.0);
-    //     sfx.load(&String::from("menu_blip_negative"), SFX_VOLUME, 1.0);
-    //     sfx.load(&String::from("menu_blip_error"), SFX_VOLUME, 1.0);
-    // }
-
     pub fn update(&mut self, input: &Input, player: &mut Player, world: &mut World, save_info: &SaveInfo, sink: &Sink, sfx: &mut SoundEffectBank) {
         if world.special_context.save_game {
             self.show_menu(MenuType::SaveLoad(true));
@@ -527,7 +489,7 @@ impl<'a> Ui<'a> {
             world.special_context.open_music_menu = false;
         }
         
-        if input.get_just_pressed(Keycode::X) && !input.get_pressed(Keycode::F3) && self.effect_get.is_none() {
+        if (input.get_just_pressed(Keycode::X) || input.get_just_pressed(Keycode::Escape)) && !input.get_pressed(Keycode::F3) && self.effect_get.is_none() {
             if self.open && self.menu_state.close_on_x {
                 //sink.play();
                 match self.menu_state.current_menu {
@@ -555,7 +517,7 @@ impl<'a> Ui<'a> {
                 self.clear = false;
                 sfx.play_ex("menu_blip_negative", 1.0, 0.5);
 
-            } else if !self.open && !player.moving && !player.disable_player_input && world.transition.is_none() {
+            } else if !self.open && !player.moving && !player.disable_player_input && world.transition.is_none() && world.running_screen_event.is_none() {
                 //sink.pause();
                 self.menu_state.current_menu = MenuType::Home;
                 sink.set_volume(sink.volume() / 5.0);
@@ -749,19 +711,26 @@ impl<'a> Ui<'a> {
                     let page_left = self.menu_state.page_index > 0;
                     let page_right = self.menu_state.page_index < ((player.unlocked_songs.len() as i32 - 1) / 3);
 
-                    for i in 0..buttons_on_page {
-                        let id = (i + self.menu_state.page_index * 16) as usize;
-                        let song = &player.unlocked_songs[id];
-                        self.theme.draw_button(canvas, 16, y, 16 * 12, song.0.as_str(), selected_button == id as i32, self.menu_state.selection_flash);
-                        if song.1.len() > 1 {
-                            let mut x = 16 + 16 * 12 + 4;
-                            for j in 0..song.1.len().min(11) {
-                                let selected = selected_button == id as i32 && self.menu_state.song_variant_index == j;
-                                self.theme.draw_button(canvas, x, y, 16, SONG_VARIANT_LABELS[j], selected, self.menu_state.selection_flash);
-                                x += 12;
+                    if buttons_on_page == 0 {
+                        let width = self.theme.font.string_width("No songs unlocked");
+                        self.theme.font.draw_string(canvas, "No songs unlocked", 
+                            ((state.screen_extents.0 / 2 - width / 2) as i32, (state.screen_extents.1 / 2) as i32)
+                        );
+                    } else {
+                        for i in 0..buttons_on_page {
+                            let id = (i + self.menu_state.page_index * 16) as usize;
+                            let song = &player.unlocked_songs[id];
+                            self.theme.draw_button(canvas, 16, y, 16 * 12, song.0.as_str(), selected_button == id as i32, self.menu_state.selection_flash);
+                            if song.1.len() > 1 {
+                                let mut x = 16 + 16 * 12 + 4;
+                                for j in 0..song.1.len().min(11) {
+                                    let selected = selected_button == id as i32 && self.menu_state.song_variant_index == j;
+                                    self.theme.draw_button(canvas, x, y, 16, SONG_VARIANT_LABELS[j], selected, self.menu_state.selection_flash);
+                                    x += 12;
+                                }
                             }
+                            y += 12;
                         }
-                        y += 12;
                     }
 
                     if page_left && self.menu_state.selection_flash {

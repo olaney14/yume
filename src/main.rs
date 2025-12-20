@@ -227,36 +227,6 @@ fn main() {
         input.update();
         clamp_camera(&mut render_state, &world, &player);
 
-        // if world.special_context.camera_slide {
-        //     render_state.offset.0 += world.special_context.camera_slide_offset.0;
-        //     render_state.offset.1 += world.special_context.camera_slide_offset.1;
-
-        //     let direction_x = (world.special_context.camera_slide_target.0 - world.special_context.camera_slide_offset.0).signum();
-        //     let direction_y = (world.special_context.camera_slide_target.1 - world.special_context.camera_slide_offset.1).signum();
-
-        //     world.special_context.camera_slide_offset.0 += world.special_context.camera_slide_speed as i32 * direction_x;
-        //     world.special_context.camera_slide_offset.1 += world.special_context.camera_slide_speed as i32 * direction_y;
-        //     render_state.player_offset.0 += world.special_context.camera_slide_speed as i32 * direction_x;
-        //     render_state.player_offset.1 += world.special_context.camera_slide_speed as i32 * direction_y;
-
-        //     let direction_x1 = (world.special_context.camera_slide_target.0 - world.special_context.camera_slide_offset.0).signum();
-        //     let direction_y1 = (world.special_context.camera_slide_target.1 - world.special_context.camera_slide_offset.1).signum();
-
-        //     if direction_x != direction_x1 {
-        //         world.special_context.camera_slide_offset.0 = world.special_context.camera_slide_offset.1;
-        //     }
-
-        //     if direction_y != direction_y1 {
-        //         world.special_context.camera_slide_offset.1 = world.special_context.camera_slide_offset.1;
-        //     }
-
-        //     if direction_y != direction_y1 && direction_x != direction_x1 {
-        //         if world.special_context.camera_slide_offset.0 == 0 && world.special_context.camera_slide_offset.1 == 0 {
-        //             world.special_context.camera_slide = false;
-        //         }
-        //     }
-        // }
-
         // If the ui is not clearing the screen and a menu screenshot is not being taken
         if !ui.clear && !ui.menu_state.menu_screenshot {
             if world.looping {
@@ -278,7 +248,8 @@ fn main() {
             canvas.with_texture_canvas(&mut screenshot, |tex_canvas| {
                 tex_canvas.set_draw_color(world.background_color);
                 tex_canvas.set_blend_mode(sdl2::render::BlendMode::None);
-                tex_canvas.clear();
+                // clear() does not clear alpha on some backends
+                tex_canvas.fill_rect(None).unwrap();
                 tex_canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
 
                 if !ui.menu_state.menu_screenshot {
