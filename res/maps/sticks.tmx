@@ -9,7 +9,7 @@
  </properties>
  <tileset firstgid="1" source="tilesets/sticks.tsx"/>
  <tileset firstgid="21" source="entity/nexus_doors.tsx"/>
- <tileset firstgid="45" source="entity/lamppost.tsx"/>
+ <tileset firstgid="48" source="entity/lamppost.tsx"/>
  <layer id="1" name="floor" width="70" height="60">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -149,8 +149,8 @@
     <property name="start_frame" type="int" value="15"/>
     <property name="walk_behind" type="bool" value="true"/>
     <property name="warp_map" value="nexus.tmx"/>
-    <property name="warp_x" type="int" value="11"/>
-    <property name="warp_y" type="int" value="2"/>
+    <property name="warp_x" type="int" value="17"/>
+    <property name="warp_y" type="int" value="5"/>
    </properties>
   </object>
   <object id="15" gid="12" x="208" y="640" width="16" height="16">
@@ -166,7 +166,7 @@
     <property name="file" value="res/data/entity/sticks/mamo.json"/>
    </properties>
   </object>
-  <object id="17" gid="45" x="848" y="832" width="16" height="32">
+  <object id="17" gid="48" x="848" y="832" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,

@@ -1320,7 +1320,7 @@ impl<'a> ImageLayer<'a> {
         Self::new(texture::Texture::from_file(file, creator).expect("failed to load image layer"))
     }
 
-    /// Draw image layer as looping with enough tiling to cover the screen
+    /// Draw image layer as looping (if enabled) with enough tiling to cover the screen
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
         let modified_offset = (
             if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
@@ -1347,24 +1347,6 @@ impl<'a> ImageLayer<'a> {
             }
         }  
     }
-
-    // pub fn draw_single<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
-    //     let modified_offset = (
-    //         if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
-    //         if self.parallax_mode { state.offset.1 / self.parallax_y } else { state.offset.1 * self.parallax_y },
-    //     );
-
-    //     let w_i32 = self.image.width as i32;
-    //     let h_i32 = self.image.height as i32;
-    //     let left = game::offset_floor(-modified_offset.0, w_i32, self.x);
-    //     let top = game::offset_floor(-modified_offset.1, h_i32, self.y);
-
-    //     canvas.copy(
-    //         &self.image.texture,
-    //         None,
-    //         Rect::new(left + modified_offset.0, top + modified_offset.1, self.image.width, self.image.height)
-    //     ).unwrap();
-    // }
 
     pub fn update(&mut self) {
         if self.delay_x > 0 {
