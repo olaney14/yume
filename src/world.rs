@@ -706,7 +706,6 @@ impl<'a> World<'a> {
         let mut player_drawn = false;
 
         for height in self.layer_min..=self.layer_max {
-
             for image_layer in self.image_layers.iter() {
                 if image_layer.draw && image_layer.height == height {
                     image_layer.draw(canvas, state);
@@ -1321,6 +1320,7 @@ impl<'a> ImageLayer<'a> {
         Self::new(texture::Texture::from_file(file, creator).expect("failed to load image layer"))
     }
 
+    /// Draw image layer as looping with enough tiling to cover the screen
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
         let modified_offset = (
             if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
@@ -1329,21 +1329,42 @@ impl<'a> ImageLayer<'a> {
 
         let w_i32 = self.image.width as i32;
         let h_i32 = self.image.height as i32;
-        let left = game::offset_floor(-modified_offset.0, w_i32, self.x);
-        let top = game::offset_floor(-modified_offset.1, h_i32, self.y);
-        let repeat_x = (state.screen_extents.0 as i32 / w_i32) + 2;
-        let repeat_y = (state.screen_extents.1 as i32 / h_i32) + 2;
+        let left = if self.looping_x { game::offset_floor(-modified_offset.0, w_i32, self.x) } else { self.x };
+        let top = if self.looping_y { game::offset_floor(-modified_offset.1, h_i32, self.y) } else { self.y };
 
-        for y in -1..repeat_y {
-            for x in -1..repeat_x {
+        let loop_start_x = if self.looping_x { -1 } else { 0 };
+        let loop_start_y = if self.looping_y { -1 } else { 0 };
+        let repeat_x = if self.looping_x { (state.screen_extents.0 as i32 / w_i32) + 2 } else { 1 };
+        let repeat_y = if self.looping_y { (state.screen_extents.1 as i32 / h_i32) + 2 } else { 1 };
+
+        for y in loop_start_y..repeat_y {
+            for x in loop_start_x..repeat_x {
                 canvas.copy( 
                     &self.image.texture, 
-                    Rect::new(0, 0, self.image.width, self.image.height), 
+                    None,
                     Rect::new(left + modified_offset.0 + (x * w_i32), top + modified_offset.1 + (y * h_i32), self.image.width, self.image.height)
                 ).unwrap();
             }
         }  
     }
+
+    // pub fn draw_single<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
+    //     let modified_offset = (
+    //         if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
+    //         if self.parallax_mode { state.offset.1 / self.parallax_y } else { state.offset.1 * self.parallax_y },
+    //     );
+
+    //     let w_i32 = self.image.width as i32;
+    //     let h_i32 = self.image.height as i32;
+    //     let left = game::offset_floor(-modified_offset.0, w_i32, self.x);
+    //     let top = game::offset_floor(-modified_offset.1, h_i32, self.y);
+
+    //     canvas.copy(
+    //         &self.image.texture,
+    //         None,
+    //         Rect::new(left + modified_offset.0, top + modified_offset.1, self.image.width, self.image.height)
+    //     ).unwrap();
+    // }
 
     pub fn update(&mut self) {
         if self.delay_x > 0 {

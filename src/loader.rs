@@ -470,9 +470,9 @@ impl<'a> World<'a> {
                 LayerType::Image(image_layer) => {
                     if let Some(image) = &image_layer.image {
                         let mut world_image_layer = ImageLayer::load_from_file(&image.source, creator);
-                        if let Some(prop) = layer.properties.get("looping") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_x = true; world_image_layer.looping_y = true; } };
-                        if let Some(prop) = layer.properties.get("looping_x") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_x = true; } };
-                        if let Some(prop) = layer.properties.get("looping_y") { if let PropertyValue::BoolValue(_b) = prop { world_image_layer.looping_y = true; } };
+                        if let Some(prop) = layer.properties.get("looping") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = *b; world_image_layer.looping_y = *b; } };
+                        if let Some(prop) = layer.properties.get("looping_x") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_x = *b; } };
+                        if let Some(prop) = layer.properties.get("looping_y") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.looping_y = *b; } };
                         if let Some(prop) = layer.properties.get("scroll_x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_x = *i; } };
                         if let Some(prop) = layer.properties.get("scroll_y") { if let PropertyValue::IntValue(i) = prop { world_image_layer.scroll_y = *i; } };
                         if let Some(prop) = layer.properties.get("x") { if let PropertyValue::IntValue(i) = prop { world_image_layer.x = *i; } };
@@ -485,6 +485,7 @@ impl<'a> World<'a> {
                         if let Some(prop) = layer.properties.get("height") { if let PropertyValue::IntValue(i) = prop { world_image_layer.height = *i; } };
                         if let Some(prop) = layer.properties.get("draw") { if let PropertyValue::BoolValue(b) = prop { world_image_layer.draw = *b } }
                         world_image_layer.name = layer.name.clone();
+                        // println!("{}", world_image_layer.looping_x);
                         if world_image_layer.height > world.layer_max {
                             world.layer_max = world_image_layer.height;
                         }
