@@ -39,7 +39,7 @@ pub struct FollowAnimationData {
 
 pub enum AnimationFrameData {
     SingleFrame(u32),
-    FrameSequence{start: u32, len: u32, advance: AnimationAdvancementType},
+    FrameSequence{start: u32, len: u32, advance: AnimationAdvancementType, stride: u32},
     Directional(DirectionalAnimationData),
     Follow(FollowAnimationData),
     LeftRight(LeftRightAnimationData)
@@ -123,15 +123,21 @@ impl Animator {
             self.timer = self.speed as i32;
             match &mut self.frame_data {
                 AnimationFrameData::SingleFrame(frame) => { self.frame = *frame },
-                AnimationFrameData::FrameSequence { start, len, advance, .. } => {
+                AnimationFrameData::FrameSequence { start, len, advance, stride, .. } => {
                     match advance {
                         AnimationAdvancementType::Loop => {
-                            self.frame += 1;
-                            if self.frame == *start + *len {
+                            // self.frame += 1;
+                            // if self.frame == *start + *len {
+                            //     self.frame = *start;
+                            // }
+                            self.frame += *stride;
+                            if self.frame == *start + (*len * *stride) {
                                 self.frame = *start;
                             }
                         },
                         AnimationAdvancementType::Cycle(direction) => {
+                            if *stride != 1 { todo!("implement stride for cycle animation"); }
+
                             let advanced = self.frame as i32 + *direction;
                             if advanced <= *start as i32 || advanced >= (*start + *len - 1) as i32 {
                                 *direction *= -1;
@@ -614,6 +620,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
             let start = parsed["start"].as_u32().unwrap();
             let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
             let length = parsed["length"].as_u32().unwrap();
+            let stride = parsed["stride"].as_u32().unwrap_or(1);
 
             return Ok(Animator {
                 frame: start,
@@ -624,7 +631,8 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 frame_data: AnimationFrameData::FrameSequence { 
                     start,
                     len: length, 
-                    advance: repeat 
+                    advance: repeat,
+                    stride
                 },
                 on_move,
                 manual

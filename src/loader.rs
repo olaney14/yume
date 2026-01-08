@@ -170,6 +170,13 @@ impl<'a> World<'a> {
                 LayerType::Tiles(tile_layer) => {
                     if let TileLayer::Finite(finite_tile_layer) = tile_layer {
                         let mut tilemap = Tilemap::new(map.width, map.height);
+
+                        let layer_height = if let Some(prop) = layer.properties.get("height") {
+                            if let PropertyValue::IntValue(height) = prop {
+                                *height
+                            } else { 0 }
+                        } else { 0 };
+
                         for j in 0..map.height {
                             for i in 0..map.width {
                                 let tile_opt = finite_tile_layer.get_tile(i as i32, j as i32);
@@ -195,6 +202,7 @@ impl<'a> World<'a> {
                                                     entity.id = tile.id();
                                                     entity.draw = true;
                                                     entity.walk_over = true;
+                                                    entity.height = layer_height;
                                                     world.add_entity(entity);
                                                 },
                                                 Err(e) => {
@@ -276,11 +284,7 @@ impl<'a> World<'a> {
                         // Loading - Layer Properties
 
                         let mut world_layer = Layer::new(tilemap);
-                        if let Some(prop) = layer.properties.get("height") {
-                            if let PropertyValue::IntValue(height) = prop {
-                                world_layer.height = *height;
-                            } 
-                        }
+                        world_layer.height = layer_height;
 
                         if let Some(prop) = layer.properties.get("draw") {
                             if let PropertyValue::BoolValue(draw) = prop {
