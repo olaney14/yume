@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="80" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="80" height="80" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="3">
  <properties>
   <property name="looping" type="bool" value="true"/>
-  <property name="music" value="res/audio/music/dynamic.ogg"/>
-  <property name="music_speed" type="float" value="0.1"/>
+  <property name="music" value="res/audio/music/ice.ogg"/>
+  <property name="music_speed" type="float" value="1"/>
+  <property name="music_volume" type="float" value="0.5"/>
   <property name="tint" value="0,0,0,88"/>
  </properties>
  <tileset firstgid="1" source="tilesets/scrapyard.tsx"/>
+ <tileset firstgid="257" source="entity/nexus_doors.tsx"/>
+ <tileset firstgid="287" source="metal.tsx"/>
  <imagelayer id="6" name="Sky">
   <image source="../textures/image/sky_alpha.png" width="128" height="128"/>
   <properties>
@@ -188,7 +191,35 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="5" name="Entities"/>
+ <objectgroup id="5" name="Entities">
+  <object id="1" gid="284" x="688" y="368" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
+    <property name="height" type="int" value="0"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="start_frame" type="int" value="27"/>
+    <property name="walk_behind" type="bool" value="true"/>
+    <property name="warp_map" value="nexus.tmx"/>
+    <property name="warp_x" type="int" value="5"/>
+    <property name="warp_y" type="int" value="5"/>
+   </properties>
+  </object>
+  <object id="2" gid="319" x="192" y="976" width="16" height="16">
+   <properties>
+    <property name="draw" type="bool" value="false"/>
+    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="warp_map" value="balcony.tmx"/>
+    <property name="warp_x" type="int" value="50"/>
+    <property name="warp_y" type="int" value="14"/>
+   </properties>
+  </object>
+ </objectgroup>
  <layer id="4" name="Above" width="80" height="80">
   <properties>
    <property name="height" type="int" value="1"/>

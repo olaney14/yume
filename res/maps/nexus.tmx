@@ -93,11 +93,11 @@
     <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
     <property name="height" type="int" value="0"/>
     <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="9"/>
+    <property name="start_frame" type="int" value="27"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="metal.tmx"/>
-    <property name="warp_x" type="int" value="6"/>
-    <property name="warp_y" type="int" value="11"/>
+    <property name="warp_map" value="scrapyard.tmx"/>
+    <property name="warp_x" type="int" value="43"/>
+    <property name="warp_y" type="int" value="22"/>
    </properties>
   </object>
   <object id="17" gid="40" x="80" y="288" width="16" height="32">
