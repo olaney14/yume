@@ -1,6 +1,6 @@
-use std::{path::PathBuf, fs::File, io::BufReader, sync::Arc, thread, collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, fmt::Debug, fs::File, io::BufReader, path::{Path, PathBuf}, sync::Arc, thread};
 
-use rodio::{Sink, Decoder, Source, source::{Repeat, Buffered}, OutputStreamHandle};
+use rodio::{Sink, Decoder, Source, source::Buffered, OutputStreamHandle};
 
 pub struct SoundEffectBank {
     pub sound_effects: HashMap<String, SoundEffect>,
@@ -10,6 +10,9 @@ pub struct SoundEffectBank {
 const ACCEPTED_SFX_EXTENSIONS: [&str; 3] = [
     "mp3", "wav", "ogg"
 ];
+
+const CROSSFADE_LOOP_MS: u32 = 10;
+const FADE_IN_MS: u32 = 25;
 
 impl SoundEffectBank {
     pub fn new(output_handle: Arc<OutputStreamHandle>) -> Self {
@@ -94,7 +97,7 @@ pub struct Song {
     pub volume: f32, 
     pub dirty: bool,
     pub reload: bool,
-    pub source: Option<Repeat<Decoder<BufReader<File>>>>,
+    pub source: Option<CrossfadedLoop>,
     pub playing: bool,
     pub path: PathBuf,
     pub default_speed: f32,
@@ -104,9 +107,10 @@ pub struct Song {
 
 impl Song {
     pub fn new(path: PathBuf) -> Self {
-        let file = File::open(&path).expect(format!("Failed to load song {}", path.as_os_str().to_str().unwrap()).as_str());
+        // let file = File::open(&path).expect(format!("Failed to load song {}", path.as_os_str().to_str().unwrap()).as_str());
         let name = path.file_stem().unwrap().to_str().unwrap().to_owned();
-        let source = rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite();
+        // let source = rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite();
+        let source = CrossfadedLoop::new(&path, CROSSFADE_LOOP_MS);
 
         Self {
             path,
@@ -151,9 +155,112 @@ impl Song {
     }
 
     pub fn reload(&mut self, sink: &Sink) {
-        let file = File::open(&self.path).expect(format!("Failed to load song {}", self.path.as_os_str().to_str().unwrap()).as_str());
-        self.source = Some(rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite());
+        // let file = File::open(&self.path).expect(format!("Failed to load song {}", self.path.as_os_str().to_str().unwrap()).as_str());
+        //self.source = Some(rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite());
+        self.source = Some(CrossfadedLoop::new(&self.path, CROSSFADE_LOOP_MS));
         self.reload = true;
         self.update(sink);
     }
+}
+
+fn crossfade_loop_buffer(
+    samples: Vec<f32>,
+    channels: u16,
+    sample_rate: u32,
+    fade_ms: u32
+) -> Vec<f32> {
+    let fade_frames = (sample_rate * fade_ms / 1000) as usize;
+    let fade_samples = fade_frames * channels as usize;
+
+    // not enough to crossfade loop
+    if samples.len() < fade_samples * 2 {
+        return samples;
+    }
+
+    let total = samples.len();
+    // this looks bad but is so so cheap compared to actually loading the song from disk
+    let mut output = samples.clone();
+
+    for i in 0..fade_samples {
+        let a = i as f32 / fade_samples as f32;
+
+        // sample index from the end to apply crossfade
+        let tail_ix = total - fade_samples + i;
+        // fade out end
+        output[tail_ix] *= 1.0 - a;
+
+        // fade in beginning
+        output[tail_ix] += samples[i] * a;
+    }
+
+    // trim beginning to avoid double playing
+    output[fade_samples..].to_vec()
+    // output
+}
+
+pub struct CrossfadedLoop {
+    samples: Vec<f32>,
+    pos: usize,
+    channels: u16,
+    sample_rate: u32,
+    fade_in: usize,
+    fade_in_samples: usize
+}
+
+impl CrossfadedLoop {
+    pub fn new<P: AsRef<Path> + Debug>(path: P, fade_ms: u32) -> Self {
+        let file = File::open(&path)
+            .unwrap_or_else(|_| panic!("Failed to load song {:?}", &path));
+
+        let decoder = Decoder::new(BufReader::new(file)).unwrap();
+        let channels = decoder.channels();
+        let sample_rate = decoder.sample_rate();
+
+        let samples = decoder
+            .convert_samples::<f32>()
+            .collect();
+
+        let looping_samples = crossfade_loop_buffer(samples, channels, sample_rate, fade_ms);
+    
+        let fade_frames = (sample_rate * FADE_IN_MS / 1000) as usize;
+        let fade_samples = fade_frames * channels as usize;
+
+        Self {
+            samples: looping_samples,
+            pos: 0,
+            channels,
+            sample_rate,
+            fade_in: fade_samples,
+            fade_in_samples: fade_samples
+        }
+    }
+}
+
+impl Iterator for CrossfadedLoop {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.samples.is_empty() {
+            return None;
+        }
+        let a = if self.fade_in == 0 {
+            1.0
+        } else {
+            let t = (self.fade_in_samples - self.fade_in) as f32 / self.fade_in_samples as f32;
+            t.sqrt()
+        };
+        let sample = self.samples[self.pos] * a;
+        self.pos = (self.pos + 1) % self.samples.len();
+        if self.fade_in > 0 {
+            self.fade_in -= 1;
+        }
+        Some(sample)
+    }
+}
+
+impl Source for CrossfadedLoop {
+    fn current_frame_len(&self) -> Option<usize> { None }
+    fn channels(&self) -> u16 { self.channels }
+    fn sample_rate(&self) -> u32 { self.sample_rate }
+    fn total_duration(&self) -> Option<std::time::Duration> { None }
 }

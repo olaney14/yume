@@ -138,6 +138,8 @@ static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("petal", vec![1.0]),
     ("quieter", vec![0.5, 0.1]),
     ("rain1", vec![1.0]),
+    ("regret", vec![1.0]),
+    ("regret1", vec![1.0]),
     ("ri0", vec![1.0]),
     ("ri1", vec![1.0]),
     ("rolkhruusy", vec![1.0]),
@@ -155,10 +157,14 @@ static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("valenada", vec![1.0]),
     ("veil", vec![1.0]),
     ("warder", vec![1.0]),
+    ("witness", vec![1.0]),
+    ("witness1", vec![1.0]),
     ("wonderland0", vec![1.0]),
     ("wonderland1", vec![1.0]),
     ("wonderland3", vec![1.0]),
     ("wonderland4", vec![1.0]),
+    ("wound", vec![1.0]),
+    ("wound1", vec![1.0])
 ] });
 
 pub struct Debug<'a> {
