@@ -31,4 +31,8 @@ function Player:dreaming() end
 ---@return number
 function Player:random() end
 
+---@param self Player
+---@return integer
+function Player:frame() end
+
 return Player

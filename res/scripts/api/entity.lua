@@ -10,6 +10,7 @@
 ---@field solid boolean
 ---@field walk_over boolean
 ---@field layer integer
+---@field frame integer
 local Entity = {}
 
 ---@param self Entity
@@ -23,6 +24,10 @@ function Entity:id() end
 ---@param self Entity
 ---@param direction Direction
 function Entity:walk(direction) end
+
+---@param self Entity
+---@param direction Direction
+function Entity:walk_noclip(direction) end
 
 ---@param self Entity
 ---@param key string

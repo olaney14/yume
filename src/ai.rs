@@ -42,7 +42,7 @@ pub enum AnimationFrameData {
     FrameSequence{start: u32, len: u32, advance: AnimationAdvancementType, stride: u32},
     Directional(DirectionalAnimationData),
     Follow(FollowAnimationData),
-    LeftRight(LeftRightAnimationData)
+    LeftRight(LeftRightAnimationData),
 }
 
 pub struct Animator {

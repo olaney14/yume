@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="13" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="2">
+ <properties>
+  <property name="clampCamera" type="bool" value="true"/>
+  <property name="edges">{
+	&quot;right&quot;: {
+		&quot;type&quot;: &quot;warp&quot;,
+		&quot;map&quot;: &quot;crushing/inside1.tmx&quot;,
+		&quot;pos&quot;: {
+			&quot;x&quot;: 83,
+			&quot;y&quot;: 11
+		},
+		&quot;transition&quot;: {
+			&quot;type&quot;: &quot;fade&quot;,
+			&quot;music&quot;: false,
+			&quot;speed&quot;: 2
+		}
+	}
+}</property>
+  <property name="music" value="res/audio/music/crushing.ogg"/>
+  <property name="music_speed" type="float" value="0.9"/>
+  <property name="music_volume" type="float" value="0.4"/>
+  <property name="tint" value="0,0,0,150"/>
+ </properties>
+ <tileset firstgid="1" source="../tilesets/crushing.tsx"/>
+ <layer id="1" name="Floor" width="13" height="10">
+  <data encoding="csv">
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+138,138,138,138,138,138,138,138,138,138,0,0,0,
+101,101,102,101,102,101,102,101,102,101,0,0,0,
+109,109,110,109,110,109,110,109,110,109,0,0,0,
+101,101,102,101,102,101,102,101,102,101,0,0,0
+</data>
+ </layer>
+ <layer id="2" name="Props" width="13" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,190,191,192,0,0,0,0,0,0,0,0,0,
+0,198,199,200,0,0,0,0,0,0,0,0,0,
+0,206,207,208,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="7" name="Entities">
+  <object id="1" gid="140" x="32" y="112" width="16" height="16">
+   <properties>
+    <property name="draw" type="bool" value="false"/>
+    <property name="file" value="res/data/entity/entrances/warp.json"/>
+    <property name="warp_map" value="light_water_paths.tmx"/>
+    <property name="warp_x" type="int" value="77"/>
+    <property name="warp_y" type="int" value="55"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <layer id="6" name="Water" width="13" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+195,196,195,196,195,196,195,196,195,196,0,0,0,
+193,194,193,194,193,194,193,194,193,194,0,0,0,
+193,194,193,194,193,194,193,194,193,194,0,0,0,
+193,194,193,194,193,194,193,194,193,194,0,0,0
+</data>
+ </layer>
+ <layer id="3" name="Stairs" width="13" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,163,
+0,0,0,0,0,0,0,0,0,0,0,163,171,
+0,0,0,0,0,0,0,0,0,0,163,171,0,
+0,0,0,0,0,0,0,0,0,163,171,0,0,
+0,0,0,0,0,0,0,0,163,171,0,0,0,
+0,0,0,0,0,0,0,163,171,0,0,0,0,
+0,0,0,0,0,0,0,171,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="4" name="Above" width="13" height="10">
+  <properties>
+   <property name="height" type="int" value="1"/>
+  </properties>
+  <data encoding="csv">
+3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,
+93,93,93,93,93,93,93,93,93,93,93,93,93,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer id="5" name="Collision" width="13" height="10" opacity="0.25">
+  <properties>
+   <property name="draw" type="bool" value="false"/>
+  </properties>
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,1,
+0,0,0,0,0,0,0,0,0,0,0,1,2,
+0,0,0,0,0,0,0,0,0,0,1,2,1,
+0,0,0,0,0,0,0,0,0,1,2,1,0,
+0,0,0,0,0,0,0,0,1,2,1,0,0,
+0,0,0,0,0,0,0,1,2,1,0,0,0,
+1,1,1,1,1,1,1,2,1,1,0,0,0,
+0,0,0,0,0,0,2,1,0,0,1,0,0,
+0,0,0,0,0,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,0,0,0,1,0,0
+</data>
+ </layer>
+</map>

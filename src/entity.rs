@@ -281,10 +281,6 @@ impl Entity {
         self.variables.borrow_mut().insert(name, value);
     }
 
-    // pub fn get_variable(&mut self, name: &str) -> Option<&VariableValue> {
-    //     self.variables.borrow().get(name)
-    // }
-
     pub fn walk(&mut self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
         if let Some(movement) = &self.movement {
             if movement.moving {
@@ -478,6 +474,18 @@ impl Entity {
         return false;
     }
 
+    /// Only checks for bumping against map borders
+    pub fn can_move_in_direction_noclip(&self, direction: Direction, world: &World) -> bool {
+        let mut target_rect = self.collider;
+        target_rect.x += self.x + direction.x() * 16;
+        target_rect.y += self.y + direction.y() * 16;
+        if target_rect.x < 0 || target_rect.y < 0 || target_rect.x + target_rect.w > world.width as i32 * 16 || target_rect.y + target_rect.h > world.height as i32 * 16 {
+            return false;
+        }
+
+        true
+    }
+
     // taken from Player
     pub fn can_move_in_direction(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
         // let pos = self.get_standing_tile();
@@ -527,5 +535,96 @@ impl Entity {
             ((self.x / 16) + self.collider.x / 16).max(0) as u32,
             ((self.y / 16) + self.collider.y / 16).max(0) as u32
         )
+    }
+
+        // used for reflection
+    pub fn walk_noclip(&mut self, direction: Direction, world: &World, player: &Player) -> bool {
+        // same
+        if let Some(movement) = &self.movement {
+            if movement.moving {
+                return false;
+            }
+        }
+
+        // same
+        if let Some(animator) = &mut self.animator {
+            if let AnimationFrameData::Directional(data) = &mut animator.frame_data {
+                if data.direction != direction {
+                    data.direction = direction;
+                    animator.frame = match direction {
+                        Direction::Down => data.down,
+                        Direction::Left => data.left,
+                        Direction::Right => data.right,
+                        Direction::Up => data.up
+                    } * data.frames_per_direction + 1
+                }
+            }
+
+            if let AnimationFrameData::LeftRight(data) = &mut animator.frame_data {
+                if data.direction != direction {
+                    data.direction = direction;
+                    match direction {
+                        Direction::Left => animator.frame = data.left * data.frames_per_direction + 1,
+                        Direction::Right => animator.frame = data.right * data.frames_per_direction + 1,
+                        _ => ()
+                    }
+                }
+            }
+        }
+
+        // new
+        if self.can_move_in_direction_noclip(direction, world) {
+            if self.movement.is_none() {
+                self.movement = Some(EntityMovementInfo {
+                    move_timer: player::MOVE_TIMER_MAX,
+                    moving: false,
+                    speed: 1,
+                    direction,
+                    delay: 0,
+                    move_delay_timer: 0
+                });
+            }
+            let mut movement = self.movement.take().unwrap();
+            movement.moving = true;
+            movement.move_timer = player::MOVE_TIMER_MAX;
+            movement.direction = direction;
+            self.movement = Some(movement);
+            return true;
+        } else {
+            // doesn't check for collision on loop move here
+            // taken straight from Player::move_player()
+            let pos = self.get_standing_tile();
+            let target_pos = (pos.0 as i32 + direction.x(), pos.1 as i32 + direction.y());
+            
+            if world.looping &&
+            (target_pos.0 < 0 || target_pos.1 < 0 || target_pos.0 >= world.width as i32 || target_pos.1 >= world.height as i32) {
+                let mut moved = false;
+
+                if world.loop_horizontal() && target_pos.0 < 0 { // left
+                    self.x = world.width as i32 * 16 - self.collider.x;
+                    moved = true;
+                } else if world.loop_horizontal() && target_pos.0 >= world.width as i32 { // right
+                    self.x = -16 - self.collider.x;
+                    moved = true;
+                } else if world.loop_vertical() && target_pos.1 < 0 { // up
+                    self.y = world.height as i32 * 16 - self.collider.y;
+                    moved = true;
+                } else if world.loop_vertical() && target_pos.1 >= world.height as i32 { // down 
+                    self.y = -16 - self.collider.y;
+                    moved = true;
+                }
+
+                if moved {
+                    let mut movement = self.movement.take().unwrap();
+                    movement.moving = true;
+                    movement.move_timer = player::MOVE_TIMER_MAX;
+                    movement.direction = direction;
+                    self.movement = Some(movement);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

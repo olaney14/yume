@@ -4,7 +4,7 @@ use json::JsonValue;
 use mlua::{AnyUserData, IntoLua, Table, UserData, Value};
 use sdl2::rect::Rect;
 
-use crate::{ai, entity::Entity, game::{self, Direction}, player::Player, tiles, transitions::{Transition, TransitionType}, world::World};
+use crate::{ai::{self, AnimationFrameData::SingleFrame}, entity::Entity, game::{self, Direction}, player::Player, tiles, transitions::{Transition, TransitionType}, world::World};
 
 const UPDATE_CALLBACK: &str = "_update";
 const ONLOAD_CALLBACK: &str = "_load";
@@ -60,7 +60,9 @@ pub enum InteractionType {
 enum ScriptEvent {
     Walk(game::Direction),
     ChangeMap { map: String, transition: LuaTransition, x: i32, y: i32 },
-    PlaySound { sound: String, speed: f32, volume: f32 }
+    PlaySound { sound: String, speed: f32, volume: f32 },
+    // reflection
+    WalkNoclip(game::Direction)
 }
 
 // Update is not included since it is always called regardless of context
@@ -430,7 +432,8 @@ struct LuaEntity {
     speed: u32,
     // call this sub_speed because delay is hard to understand
     delay: u32,
-    script_properties: HashMap<String, JsonValue>
+    script_properties: HashMap<String, JsonValue>,
+    animation_frame: u32
 
     // Methods
     // walk() take in direction
@@ -452,7 +455,8 @@ impl LuaEntity {
             speed: entity.movement.as_ref().map_or(1, |e| e.speed),
             delay: entity.movement.as_ref().map_or(0, |e| e.delay),
             script_properties: entity.script_properties.clone(),
-            walk_over: entity.walk_over
+            walk_over: entity.walk_over,
+            animation_frame: entity.animator.as_ref().map(|a| a.frame).unwrap_or(0)
         }
     }
 
@@ -475,21 +479,29 @@ impl LuaEntity {
             }
         }
 
+        if let Some(animator) = &mut entity.animator {
+            if let SingleFrame(f) = &mut animator.frame_data {
+                *f = self.animation_frame;
+            }
+            animator.frame = self.animation_frame;
+        } else if self.animation_frame != 0 {
+            // if user tries to set frame without an animator
+            entity.animator = Some(ai::Animator::new(SingleFrame(self.animation_frame), entity.tileset, 1));
+        }
+
         for event in self.events.drain(..) {
             match event {
                 ScriptEvent::Walk(direction) => {
                     entity.walk(direction, world, player, entity_list);
+                },
+                ScriptEvent::WalkNoclip(direction) => {
+                    entity.walk_noclip(direction, world, player);
                 },
                 _ => {
                     eprintln!("Warning: Script event {event:?} is not valid in an entity context");
                 }
             }
         }
-
-        // if let Some(walk) = self.walk {
-        //     entity.walk(walk, world, player, entity_list);
-        // }
-        // self.walk = None;
     }
 
     pub fn get_collision(&self, other: Rect) -> bool {
@@ -521,6 +533,7 @@ struct LuaPlayer {
     money: u32,
     dreaming: bool, // readonly
     random: f32, // readonly
+    animation_frame: u32,
 }
 
 impl LuaPlayer {
@@ -536,7 +549,8 @@ impl LuaPlayer {
             frozen: player.frozen,
             money: player.money,
             dreaming: player.dreaming,
-            random: player.random
+            random: player.random,
+            animation_frame: player.animation_info.frame + player.animation_info.frame_row * 3
         }
     }
 
@@ -552,6 +566,7 @@ impl LuaPlayer {
         player.facing = self.facing;
         player.frozen = self.frozen;
         player.money = self.money;
+        player.layer = self.height;
     }
 }
 
@@ -619,6 +634,14 @@ impl UserData for LuaEntity {
             Ok(())
         });
 
+        methods.add_method_mut("walk_noclip", |_, this, direction: AnyUserData| {
+            if let Ok(direction) = direction.borrow::<game::Direction>() {
+                this.events.push(ScriptEvent::WalkNoclip(*direction));
+            }
+
+            Ok(())
+        });
+
         methods.add_method_mut("moving", |_, this, ()| Ok(this.moving));
 
         methods.add_method("meta", |lua, this, key: String| {
@@ -643,6 +666,7 @@ impl UserData for LuaEntity {
         field!(fields, "layer", height, i32);
         field!(fields, "solid", solid, bool);
         field!(fields, "walk_over", walk_over, bool);
+        field!(fields, "frame", animation_frame, u32);
     }
 }
 
@@ -653,6 +677,7 @@ impl UserData for LuaPlayer {
         methods.add_method("sub_speed", |_, this, ()| Ok(this.sub_speed));
         methods.add_method("dreaming", |_, this, ()| Ok(this.dreaming));
         methods.add_method("random", |_, this, ()| Ok(this.random));
+        methods.add_method("frame", |_, this, ()| Ok(this.animation_frame));
     }
 
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {

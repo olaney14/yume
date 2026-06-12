@@ -708,6 +708,8 @@ impl<'a> Player<'a> {
         if world.song.is_some() {
             self.unlock_song(world.song.as_ref().unwrap().name.clone(), world.song.as_ref().unwrap().speed);
         }
+
+        self.layer = 0;
     }
     
     /// Speed, delay
