@@ -6,7 +6,8 @@ pub enum Effect {
     Speed,
     Fire,
     Bat,
-    Security
+    Security,
+    Rabbit
 }
 
 impl Effect {
@@ -17,6 +18,7 @@ impl Effect {
             "fire" | "Fire" => Some(Self::Fire),
             "bat" | "Bat" => Some(Self::Bat),
             "security" | "Security" => Some(Self::Security),
+            "rabbit" => Some(Self::Rabbit),
             _ => None
         }
     }
@@ -27,7 +29,8 @@ impl Effect {
             Self::Speed => "shoes",
             Self::Glasses => "glasses",
             Self::Bat => "bat",
-            Self::Security => "security"
+            Self::Security => "security",
+            Self::Rabbit => "rabbit",
         }
     }
 
@@ -38,7 +41,8 @@ impl Effect {
             Speed => "Put on running shoes",
             Fire => "Catch on fire",
             Bat => "Wield a bat",
-            Security => "Wear a reflective vest"
+            Security => "Wear a reflective vest",
+            Rabbit => "Turn into a rabbit",
         }
     }
 
@@ -49,7 +53,8 @@ impl Effect {
             Speed => "Running shoes",
             Fire => "Fire",
             Bat => "Bat",
-            Security => "Security Guard"
+            Security => "Security Guard",
+            Rabbit => "Rabbit"
         }
     }
 
@@ -61,14 +66,15 @@ impl Effect {
             Speed => 1,
             Fire => 2,
             Bat => 3,
-            Security => 4
+            Security => 4,
+            Rabbit => 5
         }
     }
 
     pub fn apply(&self, player: &mut Player) {
         use Effect::*;
         match self {
-            Speed => {
+            Speed | Rabbit => {
                 player.speed *= 2;
                 player.animation_info.animation_speed = 4;
             },
@@ -80,7 +86,7 @@ impl Effect {
     pub fn remove(&self, player: &mut Player) {
         use Effect::*;
         match self {
-            Speed => {
+            Speed | Rabbit => {
                 player.speed /= 2;
                 player.animation_info.animation_speed = 7;
             },

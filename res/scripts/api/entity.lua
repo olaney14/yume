@@ -17,6 +17,7 @@ local Entity = {}
 ---@return boolean
 function Entity:moving() end
 
+--- Return a unique ID defined in the map editor
 ---@param self Entity
 ---@return integer
 function Entity:id() end
@@ -29,6 +30,7 @@ function Entity:walk(direction) end
 ---@param direction Direction
 function Entity:walk_noclip(direction) end
 
+--- Define meta properties in the meta tag in tiled and access them with this method
 ---@param self Entity
 ---@param key string
 ---@return any?

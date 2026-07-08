@@ -6,14 +6,17 @@
 ---@class Direction
 local Direction = {}
 
+--- Return the x component of the unit vector the direction represents
 ---@param self Direction
 ---@return integer
 function Direction:x() end
 
+--- Return the y component of the unit vector the direction represents
 ---@param self Direction
 ---@return integer
 function Direction:y() end
 
+--- Return a string representation of the direction
 ---@param self Direction
 ---@return string
 function Direction:tostring() end

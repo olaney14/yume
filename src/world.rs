@@ -394,7 +394,7 @@ impl<'a> World<'a> {
         }
 
         if let Some(effect) = &self.special_context.effect_get {
-            sfx.play_ex("effect_get", 1.0, 0.5);
+            sfx.play_ex("flourish3", 1.0, 2.0);
             player.frozen = true;
             player.give_effect(effect.clone());
             self.paused = true;
@@ -650,7 +650,7 @@ impl<'a> World<'a> {
             ids
         }).collect();
 
-        let mut draw_player = self.entity_draw_order.get((player.layer - self.layer_min) as usize).unwrap().len();
+        let mut draw_player = self.entity_draw_order.get((player.layer - self.layer_min) as usize).unwrap_or(&vec![]).len();
         // if draw_player > 0 {
         //     draw_player -= 1;
         // }

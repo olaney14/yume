@@ -442,6 +442,11 @@ impl Entity {
                     self.y = (self.y as f32 / 16.0).round() as i32 * 16; 
                     movement.move_timer = player::MOVE_TIMER_MAX;
                     movement.moving = false;
+                    if on_move {
+                        if let Some(animator) = &mut self.animator {
+                            animator.center();
+                        }
+                    }
                 }
 
                 movement.move_delay_timer = movement.delay as i32;

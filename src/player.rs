@@ -301,6 +301,7 @@ impl<'a> Player<'a> {
         self.effect_textures.insert(Effect::Fire, Texture::from_file(&PathBuf::from("res/textures/player/fire.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Bat, Texture::from_file(&PathBuf::from("res/textures/player/bat.png"), creator).unwrap());
         self.effect_textures.insert(Effect::Security, Texture::from_file(&PathBuf::from("res/textures/player/security.png"), creator).unwrap());
+        self.effect_textures.insert(Effect::Rabbit, Texture::from_file(&PathBuf::from("res/textures/player/rabbit.png"), creator).unwrap());
     }
 
     pub fn unlock_song(&mut self, name: String, speed: f32) {
@@ -644,7 +645,7 @@ impl<'a> Player<'a> {
             _ => unreachable!()
         };
 
-        let up = world.get_special_in_layer(self.layer, tile_x, tile_y - 1);
+        let up = if tile_y > 0 { world.get_special_in_layer(self.layer, tile_x, tile_y - 1) } else { vec![] };
         let down = world.get_special_in_layer(self.layer, tile_x, tile_y + 1);
 
         // prioritize up over down

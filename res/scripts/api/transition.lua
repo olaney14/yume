@@ -4,12 +4,13 @@
 ---@diagnostic disable: missing-fields
 
 ---@class Transition
----@field kind string
+---@field type string
 ---@field speed integer
 ---@field delay integer
 ---@field fade_music boolean
 ---@field hold integer
 ---@field reset_music boolean
+---@field scale number
 
 ---@class TransitionClass
 ---@field new fun(): Transition

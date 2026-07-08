@@ -344,6 +344,7 @@ fn main() {
                 player.set_y(y * 16);
             }
 
+            player.on_level_transition(&mut world);
             world.onload(&player, &sink, &mut scripts);
             scripts.on_load();
 
@@ -352,8 +353,6 @@ fn main() {
                 ui.clear = false;
                 ui.open = false;
             }
-
-            player.on_level_transition(&mut world);
         }
 
         if ui.menu_state.should_quit {

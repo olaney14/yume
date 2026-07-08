@@ -207,7 +207,6 @@ impl Animator {
                     // TODO: add easing
                     let look_offset = match &data.axes {
                         &world::Axis::Horizontal => {
-                            
                             (data.follow_vec.0, 0)
                         }
                         &world::Axis::Vertical => {
@@ -224,6 +223,66 @@ impl Animator {
         }
 
         return self.frame;
+    }
+
+    // use when e.g. entity stops walking
+    pub fn center(&mut self) {
+        self.timer = self.speed as i32;
+        match &self.frame_data {
+            AnimationFrameData::SingleFrame(f) => { self.frame = *f },
+            AnimationFrameData::FrameSequence { start, len, advance, stride } => {
+                match advance {
+                    AnimationAdvancementType::Loop => {
+                        self.frame = *start;
+                    },
+                    AnimationAdvancementType::Cycle(_) => {
+                        // so that walking animations center on idle
+                        self.frame = *start + *len / 2;
+                    }
+                }
+            },
+            AnimationFrameData::Directional(data) => {
+                let row = match data.direction {
+                    Direction::Down => data.down,
+                    Direction::Up => data.up,
+                    Direction::Left => data.left,
+                    Direction::Right => data.right
+                };
+
+                match data.advance {
+                    AnimationAdvancementType::Loop => {
+                        self.frame = row * data.frames_per_direction;
+                    },
+                    AnimationAdvancementType::Cycle(_) => {
+                        // ^
+                        self.frame = row * data.frames_per_direction + data.frames_per_direction / 2;
+                    }
+                }
+            },
+            AnimationFrameData::LeftRight(data) => {
+                let row = match data.direction {
+                    Direction::Left => data.left,
+                    Direction::Right => data.right,
+                    _ => match data.last_horizontal_direction {
+                        Direction::Left => data.left,
+                        Direction::Right => data.right,
+                        _ => unreachable!()
+                    }
+                };
+
+                match data.advance {
+                    AnimationAdvancementType::Loop => {
+                        self.frame = row * data.frames_per_direction;
+                    },
+                    AnimationAdvancementType::Cycle(_) => {
+                        self.frame = row * data.frames_per_direction + data.frames_per_direction / 2;
+                    }
+                }
+            },
+            AnimationFrameData::Follow(data) => {
+                self.frame = data.center;
+            }
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="19">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="24" height="24" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="24">
  <properties>
   <property name="defaultPos" value="12,11"/>
   <property name="music" value="res/audio/music/newworld.mp3"/>
@@ -10,7 +10,7 @@
  <tileset firstgid="46" source="entity/misc_entities.tsx"/>
  <tileset firstgid="74" source="bedroom.tsx"/>
  <imagelayer id="2" name="Background" offsetx="48" offsety="54">
-  <image source="../textures/image/nexus_bg_new.png" width="256" height="256"/>
+  <image source="../textures/image/nexus_bg_4.png" width="272" height="272"/>
   <properties>
    <property name="draw" type="bool" value="true"/>
    <property name="looping" type="bool" value="false"/>
@@ -47,24 +47,6 @@
 </data>
  </layer>
  <objectgroup id="3" name="Objects">
-  <object id="9" gid="31" x="272" y="96" width="16" height="32">
-   <properties>
-    <property name="collider">{
-	&quot;x&quot;: 0,
-	&quot;y&quot;: 16,
-	&quot;w&quot;: 16,
-	&quot;h&quot;: 16
-}</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
-    <property name="height" type="int" value="0"/>
-    <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="15"/>
-    <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="sticks.tmx"/>
-    <property name="warp_x" type="int" value="46"/>
-    <property name="warp_y" type="int" value="19"/>
-   </properties>
-  </object>
   <object id="10" gid="11" x="176" y="192" width="16" height="32">
    <properties>
     <property name="collider">{
@@ -82,7 +64,7 @@
     <property name="warp_y" type="int" value="4"/>
    </properties>
   </object>
-  <object id="16" gid="43" x="80" y="96" width="16" height="32">
+  <object id="20" gid="43" x="80" y="96" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -90,17 +72,19 @@
 	&quot;w&quot;: 16,
 	&quot;h&quot;: 16
 }</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
     <property name="height" type="int" value="0"/>
+    <property name="meta">{
+	&quot;warp_map&quot;: &quot;scrapyard.tmx&quot;,
+	&quot;warp_x&quot;: 43,
+	&quot;warp_y&quot;: 22,
+	&quot;start_frame&quot;: 27
+}</property>
+    <property name="script" value="nexus_door.lua"/>
     <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="27"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="scrapyard.tmx"/>
-    <property name="warp_x" type="int" value="43"/>
-    <property name="warp_y" type="int" value="22"/>
    </properties>
   </object>
-  <object id="17" gid="40" x="80" y="288" width="16" height="32">
+  <object id="21" gid="40" x="80" y="288" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -108,17 +92,19 @@
 	&quot;w&quot;: 16,
 	&quot;h&quot;: 16
 }</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
     <property name="height" type="int" value="0"/>
+    <property name="meta">{
+	&quot;warp_map&quot;: &quot;paranoia.tmx&quot;,
+	&quot;warp_x&quot;: 26,
+	&quot;warp_y&quot;: 22,
+	&quot;start_frame&quot;: 24
+}</property>
+    <property name="script" value="nexus_door.lua"/>
     <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="24"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="paranoia.tmx"/>
-    <property name="warp_x" type="int" value="26"/>
-    <property name="warp_y" type="int" value="22"/>
    </properties>
   </object>
-  <object id="18" gid="22" x="272" y="288" width="16" height="32">
+  <object id="22" gid="22" x="272" y="288" width="16" height="32">
    <properties>
     <property name="collider">{
 	&quot;x&quot;: 0,
@@ -126,14 +112,36 @@
 	&quot;w&quot;: 16,
 	&quot;h&quot;: 16
 }</property>
-    <property name="file" value="res/data/entity/entrances/nexus_door.json"/>
     <property name="height" type="int" value="0"/>
+    <property name="meta">{
+	&quot;warp_map&quot;: &quot;flags.tmx&quot;,
+	&quot;warp_x&quot;: 14,
+	&quot;warp_y&quot;: 6,
+	&quot;start_frame&quot;: 6
+}</property>
+    <property name="script" value="nexus_door.lua"/>
     <property name="solid" type="bool" value="true"/>
-    <property name="start_frame" type="int" value="6"/>
     <property name="walk_behind" type="bool" value="true"/>
-    <property name="warp_map" value="flags.tmx"/>
-    <property name="warp_x" type="int" value="14"/>
-    <property name="warp_y" type="int" value="6"/>
+   </properties>
+  </object>
+  <object id="23" gid="31" x="272" y="96" width="16" height="32">
+   <properties>
+    <property name="collider">{
+	&quot;x&quot;: 0,
+	&quot;y&quot;: 16,
+	&quot;w&quot;: 16,
+	&quot;h&quot;: 16
+}</property>
+    <property name="height" type="int" value="0"/>
+    <property name="meta">{
+	&quot;warp_map&quot;: &quot;sticks.tmx&quot;,
+	&quot;warp_x&quot;: 46,
+	&quot;warp_y&quot;: 19,
+	&quot;start_frame&quot;: 15
+}</property>
+    <property name="script" value="nexus_door.lua"/>
+    <property name="solid" type="bool" value="true"/>
+    <property name="walk_behind" type="bool" value="true"/>
    </properties>
   </object>
  </objectgroup>

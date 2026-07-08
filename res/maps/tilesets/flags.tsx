@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.0" name="flags" tilewidth="16" tileheight="16" tilecount="100" columns="10">
- <image source="../../textures/tiles/flags.png" width="160" height="160"/>
+<tileset version="1.10" tiledversion="1.11.0" name="flags" tilewidth="16" tileheight="16" tilecount="140" columns="10">
+ <image source="../../textures/tiles/flags.png" width="160" height="224"/>
  <tile id="3">
   <properties>
    <property name="blocking" type="bool" value="true"/>
@@ -143,6 +143,42 @@
    <property name="animation">{
 	&quot;type&quot;: &quot;sequence&quot;,
 	&quot;start&quot;: 81,
+	&quot;length&quot;: 5,
+	&quot;stride&quot;: 2,
+	&quot;speed&quot;: 4,
+	&quot;repeat&quot;: &quot;loop&quot;
+}</property>
+  </properties>
+ </tile>
+ <tile id="100">
+  <properties>
+   <property name="animation">{
+	&quot;type&quot;: &quot;sequence&quot;,
+	&quot;start&quot;: 100,
+	&quot;length&quot;: 5,
+	&quot;stride&quot;: 2,
+	&quot;speed&quot;: 4,
+	&quot;repeat&quot;: &quot;loop&quot;
+}</property>
+  </properties>
+ </tile>
+ <tile id="101">
+  <properties>
+   <property name="animation">{
+	&quot;type&quot;: &quot;sequence&quot;,
+	&quot;start&quot;: 101,
+	&quot;length&quot;: 5,
+	&quot;stride&quot;: 2,
+	&quot;speed&quot;: 4,
+	&quot;repeat&quot;: &quot;loop&quot;
+}</property>
+  </properties>
+ </tile>
+ <tile id="111">
+  <properties>
+   <property name="animation">{
+	&quot;type&quot;: &quot;sequence&quot;,
+	&quot;start&quot;: 111,
 	&quot;length&quot;: 5,
 	&quot;stride&quot;: 2,
 	&quot;speed&quot;: 4,

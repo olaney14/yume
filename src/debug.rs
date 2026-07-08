@@ -87,6 +87,7 @@ impl ProfileInfo {
 
 static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("01", vec![1.0]),
+    ("actor", vec![1.0]),
     ("animated0", vec![1.0]),
     ("atmosphere.og", vec![1.0]),
     ("battlefield", vec![1.0]),
@@ -107,8 +108,10 @@ static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("dynamic", vec![1.0]),
     ("elapse", vec![1.0]),
     ("emergency", vec![1.0]),
+    ("energy", vec![1.0]),
     ("factory_ambience", vec![1.0]),
     ("fate", vec![1.0]),
+    ("festivals", vec![1.0]),
     ("field", vec![1.0]),
     ("fish", vec![1.0]),
     ("flight0", vec![1.0]),
@@ -117,6 +120,9 @@ static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("flotation3", vec![1.0]),
     ("flotation4", vec![1.0]),
     ("forest", vec![1.0]),
+    ("forest2", vec![1.0]),
+    ("forest3", vec![1.0]),
+    ("forest4", vec![1.0]),
     ("forget", vec![1.0]),
     ("ghost", vec![1.0]),
     ("heart", vec![1.0]),
@@ -285,6 +291,7 @@ impl<'a> Debug<'a> {
             player.give_effect(effect::Effect::Glasses);
             player.give_effect(effect::Effect::Security);
             player.give_effect(effect::Effect::Speed);
+            player.give_effect(effect::Effect::Rabbit);
             sfx.play("click-21156");
         }
 

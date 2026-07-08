@@ -1,10 +1,10 @@
 use std::{collections::HashMap};
 
 use json::JsonValue;
-use mlua::{AnyUserData, IntoLua, Table, UserData, Value};
+use mlua::{AnyUserData, IntoLua, MetaMethod, Table, UserData, Value};
 use sdl2::rect::Rect;
 
-use crate::{ai::{self, AnimationFrameData::SingleFrame}, entity::Entity, game::{self, Direction}, player::Player, tiles, transitions::{Transition, TransitionType}, world::World};
+use crate::{ai::{self, AnimationFrameData::SingleFrame}, effect, entity::Entity, game::{self, Direction}, player::Player, tiles, transitions::{Transition, TransitionType}, world::World};
 
 const UPDATE_CALLBACK: &str = "_update";
 const ONLOAD_CALLBACK: &str = "_load";
@@ -62,7 +62,8 @@ enum ScriptEvent {
     ChangeMap { map: String, transition: LuaTransition, x: i32, y: i32 },
     PlaySound { sound: String, speed: f32, volume: f32 },
     // reflection
-    WalkNoclip(game::Direction)
+    WalkNoclip(game::Direction),
+    GiveEffect(effect::Effect),
 }
 
 // Update is not included since it is always called regardless of context
@@ -89,6 +90,9 @@ impl ScriptingContext {
         self.world.looping_y = world.loop_vertical();
 
         self.world.entities.clear();
+
+        self.world.session_random = world.random.session_random;
+        self.world.level_random = world.random.level_random;
 
         for entity in world.entities.as_ref().unwrap().iter() {
             self.world.entities.push(LuaEntity::from_entity(entity));
@@ -125,6 +129,12 @@ impl ScriptingContext {
                 ScriptEvent::PlaySound { sound, speed, volume } => {
                     world.special_context.play_sounds.push((sound, speed, volume));
                 },
+                ScriptEvent::GiveEffect(effect) => {
+                    if !player.has_effect(&effect) {
+                        // this one triggers the cutscene
+                        world.special_context.effect_get = Some(effect);
+                    }
+                }
                 _ => {
                     eprintln!("Warning: Script event {event:?} is not valid in a world context");
                 }
@@ -534,6 +544,7 @@ struct LuaPlayer {
     dreaming: bool, // readonly
     random: f32, // readonly
     animation_frame: u32,
+    effect: String,
 }
 
 impl LuaPlayer {
@@ -550,7 +561,8 @@ impl LuaPlayer {
             money: player.money,
             dreaming: player.dreaming,
             random: player.random,
-            animation_frame: player.animation_info.frame + player.animation_info.frame_row * 3
+            animation_frame: player.animation_info.frame + player.animation_info.frame_row * 3,
+            effect: player.current_effect.clone().map_or("none".to_string(), |a| a.parsable().to_string())
         }
     }
 
@@ -621,6 +633,16 @@ impl UserData for LuaWorld {
             }
             Ok(()) 
         });
+        methods.add_method("session_random", |_, this, ()| Ok(this.session_random));
+        methods.add_method("level_random", |_, this, ()| Ok(this.level_random));
+        methods.add_method_mut("give_effect", |_, this, effect: String| {
+            if let Some(effect) = effect::Effect::parse(&effect) {
+                this.events.push(ScriptEvent::GiveEffect(effect));
+            } else {
+                eprintln!("Error: invalid effect name `{}`", effect);
+            }
+            Ok(())
+        });
     }
 }
 
@@ -678,6 +700,7 @@ impl UserData for LuaPlayer {
         methods.add_method("dreaming", |_, this, ()| Ok(this.dreaming));
         methods.add_method("random", |_, this, ()| Ok(this.random));
         methods.add_method("frame", |_, this, ()| Ok(this.animation_frame));
+        methods.add_method("effect", |_, this, ()| Ok(this.effect.clone()));
     }
 
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
@@ -714,6 +737,13 @@ impl UserData for game::Direction {
         methods.add_method("y", |_, this, ()| {
             Ok(this.y())
         });
+
+        methods.add_meta_method(MetaMethod::Eq, |_, this, other: AnyUserData| {
+            if let Ok(other) = other.borrow::<Direction>() {
+                return Ok(*other == *this);
+            }
+            Ok(false)
+        });
     }
 }
 
@@ -724,7 +754,8 @@ struct LuaTransition {
     delay: i32,
     fade_music: bool,
     hold: u32,
-    reset_music: bool
+    reset_music: bool,
+    scale: f32
 }
 
 impl Default for LuaTransition {
@@ -735,14 +766,18 @@ impl Default for LuaTransition {
             fade_music: true,
             delay: 0,
             hold: 0,
-            reset_music: false
+            reset_music: false,
+            scale: 2.0
         }
     }
 }
 
 impl LuaTransition {
     fn as_transition(&self) -> Transition {
-        let kind = TransitionType::from_string(&self.kind).unwrap_or(TransitionType::Fade);
+        let mut kind = TransitionType::from_string(&self.kind).unwrap_or(TransitionType::Fade);
+        if let TransitionType::Zoom(z) = &mut kind {
+            *z = self.scale;
+        }
 
         Transition::new(kind, self.speed, self.delay, self.fade_music, self.hold, self.reset_music)
     }
@@ -756,5 +791,6 @@ impl UserData for LuaTransition {
         field!(fields, "fade_music", fade_music, bool);
         field!(fields, "hold", hold, u32);
         field!(fields, "reset_music", reset_music, bool);
+        field!(fields, "scale", scale, f32);
     }
 }

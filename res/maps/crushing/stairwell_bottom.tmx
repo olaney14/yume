@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="13" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="2">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="13" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="3">
  <properties>
   <property name="clampCamera" type="bool" value="true"/>
   <property name="edges">{
@@ -43,22 +43,22 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,190,191,192,0,0,0,0,0,0,0,0,0,
-0,198,199,200,0,0,0,0,0,0,0,0,0,
-0,206,207,208,0,0,0,0,0,0,0,0,0,
+0,115,116,117,0,0,0,0,0,0,0,0,0,
+0,123,124,125,0,0,0,0,0,0,0,0,0,
+0,131,132,133,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
  <objectgroup id="7" name="Entities">
-  <object id="1" gid="140" x="32" y="112" width="16" height="16">
+  <object id="2" gid="140" x="176" y="144" width="16" height="16">
    <properties>
     <property name="draw" type="bool" value="false"/>
-    <property name="file" value="res/data/entity/entrances/warp.json"/>
-    <property name="warp_map" value="light_water_paths.tmx"/>
-    <property name="warp_x" type="int" value="77"/>
-    <property name="warp_y" type="int" value="55"/>
+    <property name="file" value="res/data/entity/entrances/walk_warp.json"/>
+    <property name="warp_map" value="stairwell_maze.tmx"/>
+    <property name="warp_x" type="int" value="19"/>
+    <property name="warp_y" type="int" value="0"/>
    </properties>
   </object>
  </objectgroup>
@@ -85,9 +85,9 @@
 0,0,0,0,0,0,0,0,0,163,171,0,0,
 0,0,0,0,0,0,0,0,163,171,0,0,0,
 0,0,0,0,0,0,0,163,171,0,0,0,0,
-0,0,0,0,0,0,0,171,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,171,0,0,165,0,0,
+0,0,0,0,0,0,0,0,0,0,173,165,0,
+0,0,0,0,0,0,0,0,0,0,0,173,165
 </data>
  </layer>
  <layer id="4" name="Above" width="13" height="10">
@@ -118,10 +118,10 @@
 0,0,0,0,0,0,0,0,0,1,2,1,0,
 0,0,0,0,0,0,0,0,1,2,1,0,0,
 0,0,0,0,0,0,0,1,2,1,0,0,0,
-1,1,1,1,1,1,1,2,1,1,0,0,0,
-0,0,0,0,0,0,2,1,0,0,1,0,0,
-0,0,0,0,0,0,0,0,0,0,1,0,0,
-0,0,0,0,0,0,0,0,0,0,1,0,0
+1,1,1,1,1,1,1,2,1,1,1,0,0,
+0,0,0,0,0,0,2,1,0,0,2,1,0,
+0,0,0,0,0,0,0,0,0,0,1,2,1,
+0,0,0,0,0,0,0,0,0,0,1,1,1
 </data>
  </layer>
 </map>

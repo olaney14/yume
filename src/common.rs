@@ -49,3 +49,11 @@ impl<T> Drop for Slot<T> {
         unsafe { self.inner.assume_init_drop(); }
     }
 }
+
+// fn sabs(x: f32, lambda: f32) -> f32 {
+//     x.abs() + (0.0f32.max(lambda - x.abs())).powi(2) / (2.0 * lambda)
+// }
+
+pub fn smax(x: f32, y: f32, lambda: f32) -> f32 {
+    x.max(y) + 0.0f32.max(lambda - (x - y).abs()).powi(2) / (4.0 * lambda)
+}
