@@ -59,7 +59,7 @@ function World:wrap(x, y) end
 ---@param self World
 ---@param x integer
 ---@param y integer
----@return integer
+---@return integer, integer
 function World:wrap_tile(x, y) end
 
 --- Return if there is any collision at x, y
@@ -103,5 +103,12 @@ function World:level_random() end
 --- Give the player an effect if they do not already have it
 ---@param effect string
 function World:give_effect(effect) end
+
+---@param self World
+---@param x integer
+---@param y integer
+---@param height integer
+---@return Tile[]
+function World:get_tiles(x, y, height) end
 
 return World

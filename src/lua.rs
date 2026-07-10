@@ -303,6 +303,13 @@ struct LuaTileLayer {
 }
 
 #[derive(Default, Debug)]
+struct LuaTile {
+    pub id: i32,
+    pub tileset: i32,
+    pub blocking: bool
+}
+
+#[derive(Default, Debug)]
 struct LuaTileWorld {
     pub width: u32,
     pub height: u32,
@@ -643,6 +650,28 @@ impl UserData for LuaWorld {
             }
             Ok(())
         });
+        methods.add_method("get_tiles", |lua, this, (x, y, height): (i32, i32, i32)| {
+            let table = lua.create_table()?;
+            
+            if x < 0 || y < 0 || x >= this.width as i32 || y >= this.height as i32 {
+                // Return nothing on out of bounds
+                return Ok(table);
+            }
+
+            let ix = (y * this.width as i32 + x) as usize;
+
+            for (i, layer) in this.tilemap.layers.iter().filter(|l| l.height == height).enumerate() {
+                let tile = layer.tiles[ix];
+                let collision = layer.collision[ix];
+                table.set(i + 1, LuaTile {
+                    id: tile.id,
+                    tileset: tile.tileset,
+                    blocking: collision
+                })?;
+            }
+
+            Ok(table)
+        });
     }
 }
 
@@ -744,6 +773,14 @@ impl UserData for game::Direction {
             }
             Ok(false)
         });
+    }
+}
+
+impl UserData for LuaTile {
+    fn add_methods<M: mlua::prelude::LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("id", |_, this, ()| { Ok(this.id) });
+        methods.add_method("tileset", |_, this, ()| { Ok(this.tileset) });
+        methods.add_method("blocking", |_, this, ()| { Ok(this.blocking) });
     }
 }
 

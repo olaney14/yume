@@ -43,7 +43,8 @@ const MAIN_MENU_WIDTH: u32 = 5;
 const MAIN_MENU_HEIGHT: u32 = 4;
 const MAIN_MENU_Y: u32 = 175;
 const MAIN_MENU_TITLE_Y: u32 = 25;
-const MAIN_MENU_TITLE: &str = "res/textures/ui/title.png";
+const MAIN_MENU_TITLE: &str = "res/textures/ui/titlenew.png";
+const VERSION_STRING: &str = "v. a93";
 
 pub enum MenuType {
     Home,
@@ -634,6 +635,10 @@ impl<'a> Ui<'a> {
                         None, 
                         Rect::new(centered_x as i32, y as i32, self.theme.title.width, self.theme.title.height)
                     ).unwrap();
+
+                    let version_string_width = self.theme.font.string_width(VERSION_STRING);
+                    let version_x = (state.screen_extents.0 / 2 - version_string_width / 2) as i32;
+                    self.theme.font.draw_string(canvas, VERSION_STRING, (version_x, (MAIN_MENU_TITLE_Y + self.theme.title.height) as i32));
 
                     let centered_x = (state.screen_extents.0 / 2) - (MAIN_MENU_WIDTH * 8);
                     let y = MAIN_MENU_Y;

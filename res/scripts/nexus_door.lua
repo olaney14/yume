@@ -17,7 +17,6 @@ function _load(world, this, player)
     
     -- if the player spawns directly below the door, assume they came from the other side
     if (player.y - this.y) // 16 == 1 and (player.x - this.x) // 16 == 0 then
-        print("detected")
         player.frozen = true
         this.frame = start_frame + 2
         close_timer = 64

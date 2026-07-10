@@ -41,9 +41,9 @@ mod world;
 
 pub const START_MAP: &str = "res/maps/bedroom.tmx";
 pub const DEBUG: bool = true;
-pub const MAIN_MENU_MUSIC: &str = "res/audio/music/travel.ogg";
-pub const MAIN_MENU_MUSIC_SPEED: f32 = 0.25;
-pub const MAIN_MENU_MUSIC_VOLUME: f32 = 0.5;
+pub const MAIN_MENU_MUSIC: &str = "res/audio/music/forget.ogg";
+pub const MAIN_MENU_MUSIC_SPEED: f32 = 0.8;
+pub const MAIN_MENU_MUSIC_VOLUME: f32 = 0.75;
 pub const MAIN_MENU_THEME: &str = "res/textures/ui/themes/system.png";
 pub const MAIN_MENU_FONT: &str = "res/textures/ui/fonts/menu.png";
 
