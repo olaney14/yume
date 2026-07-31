@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, convert::identity, rc::Rc};
 
 use json::JsonValue;
 use sdl2::rect::Rect;
@@ -11,7 +11,7 @@ pub struct TriggeredAction {
     pub run_on_next_loop: bool
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Trigger {
     Use,
     Walk,
@@ -74,7 +74,7 @@ impl Trigger {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -90,21 +90,13 @@ fn parse_trigger_type(source: &str) -> Option<Trigger> {
     }
 }
 
-pub fn parse_trigger(source: &mut json::JsonValue) -> Option<Trigger> {
+pub fn parse_trigger(source: &json::JsonValue) -> Option<Trigger> {
     let mut base = None;
 
     if source.is_string() {
         return parse_trigger_type(source.as_str().unwrap());
     } else if source.is_array() {
-        let mut triggers = Vec::new();
-        let mut trigger = source.pop();
-
-        while !trigger.is_null() {
-            triggers.push(parse_trigger(&mut trigger));
-            trigger = source.pop();
-        }
-
-        base = Some(Trigger::Or(triggers.into_iter().filter_map(|x| x).collect()));
+        base = Some(Trigger::Or(source.members().map(parse_trigger).filter_map(identity).collect()));
     }
 
     if source["type"].is_string() {
@@ -117,15 +109,7 @@ pub fn parse_trigger(source: &mut json::JsonValue) -> Option<Trigger> {
             }
         }
     } else if source["type"].is_array() {
-        let mut triggers = Vec::new();
-        let mut trigger = source["type"].pop();
-
-        while !trigger.is_null() {
-            triggers.push(parse_trigger(&mut trigger));
-            trigger = source["type"].pop();
-        }
-
-        base = Some(Trigger::Or(triggers.into_iter().filter_map(|x| x).collect()));
+        base = Some(Trigger::Or(source["type"].members().map(parse_trigger).filter_map(identity).collect()));
     }
 
     if source["side"].is_string() && base.is_some() {
@@ -135,7 +119,7 @@ pub fn parse_trigger(source: &mut json::JsonValue) -> Option<Trigger> {
         }
     }
     
-    return base;
+    base
 }
 
 pub struct EntityMovementInfo {
@@ -179,40 +163,40 @@ impl VariableValue {
     pub fn as_i32(&self, world: Option<&World>, player: Option<&Player>) -> Option<i32> {
         match self {
             Self::Int(prop) => {
-                return prop.get(player, world);
+                prop.get(player, world)
             },
-            Self::LitInt(i) => return Some(*i),
-            _ => return None
+            Self::LitInt(i) => Some(*i),
+            _ => None
         }
     }
 
     pub fn as_f32(&self, world: Option<&World>, player: Option<&Player>) -> Option<f32> {
         match self {
             Self::Float(prop) => {
-                return prop.get(player, world);
+                prop.get(player, world)
             },
-            Self::LitFloat(f) => return Some(*f),
-            _ => return None
+            Self::LitFloat(f) => Some(*f),
+            _ => None
         }
     }
 
     pub fn as_bool(&self, world: Option<&World>, player: Option<&Player>) -> Option<bool> {
         match self {
             Self::Bool(prop) => {
-                return prop.get(player, world);
+                prop.get(player, world)
             },
-            Self::LitBool(b) => return Some(*b),
-            _ => return None
+            Self::LitBool(b) => Some(*b),
+            _ => None
         }
     }
 
     pub fn as_string(&self, world: Option<&World>, player: Option<&Player>) -> Option<String> {
         match self {
             Self::String(prop) => {
-                return prop.get(player, world);
+                prop.get(player, world)
             },
-            Self::LitString(s) => return Some(s.clone()),
-            _ => return None
+            Self::LitString(s) => Some(s.clone()),
+            _ => None
         }
     }
 }
@@ -274,7 +258,7 @@ impl Entity {
     }
 
     pub fn get_height(&self) -> i32 {
-        return self.height;
+        self.height
     }
 
     pub fn set_variable(&mut self, name: String, value: VariableValue) {
@@ -364,7 +348,7 @@ impl Entity {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn init_movement(&mut self) {
@@ -476,7 +460,7 @@ impl Entity {
             return true;
         }
 
-        return false;
+        false
     }
 
     /// Only checks for bumping against map borders
@@ -493,11 +477,6 @@ impl Entity {
 
     // taken from Player
     pub fn can_move_in_direction(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
-        // let pos = self.get_standing_tile();
-        // let target_tile = (
-        //     (pos.0 as i32 + direction.x()).max(0) as u32,
-        //     (pos.1 as i32 + direction.y()).max(0) as u32,
-        // );
         let mut target_rect = self.collider;
         target_rect.x += self.x + direction.x() * 16;
         target_rect.y += self.y + direction.y() * 16;
@@ -505,21 +484,10 @@ impl Entity {
             return false;
         }
 
-        // TODO maybe you should fix this . you are very naughty
-        // if target_tile == player.occupied_tile {
-        //     return false;
-        // }
-
-        return !world.collide_entity(target_rect, player, self.height, entity_list);
+        !world.collide_entity(target_rect, player, self.height, entity_list)
     }
 
-    // TODO: replace can_move_in_direction with this
     pub fn can_move_in_direction_looping(&self, direction: Direction, world: &World, player: &Player, entity_list: &Vec<Entity>) -> bool {
-        // let pos = self.get_standing_tile();
-        // let target_tile = (
-        //     (pos.0 as i32 + direction.x()).max(0) as u32,
-        //     (pos.1 as i32 + direction.y()).max(0) as u32,
-        // );
         let mut target_rect = self.collider;
         target_rect.x += self.x + direction.x() * 16;
         target_rect.y += self.y + direction.y() * 16;
@@ -531,7 +499,7 @@ impl Entity {
             return false;
         }
 
-        return !world.collide_entity(target_rect, player, self.height, entity_list);
+        !world.collide_entity(target_rect, player, self.height, entity_list)
     }
 
     /// TODO: Account for collider offset
@@ -542,7 +510,7 @@ impl Entity {
         )
     }
 
-        // used for reflection
+    // used for reflection
     pub fn walk_noclip(&mut self, direction: Direction, world: &World, player: &Player) -> bool {
         // same
         if let Some(movement) = &self.movement {
@@ -630,6 +598,6 @@ impl Entity {
             }
         }
 
-        return false;
+        false
     }
 }

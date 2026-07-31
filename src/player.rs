@@ -49,10 +49,12 @@ pub struct Player<'a> {
     pub waking_up: bool,
     pub waking_up_timer: u32,
     pub random: f32,
-    pub unlocked_songs: Vec<(String, Vec<f32>)>,
+    pub unlocked_songs: Vec<SongUnlock>,
     pub menu_themes: Vec<MenuTheme>,
     pub current_theme: usize
 }
+
+pub struct SongUnlock { pub name: String, pub speeds_volumes: Vec<(f32, f32)> }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Statistics {
@@ -304,17 +306,18 @@ impl<'a> Player<'a> {
         self.effect_textures.insert(Effect::Rabbit, Texture::from_file(&PathBuf::from("res/textures/player/rabbit.png"), creator).unwrap());
     }
 
-    pub fn unlock_song(&mut self, name: String, speed: f32) {
+    pub fn unlock_song(&mut self, name: String, speed: f32, volume: f32) {
         for song in self.unlocked_songs.iter_mut() {
-            if song.0 == name {
-                if !song.1.contains(&speed) {
-                    song.1.push(speed);
+            if song.name == name {
+                // only count new speeds as unique track letters
+                if !song.speeds_volumes.iter().any(|s| s.0 == speed) {
+                    song.speeds_volumes.push((speed, volume));
                 }
                 return;
             }
         }
 
-        self.unlocked_songs.push((name, vec![speed]));
+        self.unlocked_songs.push(SongUnlock { name, speeds_volumes: vec![(speed, volume)] });
     }
 
     pub fn stash_last_effect(&mut self) {
@@ -701,13 +704,12 @@ impl<'a> Player<'a> {
         if self.animation_override_controller.lay_down_animation {
             self.animation_override_controller.lay_down_animation = false;
             self.animation_override_controller.active = false;
-            //self.facing = Direction::Down;
             self.look_in_direction(Direction::Down);
             self.disable_player_input = false;
         }
 
-        if world.song.is_some() {
-            self.unlock_song(world.song.as_ref().unwrap().name.clone(), world.song.as_ref().unwrap().speed);
+        if let Some(song) = &world.song {
+            self.unlock_song(song.name.clone(), song.default_speed, song.default_volume);
         }
 
         self.layer = 0;

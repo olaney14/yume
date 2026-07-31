@@ -160,6 +160,7 @@ impl ScriptingContext {
         meta.set("__index", globals).unwrap();
         script_env.set_metatable(Some(meta)).unwrap();
 
+        //                                                           vvvvv lua tables are smart pointers
         let script_func = chunk.set_environment(script_env.clone()).into_function().unwrap();
         // Run the script to initialize callbacks
         match script_func.call::<()>(()) {
@@ -573,7 +574,7 @@ impl LuaPlayer {
             dreaming: player.dreaming,
             random: player.random,
             animation_frame: player.animation_info.frame + player.animation_info.frame_row * 3,
-            effect: player.current_effect.clone().map_or("none".to_string(), |a| a.parsable().to_string())
+            effect: player.current_effect.as_ref().map_or("none".to_string(), |a| a.parsable().to_string())
         }
     }
 
@@ -748,7 +749,7 @@ impl UserData for LuaPlayer {
 
 #[derive(Default, Debug, Clone)]
 struct Color {
-
+    // TODO
 }
 
 impl UserData for game::Direction {

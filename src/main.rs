@@ -273,10 +273,10 @@ fn main() {
         canvas.present();
 
         if world.queued_load.is_some() && world.transition.is_some() && world.transition.as_ref().unwrap().progress >= 100 {
-            let transition = world.transition.clone();
+            let transition = world.transition.take();
             let map = world.queued_load.as_ref().unwrap().map.clone();
-            let name = PathBuf::from(map.clone()).file_stem().map(|f| f.to_str().unwrap_or("error").to_string());
-            //let default = world.default_pos.clone();
+            let name = PathBuf::from(&map).file_stem().map(|f| f.to_str().unwrap_or("error").to_string());
+
             player.moving = false;
             player.move_timer = 0;
             let warp_pos = world.queued_load.as_ref().unwrap().pos.clone();
@@ -286,12 +286,9 @@ fn main() {
             if let Some(new_name) = name {
                 if (new_name != world.name) || world.special_context.reload_on_warp {
                     world.special_context.reload_on_warp = false;
-                    let mut old_song = None;
-                    if let Some(song) = &world.song {
-                        old_song = Some(song.path.clone());
-                    }
+                    let old_song = world.song.as_ref().map(|s| s.path.clone());
                     let old_flags = std::mem::replace(&mut world.global_flags, HashMap::new());
-                    world = World::load_from_file(&map, &texture_creator, &mut Some(world), &render_state).expect("failed to load map");
+                    world = World::load_from_file(&map, &texture_creator, Some(world), &render_state).expect("failed to load map");
                     world.global_flags = old_flags;
                     world.transition = transition;
 
@@ -308,8 +305,6 @@ fn main() {
                             }
                         }
                     }
-                    
-                    //world.onload(&player, &sink);
                 } else {
                     world.reset();
                     world.transition_context.take_screenshot = true;
@@ -320,6 +315,7 @@ fn main() {
                     world = World::new(&texture_creator, &render_state);
                     world.global_flags = old_flags;
                     world.transition = transition;
+
                     let mut song = Song::new(PathBuf::from(MAIN_MENU_MUSIC));
                     song.default_speed = MAIN_MENU_MUSIC_SPEED;
                     song.speed = MAIN_MENU_MUSIC_SPEED;
@@ -327,8 +323,6 @@ fn main() {
                     song.default_volume = MAIN_MENU_MUSIC_VOLUME;
                     song.dirty = true;
                     world.song = Some(song);
-                    //world.onload(&player, &sink);
-
                     ui.menu_state.current_menu = MenuType::MainMenu;
                     ui.open = true;
                     ui.clear = true;
@@ -363,7 +357,6 @@ fn main() {
         unsafe {
             let time = time_left(next_time);
             SDL_Delay(time);
-            // next_time += TICK_INTERVAL;
             next_time = SDL_GetTicks() + TICK_INTERVAL;
         }
     }
@@ -415,11 +408,11 @@ fn clamp_camera(render_state: &mut RenderState, world: &World, player: &Player) 
 
 const TICK_INTERVAL: u32 = 16;
 
-unsafe fn time_left(next_time: u32) -> u32 {
-    let now = SDL_GetTicks();
+fn time_left(next_time: u32) -> u32 {
+    let now = unsafe { SDL_GetTicks() };
     if next_time <= now {
-        return 0;
+        0
     } else {
-        return next_time - now;
+        next_time - now
     }
 }

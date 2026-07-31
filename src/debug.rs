@@ -22,7 +22,6 @@ pub enum ProfileTargetType {
 pub struct ProfileTarget {
     pub start: Option<Instant>,
     pub end: Option<Instant>
-    //pub duration: Option<Duration>
 }
 
 impl ProfileTarget {
@@ -272,18 +271,10 @@ impl<'a> Debug<'a> {
             );
         }
 
-        // // F3 + O - optimize map files
-        // if f3_combo(input, Keycode::O) {
-        //     match optimize::optimize_all(&PathBuf::from("res/maps/"), creator) {
-        //         Err(e) => {
-        //             eprintln!("Error in map optimization: {}", e);
-        //         }
-        //         Ok(()) => {
-        //             println!("Map optimization complete");
-        //         }
-        //     }
-        //     sfx.play("click-21156");
-        // }
+        // F3 + O - teleport to origin
+        if f3_combo(input, Keycode::O) {
+            player.set_pos(0, 0);
+        }
 
         // F3 + E - Give all items
         if f3_combo(input, Keycode::E) {
@@ -307,29 +298,25 @@ impl<'a> Debug<'a> {
         if f3_combo(input, Keycode::A) {
             for song in ALL_SONGS.iter() {
                 for speed in song.1.iter() {
-                    player.unlock_song(song.0.to_owned(), *speed);
+                    player.unlock_song(song.0.to_owned(), *speed, 1.0);
                 }
             }
             sfx.play("click-21156");
         }
 
-        if self.load_handle.is_some() {
-            if self.load_handle.as_ref().unwrap().is_finished() {
-                let handle = self.load_handle.take().unwrap();
-                if let Ok(path_opt) = handle.join() {
-                    if let Some(path) = path_opt {
-                        world.queued_load = Some(
-                            crate::game::QueuedLoad { map: path.to_str().unwrap().to_string(), pos: 
-                                WarpPos {
-                                    x: IntProperty::Level(LevelPropertyType::DefaultX),
-                                    y: IntProperty::Level(LevelPropertyType::DefaultY)
-                                }
-                            });
-                        world.transition = Some(Transition::new(TransitionType::Fade, 8, 0, true, 0, false));
-                    }
-                }
-                world.paused = false;
+        if let Some(load_handle) = &self.load_handle && load_handle.is_finished() {
+            let handle = self.load_handle.take().unwrap();
+            if let Ok(Some(path)) = handle.join() {
+                world.queued_load = Some(
+                    crate::game::QueuedLoad { map: path.to_str().unwrap().to_string(), pos: 
+                        WarpPos {
+                            x: IntProperty::Level(LevelPropertyType::DefaultX),
+                            y: IntProperty::Level(LevelPropertyType::DefaultY)
+                        }
+                    });
+                world.transition = Some(Transition::new(TransitionType::Fade, 8, 0, true, 0, false));
             }
+            world.paused = false;
         }
     }
 
@@ -346,8 +333,7 @@ impl<'a> Debug<'a> {
                 println!("SPIKE: {:?} at avg {:?}", self.profiler.get_stage_timing(&ProfileTargetType::Frame).unwrap_or(Duration::ZERO), Duration::from_nanos(avg as u64));
             }
 
-            ui.theme.clear_frame(canvas, 8,/*(state.screen_extents.0 - 172) / 16 */ 0, 12, 16);
-            //ui.theme.clear_frame(canvas, (200 - (16 * 4)) / 16, 150 / 16, 8, 2);
+            ui.theme.clear_frame(canvas, 8, 0, 12, 16);
             ui.theme.draw_frame(canvas, state.screen_extents.0 - 172, 0, 12, 16);
             let text_x = state.screen_extents.0 as i32 - 172 + 6;
             let mut y = 4;

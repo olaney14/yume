@@ -11,7 +11,6 @@ pub enum AnimationAdvancementType {
 }
 
 pub struct DirectionalAnimationData {
-    //pub idle: u32,
     pub frames_per_direction: u32,
     pub up: u32,
     pub down: u32,
@@ -222,7 +221,7 @@ impl Animator {
             }
         }
 
-        return self.frame;
+        self.frame
     }
 
     // use when e.g. entity stops walking
@@ -337,18 +336,18 @@ pub enum PathfinderType {
 impl PathfinderType {
     pub fn parse(input: &str) -> Option<Self> {
         match input.to_lowercase().as_str() {
-            "astar" | "a_star" | "a*" => return Some(Self::AStar),
-            "walk_towards" | "walktowards" => return Some(Self::WalkTowards),
-            "erratic" => return Some(Self::Erratic),
-            _ => return None
+            "astar" | "a_star" | "a*" => Some(Self::AStar),
+            "walk_towards" | "walktowards" => Some(Self::WalkTowards),
+            "erratic" => Some(Self::Erratic),
+            _ => None
         }
     }
 
     pub fn initialize(&self, world: &World) -> Pathfinder {
         match self {
-            Self::AStar => return Pathfinder::a_star(world),
-            Self::WalkTowards => return Pathfinder::walk_towards(),
-            Self::Erratic => return Pathfinder::erratic()
+            Self::AStar => Pathfinder::a_star(world),
+            Self::WalkTowards => Pathfinder::walk_towards(),
+            Self::Erratic => Pathfinder::erratic()
         }
     }
 }
@@ -487,12 +486,12 @@ impl Ai for Bird {
             self.init = true;
             entity.init_movement();
             entity.movement.as_mut().unwrap().speed = self.speed;
-            self.cur_direction = if rand::thread_rng().gen::<bool>() {Direction::Left} else {Direction::Right};
+            self.cur_direction = if rand::thread_rng().r#gen::<bool>() {Direction::Left} else {Direction::Right};
         }
 
         if !entity.movement.as_ref().unwrap().moving {
             if rand::thread_rng().gen_range(0.0..1.0) < 0.025 {
-                if rand::thread_rng().gen::<bool>() {
+                if rand::thread_rng().r#gen::<bool>() {
                     entity.walk(Direction::Up, world, player, entity_list);
                 } else {
                     entity.walk(Direction::Down, world, player, entity_list);
@@ -561,25 +560,25 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
             let delay = parsed["delay"].as_i32().unwrap_or(25);
             let speed = parsed["speed"].as_u32().unwrap_or(2);
             let move_delay = parsed["move_delay"].as_u32().unwrap_or(0);
-            return Ok(Box::new(Wander {
-                            frequency,
-                            delay,
-                            speed,
-                            timer: delay,
-                            move_delay
-                        }));
+            Ok(Box::new(Wander {
+                frequency,
+                delay,
+                speed,
+                timer: delay,
+                move_delay
+            }))
         }, // TODO: add speed ?????
         "move_straight" => {
             let direction = Direction::from_str(parsed["direction"].as_str().expect("Direction must be a string")).expect("Invalid direction");
-            return Ok(Box::new(MoveStraight {
+            Ok(Box::new(MoveStraight {
                 direction
-            }));
+            }))
         },
         "chaser" => {
             let speed = parsed["speed"].as_u32().unwrap_or(1);
             let detection_radius = parsed["detection_radius"].as_u32().unwrap_or(16);
             let pathfinder = parsed["pathfinder"].as_str().unwrap_or("walk_towards");
-            return Ok(Box::new(
+            Ok(Box::new(
                 Chaser {
                     speed,
                     pathfinder_type: PathfinderType::parse(pathfinder).expect("Invalid pathfinder type"),
@@ -595,7 +594,7 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
         },
         "push" => {
             let speed = parsed["speed"].as_u32().unwrap_or(2);
-            return Ok(Box::new(
+            Ok(Box::new(
                 Pushable {
                     init: false,
                     speed
@@ -617,7 +616,7 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                 }
             }
 
-            return Ok(Box::new(
+            Ok(Box::new(
                 AnimateOnInteract {
                     counter: 0,
                     frames,
@@ -627,17 +626,17 @@ pub fn parse_ai(parsed: &JsonValue) -> Result<Box::<dyn Ai>, &str> {
                     takes_walk,
                     side
                 }
-            ));
+            ))
         },
         "bird" => {
             let speed = parsed["speed"].as_u32().unwrap_or(2);
-            return Ok(Box::new(Bird {
+            Ok(Box::new(Bird {
                 cur_direction: Direction::Left,
                 init: false,
                 speed
-            }));
+            }))
         }
-        _ => return Err("Unknown ai type")
+        _ => Err("Unknown ai type")
     }
 }
 
@@ -662,7 +661,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
         "still" => {
             if !parsed["frame"].is_number() { return Err("No frame specified for still animation"); }
 
-            return Ok(Animator { 
+            Ok(Animator { 
                 frame_data: AnimationFrameData::SingleFrame(parsed["frame"].as_u32().unwrap()), 
                 tileset, 
                 tileset_width: Some(tileset_width),
@@ -671,7 +670,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 timer: 0,
                 on_move,
                 manual
-            });
+            })
         },
         "sequence" => {
             if !parsed["start"].is_number() { return Err("No starting frame specified for frame sequence"); }
@@ -681,7 +680,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
             let length = parsed["length"].as_u32().unwrap();
             let stride = parsed["stride"].as_u32().unwrap_or(1);
 
-            return Ok(Animator {
+            Ok(Animator {
                 frame: start,
                 speed,
                 tileset_width: Some(tileset_width),
@@ -695,7 +694,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 },
                 on_move,
                 manual
-            });
+            })
         },
         "directional" => {
             let up = parsed["up"].as_u32().unwrap_or(0);
@@ -706,7 +705,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
             let frames = parsed["frames"].as_u32().unwrap();
             let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
 
-            return Ok(
+            Ok(
                 Animator {
                     frame: down * frames + (frames / 2),
                     speed,
@@ -734,7 +733,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
             let frames = parsed["frames"].as_u32().unwrap();
             let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
 
-            return Ok(
+            Ok(
                 Animator {
                     frame: left * frames + (frames / 2),
                     speed,
@@ -759,7 +758,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
             let axes = world::Axis::parse(parsed["axes"].as_str().expect("Expected string for follow animation axes.")).expect("Could not parse axes for follow animation");
             let speed = parsed["speed"].as_u32().unwrap_or(DEFAULT_ANIMATION_SPEED);
 
-            return Ok(
+            Ok(
                 Animator {
                     frame: center,
                     speed,
@@ -777,7 +776,7 @@ pub fn parse_animator(parsed: &JsonValue, tileset: u32, tileset_width: u32) -> R
                 }
             )
         }
-        _ => return Err("Unrecognized animation type")
+        _ => Err("Unrecognized animation type")
     }
 }
 
@@ -815,15 +814,15 @@ impl Pathfinder {
 
     pub fn get_polled(&mut self) -> Option<&mut Box<dyn PolledPathfinder>> {
         match self {
-            Self::Polled(p) => return Some(p),
-            _ => return None
+            Self::Polled(p) => Some(p),
+            _ => None
         }
     }
 
     pub fn get_calculated(&mut self) -> Option<&mut Box<dyn CalculatedPathfinder>> {
         match self {
-            Self::Calculated(c) => return Some(c),
-            _ => return None
+            Self::Calculated(c) => Some(c),
+            _ => None
         }
     }
 }
@@ -851,9 +850,9 @@ pub fn manhattan_looped_dist(x0: u32, y0: u32, x1: u32, y1: u32, width: u32, hei
     let xbase1 = (x1 as i32 - x0 as i32).rem_euclid(width as i32) as u32;
     let ybase1 = (y1 as i32 - y0 as i32).rem_euclid(height as i32) as u32;
 
-    return manhattan_dist(x0, y0, x1, y1)
+    manhattan_dist(x0, y0, x1, y1)
         .min(manhattan_dist(0, 0, xbase0, ybase0))
-        .min(manhattan_dist(0, 0, xbase1, ybase1));
+        .min(manhattan_dist(0, 0, xbase1, ybase1))
 }
 
 const ASTAR_MAX_STEPS: u32 = 10000;
@@ -966,8 +965,8 @@ impl CalculatedPathfinder for AStarPathfinder {
 
                 let cmp = f0.cmp(&f1);
                 match cmp {
-                    std::cmp::Ordering::Equal => return a.h_cost.cmp(&b.h_cost),
-                    _ => return cmp
+                    std::cmp::Ordering::Equal => a.h_cost.cmp(&b.h_cost),
+                    _ => cmp
                 }
             });
             //println!("Find min time: {:?}", Instant::now() - time);
@@ -1051,24 +1050,9 @@ impl AStarPathfinder {
         }
         steps = steps.into_iter().rev().collect();
         self.cur_path = steps.into();
-        return true;
+        true
     }
 }
-
-// pub fn manhattan_dist(x0: u32, y0: u32, x1: u32, y1: u32) -> u32 {
-//     x0.abs_diff(x1) + y0.abs_diff(y1)
-// }
-
-// pub fn manhattan_looped_dist(x0: u32, y0: u32, x1: u32, y1: u32, width: u32, height: u32) -> u32 {
-//     let xbase0 = (x0 as i32 - x1 as i32).rem_euclid(width as i32) as u32;
-//     let ybase0 = (y0 as i32 - y1 as i32).rem_euclid(height as i32) as u32;
-//     let xbase1 = (x1 as i32 - x0 as i32).rem_euclid(width as i32) as u32;
-//     let ybase1 = (y1 as i32 - y0 as i32).rem_euclid(height as i32) as u32;
-
-//     return manhattan_dist(x0, y0, x1, y1)
-//         .min(manhattan_dist(0, 0, xbase0, ybase0))
-//         .min(manhattan_dist(0, 0, xbase1, ybase1));
-// }
 
 pub fn looped_x_distance(x0: u32, x1: u32, width: u32) -> u32 {
     let xbase0 = (x0 as i32 - x1 as i32).rem_euclid(width as i32) as u32;
@@ -1100,17 +1084,12 @@ impl PolledPathfinder for WalkTowardsPathfinder {
         // this is RIDICULOUS
         // HOW does this work
         if diff_x > diff_y {
-            if diff_x == 0 { return None; }
-            let mut direction;
-            if (x1 - x0 as i32) > 0 { direction = Direction::Right; }
-            else { direction = Direction::Left; }
+            let mut direction = if (x1 - x0 as i32) > 0 { Direction::Right } else { Direction::Left };
             if diff_x != x1.abs_diff(x0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
         } else {
             if diff_y == 0 { return None; }
-            let mut direction;
-            if (y1 - y0 as i32) > 0 { direction = Direction::Down; }
-            else { direction = Direction::Up; }
+            let mut direction = if (y1 - y0 as i32) > 0 { Direction::Down } else { Direction::Up };
             if diff_y != y1.abs_diff(y0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
         }
@@ -1121,20 +1100,18 @@ impl PolledPathfinder for WalkTowardsPathfinder {
             match suggested_direction {
                 Direction::Left | Direction::Right => {
                     if diff_y == 0 { return None; }
-                    if (y1 - y0 as i32) > 0 { suggested_direction = Direction::Up }
-                    else { suggested_direction = Direction::Down }
+                    suggested_direction = if (y1 - y0 as i32) > 0 { Direction::Up } else { Direction::Down };
                     if y1.abs_diff(y0 as i32) != diff_y { suggested_direction = suggested_direction.flipped() }
                 },
                 _ => {
                     if diff_x == 0 { return None; }
-                    if (x1 - x0 as i32) > 0 { suggested_direction = Direction::Right }
-                    else { suggested_direction = Direction::Left }
+                    suggested_direction = if (x1 - x0 as i32) > 0 { Direction::Right } else { Direction::Left };
                     if x1.abs_diff(x0 as i32) != diff_x { suggested_direction = suggested_direction.flipped() } 
                 }
             }
         }
         
-        return Some(suggested_direction);
+        Some(suggested_direction)
     }
 }
 
@@ -1149,31 +1126,26 @@ impl PolledPathfinder for ErraticPathfinder {
         let mut suggested_direction;
 
         if diff_x > diff_y {
-            if diff_x == 0 { return None; }
-            let mut direction;
-            if (x1 - x0 as i32) > 0 { direction = Direction::Right; }
-            else { direction = Direction::Left; }
+            let mut direction = if (x1 - x0 as i32) > 0 { Direction::Right } else { Direction::Left };
             if diff_x != x1.abs_diff(x0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
         } else {
             if diff_y == 0 { return None; }
-            let mut direction;
-            if (y1 - y0 as i32) > 0 { direction = Direction::Down; }
-            else { direction = Direction::Up; }
+            let mut direction = if (y1 - y0 as i32) > 0 { Direction::Down } else { Direction::Up };
             if diff_y != y1.abs_diff(y0 as i32) { direction = direction.flipped() }
             suggested_direction = direction;
         }
 
         if rand::thread_rng().gen_range(0.0..1.0) < 0.1 {
-            suggested_direction = rand::thread_rng().gen::<Direction>();
+            suggested_direction = rand::thread_rng().r#gen::<Direction>();
         }
 
-        return Some(suggested_direction);
+        Some(suggested_direction)
     }
 
     fn idle(&mut self, _: u32, _: u32, _: i32, _: &Player, _: &mut World, _: &Vec<Entity>) -> Option<Direction> {
         if rand::thread_rng().gen_range(0.0..1.0) < 0.005 {
-            return Some(rand::thread_rng().gen::<Direction>());
+            return Some(rand::thread_rng().r#gen::<Direction>());
         }
 
         None

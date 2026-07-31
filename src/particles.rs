@@ -10,7 +10,6 @@ use crate::{game::RenderState, world::World};
 pub enum ParticleValue<T: SampleUniform + Copy + PartialOrd> {
     Value(T),
     RandRange(T, T),
-    //RandRangeNormal(T, T)
 }
 
 impl<T: SampleUniform + Copy + PartialOrd + Debug> ParticleValue<T> {
@@ -18,7 +17,6 @@ impl<T: SampleUniform + Copy + PartialOrd + Debug> ParticleValue<T> {
         match self {
             Self::Value(v) => *v,
             Self::RandRange(min, max) => rand::thread_rng().gen_range(*min..*max),
-            //Self::RandRangeNormal(min, max) => rand::thread_rng().gen_range(range)
         }
     }
 }
@@ -220,21 +218,6 @@ fn parse_u32_pair(json: &JsonValue) -> Option<(u32, u32)> {
     None
 }
 
-// pub texture: String,
-// pub pos: (i32, i32),
-
-// pub particles: VecDeque<Particle>,
-
-// pub pos_offset: (ParticleValue<f32>, ParticleValue<f32>),
-// pub init_vel: (ParticleValue<f32>, ParticleValue<f32>),
-// pub init_tx_coord: (ParticleValue<f32>, ParticleValue<f32>),
-// pub init_life: ParticleValue<f32>,
-// pub init_tx_vel: (ParticleValue<f32>, ParticleValue<f32>),
-// pub freq: u32,
-// pub timer: i32
-
-// tex, offset, vel, acc, tx, tx vel, lifetime, freq (just a number)
-
 type ParticleFloatPair = (ParticleValue<f32>, ParticleValue<f32>);
 
 const DEFAULT_LIFETIME: ParticleValue<u32> = ParticleValue::RandRange(120, 150);
@@ -256,7 +239,6 @@ pub fn parse_particles(json: &JsonValue) -> Option<ParticleEmitter> {
     let freq = if !json["freq"].is_null() { json["freq"].as_u32().expect("failed to parse particle property `freq`") } else { DEFAULT_FREQ };
     let texture_path = if !json["texture"].is_null() { json["texture"].as_str().expect("failed to parse particle emitter texture") } else { "missing.png" };
     let size = if !json["size"].is_null() { parse_u32_pair(&json["size"]).expect("failed to parse particle property `size`") } else { (1, 1) };
-    //let texture = texture::Texture::from_file(&PathBuf::from("res/textures/particle/").join(texture_path), creator).expect("failed to load particle texture");
     let freq_rand = if !json["freq_rand"].is_null() { json["freq_rand"].as_i32().unwrap().abs() } else { 0 };
     let stagnate = if !json["stagnate"].is_null() { parse_particle_f32(&json["stagnate"]).expect("failed to parse particle property `stagnate`") } else { DEFAULT_STAGNATE };
 

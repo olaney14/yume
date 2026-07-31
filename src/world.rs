@@ -28,7 +28,7 @@ pub enum Interaction {
 impl Interaction {
     pub fn get_pos(&self) -> (i32, i32) {
         match self {
-            &Self::Use(x, y) | &Self::Bump(x, y) | &Self::Walk(x, y) => return (x, y)
+            &Self::Use(x, y) | &Self::Bump(x, y) | &Self::Walk(x, y) => (x, y)
         }
     }
 }
@@ -125,12 +125,12 @@ pub enum Axis {
 impl Axis {
     pub fn parse(from: &str) -> Option<Self> {
         match from.to_lowercase().as_ref() {
-            "all" => return Some(Self::All),
-            "horizontal" | "horiz" | "x" => return Some(Self::Horizontal),
-            "vertical" | "vert" | "y" => return Some(Self::Vertical),
+            "all" => Some(Self::All),
+            "horizontal" | "horiz" | "x" => Some(Self::Horizontal),
+            "vertical" | "vert" | "y" => Some(Self::Vertical),
             _ => {
                 eprintln!("Warning: Invalid axis type `{}`", from);
-                return None;
+                None
             }
         }
     }
@@ -184,9 +184,20 @@ impl<'a> World<'a> {
     }
 
     /// this function creates a new world, without copying any settings
-    /// but reusing loaded textures
-    pub fn with_old<T>(old: &mut World<'a>, creator: &'a TextureCreator<T>) -> Self {
-        let transitions = std::mem::replace(&mut old.transitions, TransitionTextures::empty(creator));
+    /// but reusing loaded textures <br>
+    /// also retains the song for seamless music transition
+    pub fn with_old<T>(old: World<'a>, creator: &'a TextureCreator<T>) -> Self {
+        // let transitions = std::mem::replace(&mut old.transitions, TransitionTextures::empty(creator));
+
+        let World {
+            transitions,
+            mut transition_context,
+            song,
+            random,
+            ..
+        } = old;
+
+        transition_context.take_screenshot = true;
 
         Self {
             layers: Vec::new(),
@@ -207,7 +218,7 @@ impl<'a> World<'a> {
             looping: false,
             looping_axes: None,
             render_texture: None,
-            song: None,
+            song,
             tint: None,
             entities: Some(Vec::new()),
             default_pos: None,
@@ -217,10 +228,7 @@ impl<'a> World<'a> {
             flags: HashMap::new(),
             global_flags: HashMap::new(),
             transitions,
-            transition_context: TransitionContext {
-                screenshot: old.transition_context.screenshot.take(),
-                take_screenshot: true
-            },
+            transition_context,
             timer: 0,
             draw_player: true,
             raindrops: RaindropsInfo::new(),
@@ -232,7 +240,7 @@ impl<'a> World<'a> {
             pre_event_song: None,
             entity_draw_order: Vec::new(),
             player_draw_slot: None,
-            random: old.random.clone().level()
+            random: random.level()
         }
     }
 
@@ -904,19 +912,6 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn draw_whole_tile_layer<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, state: &RenderState) {
-        let width = self.width;
-
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let tile = layer.map.tiles[(y * width + x) as usize];
-                if tile.tileset >= 0 && tile.id >= 0 {
-                    self.tilesets[tile.tileset as usize].draw_tile(canvas, tile.id as u32, (x as i32 * 16 + state.offset.0, y as i32 * 16 + state.offset.1));
-                }
-            }
-        }
-    }
-
     pub fn draw_tile_layer<T: RenderTarget>(&self, canvas: &mut Canvas<T>, layer: &Layer, looping: bool, state: &RenderState) {
         let orig_x = -state.offset.0 / 16;
         let orig_y = -state.offset.1 / 16;
@@ -1062,10 +1057,6 @@ impl<'a> World<'a> {
                 } else {
                     self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, position);
                 }
-
-                // if let Some(particles) = &entity.particle_emitter {
-                //     particles.draw(canvas, &self, state);
-                // }
             }
         } else {
             if let Some(animator) = &entity.animator {
@@ -1073,10 +1064,6 @@ impl<'a> World<'a> {
             } else {
                 self.tilesets[entity.tileset as usize].draw_tile_sized(canvas, entity.id, (entity.x + state.offset.0, entity.y + state.offset.1));
             }
-
-            // if let Some(particles) = &entity.particle_emitter {
-            //     particles.draw(canvas, &self, state);
-            // }
         }
     }
 
@@ -1094,13 +1081,12 @@ impl<'a> World<'a> {
     }
 
     pub fn get_mut_layer_by_name(&mut self, name: &str) -> Option<&mut Layer> {
-        return self.layers.iter_mut().find(|layer| layer.name == name)
+        self.layers.iter_mut().find(|layer| layer.name == name)
     }
 
     pub fn try_set_tile(&mut self, layer: &str, tileset: &str, tile: i32, x: u32, y: u32) -> Result<(), ()> {
         let try_tileset = self.get_tileset_by_name(tileset);
-        //let index = (y * self.width + x) as usize;
-        //let width = self.width;
+
         if let Some(tileset) = try_tileset {
             if let Some(layer) = self.get_mut_layer_by_name(layer) {
                 layer.map.set_tile(x, y, Tile::new(tile, tileset)).unwrap();
@@ -1129,7 +1115,8 @@ impl<'a> World<'a> {
                 return true;
             }
         }
-        return false;
+
+        false
     }
 
     fn get_entity_collision_at_tile(&self, x: u32, y: u32, height: i32) -> bool {
@@ -1138,39 +1125,18 @@ impl<'a> World<'a> {
                 return true;
             }
         }
-        return false;
+
+        false
     }
 
     /// Get a collision on a certain layer with the player
     pub fn get_collision_at_tile(&self, x: u32, y: u32, height: i32) -> bool {
-        if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
-        if self.get_entity_collision_at_tile(x, y, height) { return true; }
-
-        return false;
+        self.get_tilemap_collision_at_tile(x, y, height) || self.get_entity_collision_at_tile(x, y, height)
     }
 
     pub fn get_unbounded_collision_at_tile(&self, x: i32, y: i32, height: i32) -> bool {
-        if x >= 0 && y >= 0 {
-            if self.get_tilemap_collision_at_tile(x as u32, y as u32, height) { return true; }
-            if self.get_entity_collision_at_tile(x as u32, y as u32, height) { return true; }
-        }
-
-        return false;
+        x >= 0 && y >= 0 && self.get_collision_at_tile(x as u32, y as u32, height)
     }
-
-    // pub fn collide_entity_at_tile_with_list(&self, x: u32, y: u32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
-    //     if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
-    //     for entity in entity_list.iter().filter(|e| e.height == height) {
-    //         if entity.get_collision(Rect::new(x as i32 * 16, y as i32 * 16, 16, 16)) {
-    //             return true;
-    //         }
-    //     }
-    //     if let Some(player) = player_opt {
-    //         if Rect::new(x as i32 * 16, y as i32 * 16, 16, 16).has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) { return true; }
-    //     }
-
-    //     return false;
-    // }
 
     pub fn get_unbounded_collision_at_tile_with_list(&self, x: i32, y: i32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
         if x >= 0 && y >= 0 {
@@ -1186,14 +1152,13 @@ impl<'a> World<'a> {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn collide_entity_at_tile(&self, x: u32, y: u32, player: &Player, height: i32) -> bool {
-        if self.get_tilemap_collision_at_tile(x, y, height) { return true; }
-        if self.get_entity_collision_at_tile(x, y, height) { return true; }
+        if self.get_collision_at_tile(x, y, height) { return true; }
         if Rect::new(x as i32 * 16, y as i32 * 16, 16, 16).has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) { return true; }
-        return false;
+        false
     }
 
     pub fn collide_rect(&self, rect: Rect, height: i32) -> bool {
@@ -1209,7 +1174,7 @@ impl<'a> World<'a> {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn collide_entity_at_tile_with_list(&self, x: u32, y: u32, player_opt: Option<&Player>, height: i32, entity_list: &Vec<Entity>) -> bool {
@@ -1223,7 +1188,7 @@ impl<'a> World<'a> {
             if Rect::new(x as i32 * 16, y as i32 * 16, 16, 16).has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) { return true; }
         }
 
-        return false;
+        false
     }
 
     pub fn collide_entity(&self, rect: Rect, player: &Player, height: i32, entity_list: &Vec<Entity>) -> bool {
@@ -1239,11 +1204,7 @@ impl<'a> World<'a> {
             }
         }
 
-        if rect.has_intersection(Rect::new(player.x, player.y + 16, 16, 16)) {
-            return true;
-        }
-
-        return false;
+        rect.has_intersection(Rect::new(player.x, player.y + 16, 16, 16))
     }
 }
 
@@ -1260,7 +1221,7 @@ impl<'a> ParticleTextures<'a> {
         }
     }
 
-    pub fn get_texture(&self, id: &String) -> Option<&texture::Texture> {
+    pub fn get_texture(&'a self, id: &String) -> Option<&'a texture::Texture<'a>> {
         self.textures.get(id)
     }
 

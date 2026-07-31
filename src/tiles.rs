@@ -218,7 +218,7 @@ impl Tilemap {
             return true;
         }
 
-        return self.collision[(y * self.width + x) as usize];
+        self.collision[(y * self.width + x) as usize]
     }
 
     pub fn get_special(&self, x: u32, y: u32) -> Option<&SpecialTile> {
@@ -226,7 +226,15 @@ impl Tilemap {
             return None;
         }
 
-        return self.special[(y * self.width + x) as usize].as_ref();
+        self.special[(y * self.width + x) as usize].as_ref()
+    }
+
+    pub fn get_special_mut(&mut self, x: u32, y: u32) -> Option<&mut SpecialTile> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+
+        self.special[(y * self.width + x) as usize].as_mut()
     }
 
     pub fn get_collision_with_rect(&self, rect: Rect) -> bool {
@@ -240,7 +248,7 @@ impl Tilemap {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn set_collision(&mut self, x: u32, y: u32, state: bool) {

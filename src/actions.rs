@@ -454,7 +454,9 @@ impl Action for ChangeSongAction {
         }
         world.song = current_song_opt;
 
-        player.unlock_song(world.song.as_ref().unwrap().name.clone(), world.song.as_ref().unwrap().speed);
+        if let Some(song) = &world.song {
+            player.unlock_song(song.name.clone(), song.speed, song.volume);
+        }
     }
 }
 
@@ -518,28 +520,10 @@ impl SetAnimationFrameAction {
 
 // TODO: on calling this action, the entities list has an entity removed from it and using
 // id is completely invalid so use special context or somethign to fix itplease
+// you could fix this OR you could just never use the json properties again
 impl Action for SetAnimationFrameAction {
     fn act(&self, player: &mut Player, world: &mut World) {
         if let Some(frame) = self.frame.get(Some(player), Some(world)) {
-            // let target = match &self.target {
-            //     AnimationFrameTarget::This => {
-            //         if !world.special_context.entity_context.entity_call {
-            //             eprintln!("Warning: attemped set_animation_frame action on `this` without a valid caller");
-            //             None
-            //         } else {
-            //             let id = world.special_context.entity_context.id;
-            //             world.entities.as_mut().unwrap().get_mut(id as usize)
-            //         }
-            //     },
-            //     AnimationFrameTarget::Other(id) => {
-            //         if let Some(id) = id.get(Some(player), Some(world)) {
-            //             world.entities.as_mut().unwrap().get_mut(id as usize)
-            //         } else {
-            //             None
-            //         }
-            //     }
-            // };
-
             world.defer_entity_action(Box::new(move |entity: &mut Entity| {
                 entity.animator = Some(Animator::new(crate::ai::AnimationFrameData::SingleFrame(frame as u32), entity.tileset, 0));
             }));
@@ -1011,43 +995,6 @@ impl Action for SetLayerVisibleAction {
         eprintln!("No layer `{}` found", self.layer);
     }
 }
-
-// struct SlideCameraAction {
-//     direction: bool,
-//     x: i32,
-//     y: i32,
-//     speed: u32
-// }
-
-
-// impl SlideCameraAction {
-//     pub fn parse(parsed: &JsonValue) -> Result<Box<dyn Action>, String> {
-//         let direction = parsed["direction"].as_bool().unwrap_or(true);
-//         let x = parsed["x"].as_i32().expect("Expected `x` offset in camera slide action");
-//         let y = parsed["y"].as_i32().expect("Expected `y` offset in camera slide action");
-//         let speed = parsed["speed"].as_u32().unwrap_or(1);
-
-//         Ok(Box::new(Self {
-//             direction,
-//             speed,
-//             x,
-//             y
-//         }))
-//     }
-// }
-
-// impl Action for SlideCameraAction {
-//     fn act(&self, player: &mut Player, world: &mut World) {
-//         world.special_context.camera_slide = true;
-//         if self.direction {
-//             world.special_context.camera_slide_target = (self.x, self.y);
-//         } else {
-//             world.special_context.camera_slide_target = (0, 0);
-//             world.special_context.camera_slide_offset = (self.x, self.y);
-//         }
-//         world.special_context.camera_slide_speed = self.speed;
-//     }
-// }
 
 struct UnfreezeAction;
 

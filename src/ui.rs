@@ -258,20 +258,20 @@ impl MenuState {
                 MenuType::MusicPlayer => {
                     if player.unlocked_songs.len() > 0 {
                         let song = &player.unlocked_songs[(self.button_id + self.page_index * 16) as usize];
-                        let path = PathBuf::from(format!("res/audio/music/{}.ogg", song.0));
+                        let path = PathBuf::from(format!("res/audio/music/{}.ogg", song.name));
                         
                         if world.song.as_ref().is_some_and(|song| song.path == path) {
                             self.song_variant_index += 1;
-                            if self.song_variant_index >= song.1.len() {
+                            if self.song_variant_index >= song.speeds_volumes.len() {
                                 self.song_variant_index = 0;
                             }
-                            world.song.as_mut().unwrap().speed = song.1[self.song_variant_index];
-                            world.song.as_mut().unwrap().volume = 1.0;
+                            world.song.as_mut().unwrap().speed = song.speeds_volumes[self.song_variant_index].0;
+                            world.song.as_mut().unwrap().volume = song.speeds_volumes[self.song_variant_index].1;
                             world.song.as_mut().unwrap().dirty = true;
                         } else {
                             world.song = Some(Song::new(path));
-                            world.song.as_mut().unwrap().volume = 1.0;
-                            world.song.as_mut().unwrap().speed = song.1[0];
+                            world.song.as_mut().unwrap().speed = song.speeds_volumes[0].0;
+                            world.song.as_mut().unwrap().volume = song.speeds_volumes[0].1;
                             world.song.as_mut().unwrap().dirty = true;
                             world.song.as_mut().unwrap().reload = true;
                         }
@@ -725,10 +725,10 @@ impl<'a> Ui<'a> {
                         for i in 0..buttons_on_page {
                             let id = (i + self.menu_state.page_index * 16) as usize;
                             let song = &player.unlocked_songs[id];
-                            self.theme.draw_button(canvas, 16, y, 16 * 12, song.0.as_str(), selected_button == id as i32, self.menu_state.selection_flash);
-                            if song.1.len() > 1 {
+                            self.theme.draw_button(canvas, 16, y, 16 * 12, &song.name, selected_button == id as i32, self.menu_state.selection_flash);
+                            if song.speeds_volumes.len() > 1 {
                                 let mut x = 16 + 16 * 12 + 4;
-                                for j in 0..song.1.len().min(11) {
+                                for j in 0..song.speeds_volumes.len().min(11) {
                                     let selected = selected_button == id as i32 && self.menu_state.song_variant_index == j;
                                     self.theme.draw_button(canvas, x, y, 16, SONG_VARIANT_LABELS[j], selected, self.menu_state.selection_flash);
                                     x += 12;
@@ -947,7 +947,7 @@ impl<'a> Font<'a> {
     }
 
     pub fn string_width(&self, string: &str) -> u32 {
-        return string.len() as u32 * (self.char_width + self.char_spacing.0);
+        string.len() as u32 * (self.char_width + self.char_spacing.0)
     }
 
     pub fn draw_string<T: RenderTarget,>(&self, canvas: &mut Canvas<T>, message: &str, pos: (i32, i32)) {

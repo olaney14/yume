@@ -106,8 +106,9 @@ pub struct Song {
 }
 
 impl Song {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new<P: AsRef<Path>>(path: P) -> Self {
         // let file = File::open(&path).expect(format!("Failed to load song {}", path.as_os_str().to_str().unwrap()).as_str());
+        let path = path.as_ref().to_path_buf();
         let name = path.file_stem().unwrap().to_str().unwrap().to_owned();
         // let source = rodio::Decoder::new(BufReader::new(file)).unwrap().repeat_infinite();
         let source = CrossfadedLoop::new(&path, CROSSFADE_LOOP_MS);
@@ -164,7 +165,7 @@ impl Song {
 }
 
 fn crossfade_loop_buffer(
-    samples: Vec<f32>,
+    mut samples: Vec<f32>,
     channels: u16,
     sample_rate: u32,
     fade_ms: u32
@@ -178,8 +179,9 @@ fn crossfade_loop_buffer(
     }
 
     let total = samples.len();
-    // this looks bad but is so so cheap compared to actually loading the song from disk
-    let mut output = samples.clone();
+    // i could be wrong but i actually think this can just all be done in place
+    // // this looks bad but is so so cheap compared to actually loading the song from disk
+    // // let mut output = samples.clone();
 
     for i in 0..fade_samples {
         let a = i as f32 / fade_samples as f32;
@@ -187,15 +189,14 @@ fn crossfade_loop_buffer(
         // sample index from the end to apply crossfade
         let tail_ix = total - fade_samples + i;
         // fade out end
-        output[tail_ix] *= 1.0 - a;
+        samples[tail_ix] *= 1.0 - a;
 
         // fade in beginning
-        output[tail_ix] += samples[i] * a;
+        samples[tail_ix] += samples[i] * a;
     }
 
     // trim beginning to avoid double playing
-    output[fade_samples..].to_vec()
-    // output
+    samples[fade_samples..].to_vec()
 }
 
 pub struct CrossfadedLoop {
