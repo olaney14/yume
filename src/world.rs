@@ -1290,7 +1290,8 @@ pub struct ImageLayer<'a> {
     pub parallax_y: i32,
     /// True - divide, False - multiply
     pub parallax_mode: bool,
-    pub name: String
+    pub name: String,
+    pub center: bool
 }
 
 impl<'a> ImageLayer<'a> {
@@ -1312,7 +1313,8 @@ impl<'a> ImageLayer<'a> {
             parallax_mode: true,
             parallax_x: 1,
             parallax_y: 1,
-            name: "Image Layer".to_string()
+            name: "Image Layer".to_string(),
+            center: false
         }
     }
 
@@ -1322,10 +1324,13 @@ impl<'a> ImageLayer<'a> {
 
     /// Draw image layer as looping (if enabled) with enough tiling to cover the screen
     pub fn draw<T: RenderTarget>(&self, canvas: &mut Canvas<T>, state: &RenderState) {
-        let modified_offset = (
+        let modified_offset = if !self.center { (
             if self.parallax_mode { state.offset.0 / self.parallax_x } else { state.offset.0 * self.parallax_x },
             if self.parallax_mode { state.offset.1 / self.parallax_y } else { state.offset.1 * self.parallax_y }
-        );
+        ) } else { ( // TODO this might not work with looping images
+            state.screen_extents.0 as i32 / 2 - self.image.width as i32 / 2,
+            state.screen_extents.1 as i32 / 2 - self.image.height as i32 / 2
+        ) };
 
         let w_i32 = self.image.width as i32;
         let h_i32 = self.image.height as i32;

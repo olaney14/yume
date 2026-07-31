@@ -136,6 +136,7 @@ static ALL_SONGS: LazyLock<Vec<(&str, Vec<f32>)>> = LazyLock::new(|| { vec![
     ("luckily", vec![0.9, 0.75]),
     ("lullaby", vec![1.0]),
     ("lunar", vec![1.0]),
+    ("pop", vec![1.0]),
     ("marine", vec![0.5]),
     ("Marketpossture", vec![0.9]),
     ("me0", vec![1.0]),

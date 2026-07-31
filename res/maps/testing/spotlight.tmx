@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#ffffff" nextlayerid="3" nextobjectid="1">
+ <properties>
+  <property name="looping" type="bool" value="true"/>
+  <property name="music" value="res/audio/music/wound.ogg"/>
+  <property name="music_speed" type="float" value="1"/>
+  <property name="music_volume" type="float" value="1"/>
+ </properties>
+ <layer id="1" name="Tile Layer 1" width="16" height="16">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <imagelayer id="2" name="Spotlight">
+  <image source="../../textures/image/spotlight2.png" width="512" height="512"/>
+  <properties>
+   <property name="center" type="bool" value="true"/>
+   <property name="delay_x" type="int" value="1"/>
+   <property name="delay_y" type="int" value="1"/>
+   <property name="height" type="int" value="0"/>
+   <property name="looping" type="bool" value="false"/>
+   <property name="parallax_x" type="int" value="1"/>
+   <property name="parallax_y" type="int" value="1"/>
+   <property name="scroll_x" type="int" value="0"/>
+   <property name="scroll_y" type="int" value="0"/>
+  </properties>
+ </imagelayer>
+</map>

@@ -138,7 +138,8 @@ fn main() {
             match event {
                 Event::Quit { .. } => break 'mainloop,
                 Event::KeyDown { keycode, repeat, .. } => {
-                    if keycode.is_some() && !repeat {
+                    // allow key repeat on arrow keys if in a ui menu
+                    if keycode.is_some() && (!repeat || (ui.open && matches!(keycode, Some(Keycode::Up | Keycode::Down)))) {
                         input.pressed(keycode.unwrap());
                     }
                 },

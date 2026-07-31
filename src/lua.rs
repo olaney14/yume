@@ -162,8 +162,12 @@ impl ScriptingContext {
 
         let script_func = chunk.set_environment(script_env.clone()).into_function().unwrap();
         // Run the script to initialize callbacks
-        script_func.call::<()>(()).unwrap();
-        self.entity_scripts.insert(id, script_env);
+        match script_func.call::<()>(()) {
+            Ok(_) => { self.entity_scripts.insert(id, script_env); },
+            Err(e) => eprintln!("Error initializing entity script, aborted: {:?}", e)
+        };
+        // if script_func.call::<()>(()).unwrap();
+        // self.entity_scripts.insert(id, script_env);
     }
 
     fn call_interact(&mut self, function: &str, id: u32, direction: game::Direction, world: &mut World) {

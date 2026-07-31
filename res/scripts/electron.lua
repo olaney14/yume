@@ -1,3 +1,5 @@
+local nerve = require("res.scripts.nerve_paths.nerve_paths")
+
 function quantize(num, to)
     return math.floor(num * to)
 end
@@ -10,6 +12,17 @@ local facing = Directions.Down
 function _load(world, this, player) 
     math.randomseed(quantize(world:session_random(), 255))
     this.speed = 2
+    this.walk_over = true
+end
+
+---@param world World
+---@param this Entity
+---@param player Player
+---@param direction Direction
+function _walk(world, this, player, direction)
+    if not nerve.enable_movement then
+        world:play("step7_funny", 1.5, 1.0)
+    end
 end
 
 -- these are the only ones actually used in the map so far
@@ -122,7 +135,7 @@ local anim_timer = 4
 ---@param this Entity
 ---@param player Player
 function _update(world, this, player)
-    if not this:moving() then
+    if not this:moving() and nerve.enable_movement then
         -- for _ = 0, 3, 1 do
         --     if not try_move(world, this) then
         --         facing = rotate_cw[facing]
